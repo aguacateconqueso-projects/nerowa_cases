@@ -1,0 +1,42 @@
+# dependencias
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# build
+/.next/
+/out/
+/build
+/dist
+
+# produccion
+*.tsbuildinfo
+next-env.d.ts
+
+# entorno
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# sistema operativo
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# tests / cobertura
+/coverage
+/playwright-report
+/test-results
