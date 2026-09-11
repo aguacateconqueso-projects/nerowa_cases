@@ -54,6 +54,29 @@ sigue la norma de arriba.
 
 ---
 
+## Boton principal
+
+`LiquidMetalButton` (`src/components/ui/liquid-metal-button.tsx`):
+**rectangular, esquinas rectas, fondo negro, borde y texto dorados.**
+
+El borde no es de color plano. Son dos capas de fondo — una recortada a la caja
+interior y otra a la caja del borde — y al mover la posicion de la segunda, un
+reflejo casi blanco recorre el marco como la luz sobre metal pulido.
+
+El texto usa el rol de etiqueta del sistema.
+
+**Nada de esquinas redondeadas.** Es una decision de marca, no una preferencia
+suelta: el boton redondeado se probo y se descarto.
+
+**No intentar de nuevo la silueta del estuche.** Se dibujo su perfil en
+horizontal como forma del boton y se descarto: la silueta solo sirve si es
+**igual** al estuche real, y el estuche real tiene proporcion cercana a 1:10 y
+va vertical, asi que a tamano de boton no cabe texto legible dentro. Una
+version "inspirada" no cumple. Si algun dia se retoma, tendria que ser con el
+estuche de verdad y en un sitio donde quepa entero, no en un boton.
+
+---
+
 ## Iconos del navegador
 
 - `src/app/icon.png` — 256 x 256, la N del logo centrada con margen.
@@ -84,7 +107,8 @@ esa entra en la fase 2, junto con la formula del fondo por color de estuche.
 
 - Espaciado en **multiplos de 8**.
 - Contraste **WCAG AA** en todo texto.
-- **Maximo dos animaciones por pagina.** Hoy la pagina de espera tiene tres
-  (haces del fondo, entrada del contenido, recorrido del borde del boton); esta
-  anotado como deuda en `progreso.md`.
+- **No hay tope de animaciones.** La regla de "maximo dos por pagina" se
+  retiro de este proyecto por decision de Alfredo. El criterio pasa a ser el
+  juicio: que cada movimiento tenga un motivo y que ninguno estorbe la lectura.
+  `prefers-reduced-motion` se sigue respetando siempre.
 - Cero fotos de banco de imagenes, cero ilustraciones genericas.

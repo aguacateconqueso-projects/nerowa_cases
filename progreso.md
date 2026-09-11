@@ -38,6 +38,8 @@ espera publicable. Todavia no hay sistema de diseno ni tienda.
 | 2026-09-11 | **Archivo** como tipografia de todo el proyecto | Decision de Alfredo. Se carga con `next/font`, servida desde el mismo dominio |
 | 2026-09-11 | Sistema tipografico en clases (`.t-heading`, `.t-label`, `.t-body`, `.t-figures`) | Para que un cambio de tamano se haga en un sitio y no en catorce. La norma esta en `docs/sistema-visual.md` |
 | 2026-09-11 | Logo blanco plano, arriba a la izquierda, 140 px / 110 px | Decision de Alfredo. El blanco sale por filtro CSS sobre el mismo archivo dorado, sin segunda version |
+| 2026-09-11 | **Se retira el tope de dos animaciones por pagina** | Decision de Alfredo: no aplica a este proyecto. El criterio pasa a ser el juicio, no un numero |
+| 2026-09-11 | El boton principal se queda **rectangular**, sin silueta | Se probo con el perfil del estuche y Alfredo lo descarto: si no es igual al estuche real, no sirve |
 
 ---
 
@@ -197,6 +199,32 @@ animacion en tres puntos del ciclo.
 
 **Sigue abierto:** las tres animaciones contra el maximo de dos, y el 404 de
 produccion en Vercel.
+
+### Sesion 6 — 2026-09-11
+
+**Hecho:**
+
+- **Se retira el tope de dos animaciones**, en el README y en
+  `docs/sistema-visual.md`. Queda el respeto a `prefers-reduced-motion`.
+
+**Probado y descartado: el boton con la silueta del estuche.** Se dibujo el
+perfil del estuche puesto en horizontal (vertical no cabe: el producto es
+1:10 y el texto no entra). Alfredo lo vio y lo descarto con un criterio claro:
+**si la silueta no es igual al estuche real, no le sirve**; una version
+"inspirada en" no cumple. El boton vuelve al rectangular.
+
+Queda anotado en `docs/sistema-visual.md` para que nadie lo reintente. Si algun
+dia se retoma, tendria que ser con el estuche de verdad y en un sitio donde
+quepa entero, no en un boton.
+
+**El 404 de Vercel, cerrado.** Alfredo mando el log completo del build del
+commit `ff7b068`, que es `main`. El build esta sano de punta a punta: compila,
+TypeScript pasa, prerenderiza las cuatro rutas (`/`, `/_not-found`,
+`/icon.png`, `/underconstruction`), escribe la salida y despliega. **No hay
+nada en el build que explique un 404.** La conclusion es que el 404 que se vio
+venia de un despliegue anterior, de cuando `main` todavia no tenia la
+aplicacion. Si reapareciera, el problema estaria en el dominio o el alias, no
+en el build.
 
 ---
 

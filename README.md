@@ -30,4 +30,3 @@ La especificacion de estructura y comportamiento esta en [`docs/estructura-web.m
 - Espaciado en multiplos de 8. Escala tipografica consistente.
 - Contraste WCAG AA en todo texto.
 - Cero fotos de banco de imagenes, cero ilustraciones genericas.
-- Maximo dos animaciones por pagina.
