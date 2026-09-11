@@ -7,19 +7,58 @@ Si algo no esta escrito aqui, no paso.
 
 ## Estado actual
 
-**Fase 1 de 7 — andamiaje.** El repositorio existe, la aplicacion Next.js corre y
-se puede desplegar en Vercel. En `/` y en `/underconstruction` hay una pagina de
-espera publicable. Todavia no hay sistema de diseno ni tienda.
+**Fase 1 de 7 — cerrada.** La pagina de espera esta **publicada en
+`nerowacases.com`**. El repositorio, Next.js, Tailwind y el despliegue en Vercel
+funcionan. Todavia no hay sistema de diseno ni tienda: eso arranca en la fase 2.
+
+**De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
+de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
+Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ---
 
 ## Condiciones de trabajo
 
-1. Todo cambio entra por un **pull request nuevo** contra `main`.
+1. Todo cambio entra por un **pull request nuevo**. Contra que rama, pendiente
+   de decidir desde que el dominio esta publicado: ver "Entornos y publicacion"
+   y el primer punto de "Pendiente de decidir". Hasta que se decida, nada se
+   mezcla a `main`, porque `main` es lo que sale en el dominio.
 2. Idioma de trabajo: **espanol neutro**. El sitio publico va en **ingles**.
 3. El despliegue se hace en **Vercel**.
 4. Cualquier duda se pregunta **antes** de aplicar el cambio.
 5. Este archivo se actualiza al cerrar cada sesion.
+
+---
+
+## Entornos y publicacion
+
+**Regla, a partir del 2026-09-11:** el dominio publico muestra **solo** la
+pagina de espera. Lo que se va construyendo se mira en Vercel.
+
+| Entorno | Que muestra | Quien entra |
+|---|---|---|
+| `nerowacases.com` (produccion) | Solo la pagina de espera | Cualquiera. Es lo que ve quien llega de Instagram |
+| Preview de Vercel (una URL por rama) | La rama que se este trabajando | Solo quien tenga la URL, y con la proteccion activada solo quien tenga cuenta en el proyecto |
+
+**Como funciona.** Cada push a una rama que no sea `main` genera en Vercel un
+despliegue de preview con URL propia (`...-git-<rama>-<cuenta>.vercel.app`). El
+dominio no se entera: sigue sirviendo el ultimo despliegue de produccion.
+
+**Que hay que dejar claro sobre los previews:**
+
+- Vercel les manda `X-Robots-Tag: noindex`, asi que **no salen en Google**.
+- Pero por defecto **quien tenga la URL puede abrirla**. Para cerrarlas de
+  verdad hay que encender **Vercel Authentication** en el panel del proyecto
+  (Settings → Deployment Protection): con eso, entrar exige iniciar sesion con
+  una cuenta que tenga acceso al proyecto. Es ajuste del panel, no del
+  repositorio; lo tiene que hacer Alfredo. La proteccion por contrasena es otra
+  cosa y va en plan pago.
+
+**La alternativa de la ruta oculta** (montar lo nuevo en produccion bajo un
+camino que nadie adivine) se descarta como via principal: mete trabajo sin
+terminar en el mismo despliegue que ve el publico, y un error de ruta lo deja
+a la vista. Si algun dia hace falta, se hace con `middleware.ts` y contrasena
+en variable de entorno, no solo con un nombre raro de carpeta.
 
 ---
 
@@ -40,6 +79,7 @@ espera publicable. Todavia no hay sistema de diseno ni tienda.
 | 2026-09-11 | Logo blanco plano, arriba a la izquierda, 140 px / 110 px | Decision de Alfredo. El blanco sale por filtro CSS sobre el mismo archivo dorado, sin segunda version |
 | 2026-09-11 | **Se retira el tope de dos animaciones por pagina** | Decision de Alfredo: no aplica a este proyecto. El criterio pasa a ser el juicio, no un numero |
 | 2026-09-11 | El boton principal se queda **rectangular**, sin silueta | Se probo con el perfil del estuche y Alfredo lo descarto: si no es igual al estuche real, no sirve |
+| 2026-09-11 | **El dominio queda congelado en la pagina de espera**; todo lo demas se revisa en previews de Vercel | Decision de Alfredo. Lo que llega de Instagram no puede toparse con la tienda a medio hacer |
 
 ---
 
@@ -47,7 +87,7 @@ espera publicable. Todavia no hay sistema de diseno ni tienda.
 
 | # | Fase | Contenido | Estado |
 |---|---|---|---|
-| 1 | Andamiaje | Repositorio, Next.js, Tailwind, `progreso.md`, despliegue en Vercel, pagina de espera | En curso |
+| 1 | Andamiaje | Repositorio, Next.js, Tailwind, `progreso.md`, despliegue en Vercel, pagina de espera | **Hecha** — publicada en `nerowacases.com` el 2026-09-11 |
 | 2 | Sistema de diseno | Paleta, escala tipografica, grid de 8 px, tokens, formula del fondo por color | Pendiente |
 | 3 | Hero | Cortina de entrada, escena 3D, selector de vista, selector de color, boton de compra | Pendiente |
 | 4 | Bloques y pie | Los 6 bloques al bajar, el menu y el pie | Pendiente |
@@ -243,6 +283,32 @@ espanol y ahi el despacho desde Vilnius es un dato del negocio, no copy publico.
 **Comprobado:** `typecheck`, `lint` y `build` limpios; las cuatro rutas siguen
 prerenderizadas como estaticas.
 
+**La pagina de espera quedo publicada en `nerowacases.com`.** Alfredo la subio
+al dominio y responde. Con eso la fase 1 se cierra.
+
+**Regla nueva (decision de Alfredo):** el dominio se queda ahi. `nerowacases.com`
+sirve la pagina de espera y nada mas; de aqui en adelante la web se sigue
+armando, pero se mira en los previews de Vercel, no en el dominio. La mecanica
+quedo escrita arriba, en "Entornos y publicacion".
+
+**Copy del cierre, cambiado despues (texto de Alfredo, entra tal cual).** El
+parrafo final era uno solo: "The website isn't finished. The case is. Write to
+us and we'll sell you one today.". Ahora son dos lineas seguidas:
+
+1. "The website is coming, the case is here already"
+2. "Write to us and we'll sell you one today."
+
+Van con 16 px entre ellas, la mitad de la separacion que traen los demas
+parrafos, para que se lean como un bloque y no como dos ideas sueltas.
+**La primera linea va sin punto final**, tal como la mando Alfredo; queda
+anotado porque las demas si lo llevan y a simple vista parece un descuido.
+
+**Lo que esa regla obliga a resolver (ver "Pendiente de decidir"):** hoy la
+condicion 1 dice que todo entra por pull request contra `main`, y `main` es lo
+que Vercel publica en el dominio. Si se sigue asi al pie de la letra, el primer
+PR de la fase 2 que se mezcle cambia lo que ve el publico. Hay que separar
+las dos cosas antes de empezar la fase 2.
+
 ---
 
 ## Pendiente de Alfredo (bloquea trabajo)
@@ -265,6 +331,17 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
 
 ## Pendiente de decidir
 
+- **Como se separa lo publicado de lo que se esta armando.** Es lo primero,
+  porque bloquea el arranque de la fase 2. Dos formas:
+  1. **Rama larga `dev`.** `main` se congela con la pagina de espera y es lo
+     unico que va al dominio. Todo el trabajo se acumula en `dev`, que tiene su
+     propia URL de preview fija, y `dev` se mezcla a `main` solo el dia que
+     Alfredo diga "esto sale". Es lo recomendado.
+  2. Seguir mezclando a `main` y **desconectar el dominio del despliegue
+     automatico**, publicandolo a mano desde Vercel. Menos ramas, pero el
+     dominio depende de acordarse de no promover un despliegue.
+- **Encender Vercel Authentication** en el proyecto para que los previews no se
+  abran solo con tener la URL. Lo hace Alfredo en el panel.
 - Tipografias definitivas (fase 2). Hoy corre una pila de sistema, provisional.
 - Formula exacta del fondo oscuro y desaturado a partir del color del estuche (fase 2).
 - Cual de las tres alternativas de movimiento en movil se implementa (fase 3).

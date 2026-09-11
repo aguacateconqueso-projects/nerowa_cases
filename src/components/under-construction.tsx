@@ -61,8 +61,11 @@ export function UnderConstruction() {
           </p>
 
           <p className="t-body-sm mt-8 text-balance text-white/70">
-            The website isn&rsquo;t finished. The case is. Write to us and
-            we&rsquo;ll sell you one today.
+            The website is coming, the case is here already
+          </p>
+
+          <p className="t-body-sm mt-4 text-balance text-white/70">
+            Write to us and we&rsquo;ll sell you one today.
           </p>
 
           <LiquidMetalButton
