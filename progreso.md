@@ -171,6 +171,33 @@ con 0,96 px de tracking (el +8% exacto); texto en Archivo 400 a 17 px; titular
 en Archivo 700 con -0,24 px (el -1% exacto); la fuente carga desde el propio
 dominio, sin errores de consola; sin desbordamiento a 320, 390 y 1440 px.
 
+### Sesion 5 — 2026-09-11
+
+**Hecho:**
+
+- **Excepcion del logo en la pagina de espera**, por decision de Alfredo: aqui
+  va centrado, a 360 px y en dorado. La norma (blanco plano, 140 px, arriba a
+  la izquierda) sigue en pie para todo lo demas y quedo escrita como excepcion
+  acotada en `docs/sistema-visual.md`.
+- **Favicon.** El archivo subido (`public/images/favicon.png`, 278 x 260) no era
+  cuadrado. Se recorto a su caja real y se centro sobre un lienzo cuadrado con
+  margen: `src/app/icon.png` a 256 px y `src/app/favicon.ico` a 48. Los dos van
+  en `src/app/` y no en `public/`, que es donde Next los detecta por nombre.
+- **Boton nuevo: `LiquidMetalButton`.** Rectangular, esquinas rectas, fondo
+  negro, borde y texto dorados. El borde es un degradado de oro que se recorre
+  despacio, con un reflejo casi blanco que lo cruza. Se hace con dos capas de
+  fondo y `background-clip`, sin pseudo-elementos y sin SVG.
+- **`PearlButton` eliminado.** Lo reemplaza el nuevo; dejarlo era codigo muerto.
+
+**Comprobado:** `typecheck`, `lint` y `build` limpios; el boton con radio 0 y
+texto en `#f0c56b`; el `mailto` intacto; las dos etiquetas de icono emitidas y
+`/favicon.ico` sirviendo 200 `image/x-icon`; sin desbordamiento a 320, 390 y
+1440 px; sin errores de consola; el recorrido del borde revisado congelando la
+animacion en tres puntos del ciclo.
+
+**Sigue abierto:** las tres animaciones contra el maximo de dos, y el 404 de
+produccion en Vercel.
+
 ---
 
 ## Pendiente de Alfredo (bloquea trabajo)

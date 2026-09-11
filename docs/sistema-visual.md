@@ -43,6 +43,26 @@ sistema fijan **peso, tracking y caja**, que es lo que define el rol.
 - **~140 px de ancho en escritorio, ~110 px en movil.**
 - **Arriba a la izquierda**, en el `header`. No centrado.
 
+### Unica excepcion: la pagina de espera
+
+En `/` y `/underconstruction` el logo va **centrado, en grande (360 px, o 74%
+del ancho en movil) y en su dorado**. Ahi no hay resto de sitio del que ser el
+encabezado: la pagina entera es la marca.
+
+La excepcion **empieza y termina en esa pagina**. Cualquier pantalla nueva
+sigue la norma de arriba.
+
+---
+
+## Iconos del navegador
+
+- `src/app/icon.png` — 256 x 256, la N del logo centrada con margen.
+- `src/app/favicon.ico` — la misma imagen a 48 x 48, para el `/favicon.ico` que
+  algunos navegadores piden solos.
+
+Los dos viven en `src/app/`, no en `public/`: Next los detecta por el nombre y
+escribe las etiquetas `<link rel="icon">` sin que haya que declararlas.
+
 ---
 
 ## Color
@@ -65,6 +85,6 @@ esa entra en la fase 2, junto con la formula del fondo por color de estuche.
 - Espaciado en **multiplos de 8**.
 - Contraste **WCAG AA** en todo texto.
 - **Maximo dos animaciones por pagina.** Hoy la pagina de espera tiene tres
-  (haces del fondo, entrada del contenido, barrido del boton); esta anotado
-  como deuda en `progreso.md`.
+  (haces del fondo, entrada del contenido, recorrido del borde del boton); esta
+  anotado como deuda en `progreso.md`.
 - Cero fotos de banco de imagenes, cero ilustraciones genericas.
