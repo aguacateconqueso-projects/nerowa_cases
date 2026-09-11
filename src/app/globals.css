@@ -48,8 +48,109 @@ body {
   animation: rise-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/*
+  Boton perlado. El relieve sale de tres capas: degradado de cuatro paradas,
+  reflejo interior arriba y sombra interior abajo. El resplandor exterior es
+  dorado y crece al pasar por encima.
+*/
+.pearl-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 9999px;
+  padding: 1rem 2rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #1a1204;
+  background: linear-gradient(
+    180deg,
+    #f7e3b0 0%,
+    var(--gold-bright) 38%,
+    var(--gold) 72%,
+    #a97d27 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 252, 240, 0.7),
+    inset 0 -1px 2px rgba(90, 60, 10, 0.45),
+    0 0 0 1px rgba(212, 164, 65, 0.35),
+    0 8px 28px -6px rgba(212, 164, 65, 0.45);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.pearl-button:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 252, 240, 0.85),
+    inset 0 -1px 2px rgba(90, 60, 10, 0.45),
+    0 0 0 1px rgba(240, 197, 107, 0.55),
+    0 12px 36px -6px rgba(212, 164, 65, 0.7);
+}
+
+.pearl-button:active {
+  transform: translateY(0);
+}
+
+.pearl-button:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 4px;
+}
+
+/*
+  Barrido de luz. Va en un span aparte y no en un ::before porque el boton ya
+  usa ::before implicitamente en el degradado de fondo, y porque asi se puede
+  apagar solo el barrido con prefers-reduced-motion.
+*/
+.pearl-sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  width: 45%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.15) 65%,
+    transparent 100%
+  );
+  animation: pearl-sheen 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes pearl-sheen {
+  0% {
+    transform: translateX(-140%) skewX(-20deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  65%,
+  100% {
+    transform: translateX(300%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rise-in {
+  .rise-in,
+  .pearl-sheen {
     animation: none;
+  }
+
+  /* Sin movimiento el barrido estorba, asi que se esconde del todo. */
+  .pearl-sheen {
+    display: none;
   }
 }
