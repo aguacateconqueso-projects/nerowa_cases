@@ -3,16 +3,25 @@
 /*
   Los tokens definitivos (paleta, escala tipografica, espaciado, radios)
   llegan en el PR del sistema de diseno. Lo que hay aqui es el minimo
-  para que el andamiaje se vea coherente: fondo negro y texto legible.
+  para que el andamiaje se vea coherente: fondo negro, texto legible y la
+  franja dorada que usa la pagina de espera.
 */
 :root {
   --background: #000000;
   --foreground: #f2f2f2;
+
+  /* Dorado. Un solo tono y dos derivados, nada mas hasta la fase 2. */
+  --gold: #d4a441;
+  --gold-bright: #f0c56b;
+  --gold-deep: #8a6a20;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-deep: var(--gold-deep);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
@@ -21,4 +30,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* Entrada del contenido. La segunda y ultima animacion; la primera son los haces. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in {
+    animation: none;
+  }
 }
