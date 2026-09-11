@@ -7,9 +7,33 @@ Si algo no esta escrito aqui, no paso.
 
 ## Estado actual
 
-**Fase 1 de 7 — andamiaje.** El repositorio existe, la aplicacion Next.js corre y
-se puede desplegar en Vercel. En `/` y en `/underconstruction` hay una pagina de
-espera publicable. Todavia no hay sistema de diseno ni tienda.
+**Fase 1 cerrada. Entrando en la fase 2.**
+
+La pagina de espera esta **viva en produccion**, en `/` y en `/underconstruction`,
+con el copy definitivo, el logo, el favicon y la tipografia de la marca. Los PR
+1 a 5 estan mergeados en `main`, que es lo que Vercel construye.
+
+Lo que **ya existe** y no hay que rehacer:
+
+- Andamiaje: Next.js 16, TypeScript, Tailwind v4, despliegue en Vercel.
+- Tipografia **Archivo** y el sistema de roles (`docs/sistema-visual.md`).
+- Logo, favicon e iconos del navegador.
+- Fondo de haces y el boton rectangular dorado.
+
+Lo que **todavia no existe**: la paleta de los 14 colores, la formula del fondo
+por color, el grid de 8 px como tal, y toda la tienda. Eso es la fase 2 en
+adelante.
+
+### Abierto ahora mismo
+
+| Que | Estado |
+|---|---|
+| PR #6 (solo documentacion: retirar el tope de animaciones y anotar el descarte de la silueta) | Abierto, sin mergear |
+| Conectar el dominio `nerowacases.com` al proyecto de Vercel | Sin empezar. Hace falta saber si va con `www` o sin `www`, y donde esta el DNS |
+| Verificar la pagina en produccion despues del ultimo merge | Alfredo lo esta revisando |
+
+El **404 de Vercel esta cerrado**: era de un despliegue viejo, de cuando `main`
+estaba vacio. Ver la sesion 6.
 
 ---
 
@@ -47,7 +71,7 @@ espera publicable. Todavia no hay sistema de diseno ni tienda.
 
 | # | Fase | Contenido | Estado |
 |---|---|---|---|
-| 1 | Andamiaje | Repositorio, Next.js, Tailwind, `progreso.md`, despliegue en Vercel, pagina de espera | En curso |
+| 1 | Andamiaje | Repositorio, Next.js, Tailwind, `progreso.md`, despliegue en Vercel, pagina de espera | **Hecho** |
 | 2 | Sistema de diseno | Paleta, escala tipografica, grid de 8 px, tokens, formula del fondo por color | Pendiente |
 | 3 | Hero | Cortina de entrada, escena 3D, selector de vista, selector de color, boton de compra | Pendiente |
 | 4 | Bloques y pie | Los 6 bloques al bajar, el menu y el pie | Pendiente |
@@ -133,7 +157,7 @@ subio el logo y pidio el boton perlado.
 390 y 1440 px; sin errores de consola; el `mailto` intacto; el barrido revisado
 fotograma a fotograma congelando la animacion.
 
-**Abierto — ojo con esto:**
+**Abierto — ojo con esto:** *(los dos se cerraron despues, en la sesion 6)*
 
 1. **Tres animaciones en una pagina.** La convencion del proyecto dice maximo
    dos. Hoy hay tres: los haces del fondo, la entrada del contenido (`rise-in`)
@@ -198,7 +222,7 @@ texto en `#f0c56b`; el `mailto` intacto; las dos etiquetas de icono emitidas y
 animacion en tres puntos del ciclo.
 
 **Sigue abierto:** las tres animaciones contra el maximo de dos, y el 404 de
-produccion en Vercel.
+produccion en Vercel. *(Los dos se cerraron en la sesion 6.)*
 
 ### Sesion 6 — 2026-09-11
 
@@ -217,6 +241,10 @@ Queda anotado en `docs/sistema-visual.md` para que nadie lo reintente. Si algun
 dia se retoma, tendria que ser con el estuche de verdad y en un sitio donde
 quepa entero, no en un boton.
 
+El codigo del boton se revirtio desde `main`, no se reescribio: es byte por byte
+el mismo que ya estaba desplegado. Por eso **el PR #6 quedo siendo solo
+documentacion**, con cero cambios en `src/`.
+
 **El 404 de Vercel, cerrado.** Alfredo mando el log completo del build del
 commit `ff7b068`, que es `main`. El build esta sano de punta a punta: compila,
 TypeScript pasa, prerenderiza las cuatro rutas (`/`, `/_not-found`,
@@ -225,6 +253,11 @@ nada en el build que explique un 404.** La conclusion es que el 404 que se vio
 venia de un despliegue anterior, de cuando `main` todavia no tenia la
 aplicacion. Si reapareciera, el problema estaria en el dominio o el alias, no
 en el build.
+
+**Al cerrar la sesion:** el PR #6 esta abierto sin mergear y Alfredo esta
+verificando la pagina en produccion. El siguiente paso acordado es **conectar el
+dominio `nerowacases.com`**, y para eso hace falta saber si va con `www` o sin
+`www` y donde esta el DNS.
 
 ---
 
@@ -245,10 +278,10 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
 | Cuenta de Stripe y claves de prueba | 5 | Falta |
 | Datos legales de la empresa (razon social, domicilio, identificacion fiscal) | 6 | Falta |
 | Existencias iniciales por color | 7 | Falta |
+| Como va el dominio: con `www` o sin `www`, y donde esta el DNS | 1 | Falta |
 
 ## Pendiente de decidir
 
-- Tipografias definitivas (fase 2). Hoy corre una pila de sistema, provisional.
 - Formula exacta del fondo oscuro y desaturado a partir del color del estuche (fase 2).
 - Cual de las tres alternativas de movimiento en movil se implementa (fase 3).
 - Proveedor de base de datos y de correo para el panel y las reservas (fases 5 a 7).
