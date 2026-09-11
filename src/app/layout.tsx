@@ -17,7 +17,7 @@ const archivo = Archivo({
 });
 
 const DESCRIPTION =
-  "Not open yet. Already selling. A double bass case for two bows, 180 EUR, in fourteen colours. Shipped from Vilnius to the EU and the UK.";
+  "Not open yet. Already selling. A double bass case for two bows, 180 EUR, in fourteen colours. Shipped from Europe.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://nerowacases.com"),

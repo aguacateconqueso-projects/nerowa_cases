@@ -226,6 +226,23 @@ venia de un despliegue anterior, de cuando `main` todavia no tenia la
 aplicacion. Si reapareciera, el problema estaria en el dominio o el alias, no
 en el build.
 
+### Sesion 7 — 2026-09-11
+
+**Hecho:**
+
+- **Cambio de copy en la linea de envio.** "Shipped from Vilnius to the European
+  Union and the United Kingdom." pasa a **"Shipped from Europe."** en la pagina
+  de espera (`src/components/under-construction.tsx`). La misma frase iba
+  abreviada en la descripcion de metadatos (`src/app/layout.tsx`, tambien usada
+  por Open Graph y Twitter) y se cambio igual, para que la tarjeta que sale al
+  compartir el enlace no contradiga a la pagina.
+
+No se toco `README.md` ni `docs/estructura-web.md`: son documentos internos en
+espanol y ahi el despacho desde Vilnius es un dato del negocio, no copy publico.
+
+**Comprobado:** `typecheck`, `lint` y `build` limpios; las cuatro rutas siguen
+prerenderizadas como estaticas.
+
 ---
 
 ## Pendiente de Alfredo (bloquea trabajo)

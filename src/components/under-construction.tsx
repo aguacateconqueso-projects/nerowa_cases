@@ -57,7 +57,7 @@ export function UnderConstruction() {
           </p>
 
           <p className="t-body-sm mt-8 text-balance text-white/45">
-            Shipped from Vilnius to the European Union and the United Kingdom.
+            Shipped from Europe.
           </p>
 
           <p className="t-body-sm mt-8 text-balance text-white/70">
