@@ -291,6 +291,18 @@ sirve la pagina de espera y nada mas; de aqui en adelante la web se sigue
 armando, pero se mira en los previews de Vercel, no en el dominio. La mecanica
 quedo escrita arriba, en "Entornos y publicacion".
 
+**Copy del cierre, cambiado despues (texto de Alfredo, entra tal cual).** El
+parrafo final era uno solo: "The website isn't finished. The case is. Write to
+us and we'll sell you one today.". Ahora son dos lineas seguidas:
+
+1. "The website is coming, the case is here already"
+2. "Write to us and we'll sell you one today."
+
+Van con 16 px entre ellas, la mitad de la separacion que traen los demas
+parrafos, para que se lean como un bloque y no como dos ideas sueltas.
+**La primera linea va sin punto final**, tal como la mando Alfredo; queda
+anotado porque las demas si lo llevan y a simple vista parece un descuido.
+
 **Lo que esa regla obliga a resolver (ver "Pendiente de decidir"):** hoy la
 condicion 1 dice que todo entra por pull request contra `main`, y `main` es lo
 que Vercel publica en el dominio. Si se sigue asi al pie de la letra, el primer
