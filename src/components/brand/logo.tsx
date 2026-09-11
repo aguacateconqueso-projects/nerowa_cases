@@ -17,9 +17,10 @@ export function Logo({ className }: LogoProps) {
       priority
       /*
         Sin `sizes`, Next sirve la variante mas grande del srcset. En pantalla
-        el logo nunca pasa de 360 px, y el trafico llega con datos moviles.
+        el logo mide 110 px en movil y 140 en escritorio, y el trafico llega
+        con datos moviles.
       */
-      sizes="(max-width: 480px) 74vw, 360px"
+      sizes="(max-width: 640px) 110px, 140px"
       className={className}
     />
   );

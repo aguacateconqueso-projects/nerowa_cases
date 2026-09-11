@@ -5,48 +5,77 @@ import { CONTACT_EMAIL } from "@/lib/brand";
 
 const MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Nerowa Cases")}`;
 
+const QUESTIONS = [
+  {
+    id: "price",
+    text: (
+      <>
+        A double bass case, properly made, for{" "}
+        <span className="t-figures">€180</span>?
+      </>
+    ),
+  },
+  {
+    id: "bows",
+    text: "A double bass case that fits a German and a French bow?",
+  },
+  { id: "looks", text: "A double bass case for two bows that isn’t ugly?" },
+  { id: "colours", text: "In fourteen colours?" },
+];
+
 export function UnderConstruction() {
   return (
     <BeamsBackground>
+      <header className="px-6 pt-8 sm:px-10 sm:pt-10">
+        <Logo className="logo-flat-white h-auto w-[110px] sm:w-[140px]" />
+      </header>
+
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center sm:px-8">
         <div className="rise-in flex w-full max-w-xl flex-col items-center">
-          {/* El logo ya trae su propio filete ornamental: no se le pone otro. */}
-          <Logo className="h-auto w-[min(74vw,360px)]" />
-
-          <p className="mt-12 text-[0.6875rem] tracking-[0.4em] text-[var(--gold)]/80 uppercase">
-            Under construction
-          </p>
-
-          <h1 className="mt-6 text-2xl leading-tight font-light text-white sm:text-3xl">
-            A case for two double bass bows.
+          {/*
+            El h1 es la linea de estado, no el remate: es lo que resume la
+            pagina para un lector de pantalla o para un buscador. Que se vea
+            como etiqueta y no como titular es una decision visual, no
+            semantica.
+          */}
+          <h1 className="t-label text-[var(--gold)]">
+            Not open yet. Already selling.
           </h1>
 
-          <p className="mt-6 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
-            One model, fourteen colours. Made and shipped from Vilnius to the
-            European Union and the United Kingdom.
+          <ul className="t-body mt-10 w-full space-y-4 text-balance text-white/80">
+            {QUESTIONS.map((question) => (
+              <li key={question.id}>{question.text}</li>
+            ))}
+          </ul>
+
+          <p className="t-heading mt-10 text-2xl text-balance text-white sm:text-3xl">
+            Yeah. Nobody else was going to make it.
           </p>
 
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-white/45">
-            The shop is not open yet. Until it is, orders, colours and questions
-            all reach us at one address.
+          <p className="t-body-sm mt-8 text-balance text-white/45">
+            Shipped from Vilnius to the European Union and the United Kingdom.
+          </p>
+
+          <p className="t-body-sm mt-8 text-balance text-white/70">
+            The website isn&rsquo;t finished. The case is. Write to us and
+            we&rsquo;ll sell you one today.
           </p>
 
           <PearlButton href={MAILTO} className="mt-12">
             Write to us
           </PearlButton>
 
-          <a
-            href={MAILTO}
-            className="mt-6 text-xs tracking-[0.18em] text-white/40 underline-offset-4 transition-colors hover:text-[var(--gold)] focus-visible:text-[var(--gold)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold-bright)]"
-          >
-            {CONTACT_EMAIL}
-          </a>
+          <p className="t-body-sm mt-6 text-sm text-white/40">
+            <a
+              href={MAILTO}
+              className="text-white/60 underline-offset-4 transition-colors hover:text-[var(--gold)] focus-visible:text-[var(--gold)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold-bright)]"
+            >
+              {CONTACT_EMAIL}
+            </a>{" "}
+            &mdash; we answer.
+          </p>
         </div>
       </main>
-
-      <footer className="relative z-10 px-6 pb-10 text-center text-[0.625rem] tracking-[0.3em] text-white/25 uppercase sm:px-8">
-        Vilnius &middot; EU &amp; UK
-      </footer>
     </BeamsBackground>
   );
 }

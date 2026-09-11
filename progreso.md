@@ -35,6 +35,9 @@ espera publicable. Todavia no hay sistema de diseno ni tienda.
 | 2026-09-11 | Fondo de haces dorados **determinista**, no aleatorio | Con posiciones al azar la pagina salia negra en una carga y mostaza en la siguiente |
 | 2026-09-11 | El logo se cambia en una sola linea (`src/lib/brand.ts`) | Nadie tiene que tocar una pagina para cambiar el logo |
 | 2026-09-11 | El logo vive recortado en `public/brand/logo.png` | El archivo original traia 890 px de margen transparente; sin recortar deja un hueco enorme encima y debajo |
+| 2026-09-11 | **Archivo** como tipografia de todo el proyecto | Decision de Alfredo. Se carga con `next/font`, servida desde el mismo dominio |
+| 2026-09-11 | Sistema tipografico en clases (`.t-heading`, `.t-label`, `.t-body`, `.t-figures`) | Para que un cambio de tamano se haga en un sitio y no en catorce. La norma esta en `docs/sistema-visual.md` |
+| 2026-09-11 | Logo blanco plano, arriba a la izquierda, 140 px / 110 px | Decision de Alfredo. El blanco sale por filtro CSS sobre el mismo archivo dorado, sin segunda version |
 
 ---
 
@@ -140,8 +143,33 @@ fotograma a fotograma congelando la animacion.
    detecta, pero la pagina responde `404: NOT_FOUND` de plataforma. Falta ver
    el final del log del build para saber que publica.
 
-**No hecho a proposito:** no se toco el copy. Alfredo lo cambia en el siguiente
-paso.
+**Copy definitivo (mismo dia, despues):** Alfredo mando el texto y entro tal
+cual. El titular pasa a ser "Not open yet. Already selling." y el cuerpo son
+cuatro preguntas en serie que rematan en "Yeah. Nobody else was going to make
+it.". Tambien se quito la flecha del boton: en telefono se movia con el barrido
+de luz. Y se quito el pie, que repetia la linea de Vilnius.
+
+Las cuatro preguntas se probaron alineadas a la izquierda, para que se viera la
+repeticion de "A double bass case" al arranque de tres lineas seguidas. **Alfredo
+las quiso centradas y centradas quedaron.** Van con `text-balance`, que reparte
+las lineas al cortar y evita la palabra huerfana suelta debajo.
+
+### Sesion 4 — 2026-09-11
+
+**Hecho:**
+
+- **Archivo** como tipografia de todo el proyecto, con `next/font`.
+- Sistema tipografico en `globals.css` y la norma escrita en
+  `docs/sistema-visual.md`. Esto rige de aqui en adelante, no solo esta pagina.
+- Logo blanco plano, arriba a la izquierda, 140 px en escritorio y 110 en movil.
+  El blanco sale de un filtro CSS sobre el mismo archivo dorado: un solo
+  archivo, no dos versiones por color.
+- El boton adopta el estilo de etiqueta del sistema (12 px, tracking +8%).
+
+**Comprobado en el navegador, no de memoria:** etiqueta en Archivo 500 a 12 px
+con 0,96 px de tracking (el +8% exacto); texto en Archivo 400 a 17 px; titular
+en Archivo 700 con -0,24 px (el -1% exacto); la fuente carga desde el propio
+dominio, sin errores de consola; sin desbordamiento a 320, 390 y 1440 px.
 
 ---
 

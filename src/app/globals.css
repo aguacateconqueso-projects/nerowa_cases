@@ -22,14 +22,75 @@
   --color-gold: var(--gold);
   --color-gold-bright: var(--gold-bright);
   --color-gold-deep: var(--gold-deep);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/*
+  ---------------------------------------------------------------------------
+  Sistema tipografico. Rige esta pagina y todo lo que venga despues.
+  La norma completa esta en `docs/sistema-visual.md`.
+
+  Se usan clases y no valores sueltos para que el dia que cambie un tamano
+  cambie en un solo sitio, no en catorce.
+  ---------------------------------------------------------------------------
+*/
+
+/* Titulares: Archivo 600-700, ancho normal, tracking -1%, caja baja. */
+.t-heading {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Variante mas liviana del titular, dentro del mismo rango del sistema. */
+.t-heading-soft {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Etiquetas: Archivo 500, 11-12 px, mayusculas, tracking +8%. */
+.t-label {
+  font-weight: 500;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Texto: Archivo 400, 16-17 px. */
+.t-body {
+  font-weight: 400;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.t-body-sm {
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/*
+  Precios y especificaciones: cifras tabulares. Todas las cifras ocupan el
+  mismo ancho, asi una columna de precios o de medidas queda alineada.
+*/
+.t-figures {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  El logo va blanco plano. El archivo es dorado con degradado, y este filtro
+  lo aplasta a blanco puro: primero a negro solido, despues invertido. Asi se
+  mantiene un solo archivo de logo en vez de dos versiones por color.
+*/
+.logo-flat-white {
+  filter: brightness(0) invert(1);
 }
 
 /* Entrada del contenido. La segunda y ultima animacion; la primera son los haces. */
@@ -62,9 +123,9 @@ body {
   isolation: isolate;
   border-radius: 9999px;
   padding: 1rem 2rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #1a1204;
   background: linear-gradient(
