@@ -140,8 +140,17 @@ fotograma a fotograma congelando la animacion.
    detecta, pero la pagina responde `404: NOT_FOUND` de plataforma. Falta ver
    el final del log del build para saber que publica.
 
-**No hecho a proposito:** no se toco el copy. Alfredo lo cambia en el siguiente
-paso.
+**Copy definitivo (mismo dia, despues):** Alfredo mando el texto y entro tal
+cual. El titular pasa a ser "Not open yet. Already selling." y el cuerpo son
+cuatro preguntas en serie que rematan en "Yeah. Nobody else was going to make
+it.". Tambien se quito la flecha del boton: en telefono se movia con el barrido
+de luz. Y se quito el pie, que repetia la linea de Vilnius.
+
+Las cuatro preguntas van **alineadas a la izquierda**, no centradas como el
+resto de la pagina. El recurso del copy es la repeticion de "A double bass
+case" al arranque de tres lineas seguidas; centradas, los arranques no coinciden
+y la repeticion se pierde. En telefono tres de las cuatro ocupan dos lineas, que
+es aceptable, pero por eso no conviene alargarlas mas.
 
 ---
 

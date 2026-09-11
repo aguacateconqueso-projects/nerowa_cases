@@ -27,10 +27,7 @@ export function PearlButton({
   const content = (
     <>
       <span aria-hidden="true" className="pearl-sheen" />
-      <span className="relative z-10 inline-flex items-center gap-3">
-        {children}
-        <span aria-hidden="true">&#8594;</span>
-      </span>
+      <span className="relative z-10">{children}</span>
     </>
   );
 

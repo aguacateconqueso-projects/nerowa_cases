@@ -5,11 +5,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://nerowacases.com"),
   title: "Nerowa Cases",
   description:
-    "A case for two double bass bows. One model, fourteen colours. Shipping from Vilnius across the EU and the UK.",
+    "Not open yet. Already selling. A double bass case for two bows, 180 EUR, in fourteen colours. Shipped from Vilnius to the EU and the UK.",
   openGraph: {
     title: "Nerowa Cases",
     description:
-      "A case for two double bass bows. One model, fourteen colours. Shipping from Vilnius across the EU and the UK.",
+      "Not open yet. Already selling. A double bass case for two bows, 180 EUR, in fourteen colours. Shipped from Vilnius to the EU and the UK.",
     url: "https://nerowacases.com",
     siteName: "Nerowa Cases",
     locale: "en",

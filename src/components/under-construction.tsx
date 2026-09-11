@@ -5,48 +5,64 @@ import { CONTACT_EMAIL } from "@/lib/brand";
 
 const MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Nerowa Cases")}`;
 
+/*
+  Las cuatro preguntas van alineadas a la izquierda, no centradas como el resto
+  de la pagina. El recurso del copy es la repeticion de "A double bass case":
+  centradas, los arranques no coinciden y la repeticion se pierde.
+*/
+const QUESTIONS = [
+  "A double bass case, properly made, for €180?",
+  "A double bass case that fits a German and a French bow?",
+  "A double bass case for two bows that isn’t ugly?",
+  "In fourteen colours?",
+];
+
 export function UnderConstruction() {
   return (
     <BeamsBackground>
-      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center sm:px-8">
-        <div className="rise-in flex w-full max-w-xl flex-col items-center">
+      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 sm:px-8">
+        <div className="rise-in flex w-full max-w-xl flex-col items-center text-center">
           {/* El logo ya trae su propio filete ornamental: no se le pone otro. */}
           <Logo className="h-auto w-[min(74vw,360px)]" />
 
-          <p className="mt-12 text-[0.6875rem] tracking-[0.4em] text-[var(--gold)]/80 uppercase">
-            Under construction
-          </p>
-
-          <h1 className="mt-6 text-2xl leading-tight font-light text-white sm:text-3xl">
-            A case for two double bass bows.
+          <h1 className="mt-10 text-[0.75rem] leading-relaxed tracking-[0.26em] text-[var(--gold)] uppercase sm:text-sm">
+            Not open yet. Already selling.
           </h1>
 
-          <p className="mt-6 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
-            One model, fourteen colours. Made and shipped from Vilnius to the
-            European Union and the United Kingdom.
+          <ul className="mt-10 w-full space-y-4 text-left text-[0.9375rem] leading-relaxed text-white/80 sm:text-lg">
+            {QUESTIONS.map((question) => (
+              <li key={question}>{question}</li>
+            ))}
+          </ul>
+
+          <p className="mt-10 text-xl leading-snug font-light text-white sm:text-2xl">
+            Yeah. Nobody else was going to make it.
           </p>
 
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-white/45">
-            The shop is not open yet. Until it is, orders, colours and questions
-            all reach us at one address.
+          <p className="mt-8 max-w-md text-sm leading-relaxed text-white/45">
+            Shipped from Vilnius to the European Union and the United Kingdom.
+          </p>
+
+          <p className="mt-8 max-w-md text-sm leading-relaxed text-white/70 sm:text-base">
+            The website isn&rsquo;t finished. The case is. Write to us and
+            we&rsquo;ll sell you one today.
           </p>
 
           <PearlButton href={MAILTO} className="mt-12">
             Write to us
           </PearlButton>
 
-          <a
-            href={MAILTO}
-            className="mt-6 text-xs tracking-[0.18em] text-white/40 underline-offset-4 transition-colors hover:text-[var(--gold)] focus-visible:text-[var(--gold)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold-bright)]"
-          >
-            {CONTACT_EMAIL}
-          </a>
+          <p className="mt-6 text-xs tracking-[0.08em] text-white/40">
+            <a
+              href={MAILTO}
+              className="text-white/60 underline-offset-4 transition-colors hover:text-[var(--gold)] focus-visible:text-[var(--gold)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold-bright)]"
+            >
+              {CONTACT_EMAIL}
+            </a>{" "}
+            &mdash; we answer.
+          </p>
         </div>
       </main>
-
-      <footer className="relative z-10 px-6 pb-10 text-center text-[0.625rem] tracking-[0.3em] text-white/25 uppercase sm:px-8">
-        Vilnius &middot; EU &amp; UK
-      </footer>
     </BeamsBackground>
   );
 }
