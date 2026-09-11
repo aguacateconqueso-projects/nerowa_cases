@@ -16,11 +16,10 @@ export function Logo({ className }: LogoProps) {
       alt="Nerowa Cases"
       priority
       /*
-        Sin `sizes`, Next sirve la variante mas grande del srcset. En pantalla
-        el logo mide 110 px en movil y 140 en escritorio, y el trafico llega
-        con datos moviles.
+        Sin `sizes`, Next sirve la variante mas grande del srcset. El trafico
+        llega con datos moviles, asi que se declara el tamano real en pantalla.
       */
-      sizes="(max-width: 640px) 110px, 140px"
+      sizes="(max-width: 480px) 74vw, 360px"
       className={className}
     />
   );

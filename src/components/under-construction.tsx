@@ -1,6 +1,6 @@
 import { Logo } from "@/components/brand/logo";
 import { BeamsBackground } from "@/components/ui/beams-background";
-import { PearlButton } from "@/components/ui/pearl-button";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 import { CONTACT_EMAIL } from "@/lib/brand";
 
 const MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Nerowa Cases")}`;
@@ -26,19 +26,23 @@ const QUESTIONS = [
 export function UnderConstruction() {
   return (
     <BeamsBackground>
-      <header className="px-6 pt-8 sm:px-10 sm:pt-10">
-        <Logo className="logo-flat-white h-auto w-[110px] sm:w-[140px]" />
-      </header>
-
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center sm:px-8">
         <div className="rise-in flex w-full max-w-xl flex-col items-center">
+          {/*
+            Excepcion deliberada a la norma del logo. En el resto del sitio va
+            blanco plano, a 140 px y arriba a la izquierda. Aqui no hay resto de
+            sitio: la pagina es solo la marca, asi que el logo va centrado, en
+            grande y en su dorado. La norma sigue en pie para todo lo demas.
+          */}
+          <Logo className="h-auto w-[min(74vw,360px)]" />
+
           {/*
             El h1 es la linea de estado, no el remate: es lo que resume la
             pagina para un lector de pantalla o para un buscador. Que se vea
             como etiqueta y no como titular es una decision visual, no
             semantica.
           */}
-          <h1 className="t-label text-[var(--gold)]">
+          <h1 className="t-label mt-12 text-[var(--gold)]">
             Not open yet. Already selling.
           </h1>
 
@@ -61,9 +65,11 @@ export function UnderConstruction() {
             we&rsquo;ll sell you one today.
           </p>
 
-          <PearlButton href={MAILTO} className="mt-12">
-            Write to us
-          </PearlButton>
+          <LiquidMetalButton
+            href={MAILTO}
+            label="Write to us"
+            className="mt-12"
+          />
 
           <p className="t-body-sm mt-6 text-sm text-white/40">
             <a
