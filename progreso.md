@@ -33,7 +33,8 @@ espera publicable. Todavia no hay sistema de diseno ni tienda.
 | 2026-09-08 | Entrega **por fases**, la vitrina primero | Cada fase sale a Vercel y se revisa viva |
 | 2026-09-11 | Pagina de espera en `/` **y** en `/underconstruction` | Quien llega de Instagram entra por la raiz del dominio; el alias sirve para compartir el enlace suelto |
 | 2026-09-11 | Fondo de haces dorados **determinista**, no aleatorio | Con posiciones al azar la pagina salia negra en una carga y mostaza en la siguiente |
-| 2026-09-11 | El logo se cambia en una sola linea (`src/lib/brand.ts`) | Mientras no haya archivo corre un wordmark tipografico; nadie tiene que tocar la pagina para cambiarlo |
+| 2026-09-11 | El logo se cambia en una sola linea (`src/lib/brand.ts`) | Nadie tiene que tocar una pagina para cambiar el logo |
+| 2026-09-11 | El logo vive recortado en `public/brand/logo.png` | El archivo original traia 890 px de margen transparente; sin recortar deja un hueco enorme encima y debajo |
 
 ---
 
@@ -102,6 +103,46 @@ vuelve el problema.
 **No hecho a proposito:** no se toco la fase 2. Los valores de dorado que hay
 son los minimos para esta pagina, no el sistema de diseno.
 
+### Sesion 3 — 2026-09-11
+
+**Punto de partida:** la pagina de espera ya estaba en `main` y desplegada, pero
+sirviendo un 404 de plataforma en Vercel (ver "Abierto" mas abajo). Alfredo
+subio el logo y pidio el boton perlado.
+
+**Hecho:**
+
+- Logo real en la pagina. El archivo subido (`Firefly_RemoveBackground.png`,
+  1320 x 1179) traia el wordmark en una franja central con casi 900 px de
+  margen transparente. Se recorto a su caja real, 1118 x 288, y quedo en
+  `public/brand/logo.png`. El original sigue en el historial, en el commit
+  `78099ec`.
+- Se quito el wordmark tipografico provisional: ya no tenia uso y `Logo` era
+  una rama muerta.
+- Se quito el filete que dibujaba la pagina: el logo trae el suyo.
+- `PearlButton` (`src/components/ui/pearl-button.tsx`): boton perlado en dorado,
+  con degradado de cuatro paradas, reflejo interior, resplandor exterior y un
+  barrido de luz cada 4,5 s. Sirve como enlace o como boton segun reciba `href`.
+- `sizes` en el logo: sin eso Next servia la variante de 3840 px del srcset.
+
+**Comprobado:** `typecheck`, `lint` y `build` limpios; sin desbordamiento a 320,
+390 y 1440 px; sin errores de consola; el `mailto` intacto; el barrido revisado
+fotograma a fotograma congelando la animacion.
+
+**Abierto — ojo con esto:**
+
+1. **Tres animaciones en una pagina.** La convencion del proyecto dice maximo
+   dos. Hoy hay tres: los haces del fondo, la entrada del contenido (`rise-in`)
+   y el barrido del boton. Se dejo asi a proposito, porque el barrido solo por
+   `:hover` no se ve nunca en telefono, que es de donde llega el trafico. Si
+   hay que bajar a dos, lo que sobra es `rise-in`.
+2. **El 404 de Vercel.** El despliegue de produccion sale **Ready** y el log
+   dice `Detected Next.js version: 16.3.4`, o sea que el framework si se
+   detecta, pero la pagina responde `404: NOT_FOUND` de plataforma. Falta ver
+   el final del log del build para saber que publica.
+
+**No hecho a proposito:** no se toco el copy. Alfredo lo cambia en el siguiente
+paso.
+
 ---
 
 ## Pendiente de Alfredo (bloquea trabajo)
@@ -110,7 +151,6 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
 
 | Que hace falta | Para que fase | Estado |
 |---|---|---|
-| Logo de la marca en `.svg` (o `.png` transparente, 1200 px minimo) | 1 | Falta |
 | Modelo 3D del estuche en `.glb`, o las fotos para mandarlo a modelar | 3 | Falta |
 | Los 14 colores del catalogo: nombre comercial y valor exacto | 2 y 3 | Falta |
 | Medidas exteriores, medida util interior, peso y materiales | 4 | Falta |

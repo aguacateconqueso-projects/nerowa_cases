@@ -1,5 +1,6 @@
 import { Logo } from "@/components/brand/logo";
 import { BeamsBackground } from "@/components/ui/beams-background";
+import { PearlButton } from "@/components/ui/pearl-button";
 import { CONTACT_EMAIL } from "@/lib/brand";
 
 const MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Nerowa Cases")}`;
@@ -9,14 +10,10 @@ export function UnderConstruction() {
     <BeamsBackground>
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center sm:px-8">
         <div className="rise-in flex w-full max-w-xl flex-col items-center">
-          <Logo className="flex flex-col items-center" />
+          {/* El logo ya trae su propio filete ornamental: no se le pone otro. */}
+          <Logo className="h-auto w-[min(74vw,360px)]" />
 
-          <span
-            aria-hidden="true"
-            className="mt-10 block h-px w-16 bg-gradient-to-r from-transparent via-[var(--gold)]/60 to-transparent"
-          />
-
-          <p className="mt-10 text-[0.6875rem] tracking-[0.4em] text-[var(--gold)]/80 uppercase">
+          <p className="mt-12 text-[0.6875rem] tracking-[0.4em] text-[var(--gold)]/80 uppercase">
             Under construction
           </p>
 
@@ -34,13 +31,9 @@ export function UnderConstruction() {
             all reach us at one address.
           </p>
 
-          <a
-            href={MAILTO}
-            className="mt-12 inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-b from-[var(--gold-bright)] to-[var(--gold)] px-8 py-4 text-sm font-medium tracking-[0.14em] text-black uppercase transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold-bright)] active:scale-[0.99]"
-          >
+          <PearlButton href={MAILTO} className="mt-12">
             Write to us
-            <span aria-hidden="true">&#8594;</span>
-          </a>
+          </PearlButton>
 
           <a
             href={MAILTO}

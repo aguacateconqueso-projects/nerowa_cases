@@ -3,31 +3,11 @@ import Image from "next/image";
 import { LOGO } from "@/lib/brand";
 
 interface LogoProps {
+  /* El tamano en pantalla lo pone quien lo usa, con clases de ancho. */
   className?: string;
 }
 
-/*
-  Wordmark provisional. Se usa solo mientras `LOGO` sea null en
-  `src/lib/brand.ts`; en cuanto haya archivo, este bloque deja de renderizarse.
-*/
-function Wordmark({ className }: LogoProps) {
-  return (
-    <div className={className}>
-      <span className="block bg-gradient-to-b from-[var(--gold-bright)] via-[var(--gold)] to-[var(--gold-deep)] bg-clip-text text-[clamp(2rem,10vw,3.5rem)] leading-none font-light tracking-[0.28em] text-transparent uppercase">
-        Nerowa
-      </span>
-      <span className="mt-3 block text-[clamp(0.625rem,2.6vw,0.75rem)] leading-none tracking-[0.62em] text-[var(--gold)]/70 uppercase">
-        Cases
-      </span>
-    </div>
-  );
-}
-
 export function Logo({ className }: LogoProps) {
-  if (!LOGO) {
-    return <Wordmark className={className} />;
-  }
-
   return (
     <Image
       src={LOGO.src}
@@ -35,6 +15,11 @@ export function Logo({ className }: LogoProps) {
       height={LOGO.height}
       alt="Nerowa Cases"
       priority
+      /*
+        Sin `sizes`, Next sirve la variante mas grande del srcset. En pantalla
+        el logo nunca pasa de 360 px, y el trafico llega con datos moviles.
+      */
+      sizes="(max-width: 480px) 74vw, 360px"
       className={className}
     />
   );
