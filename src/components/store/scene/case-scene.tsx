@@ -17,12 +17,14 @@
   ---------------------------------------------------------------------------
   COMO SE AGARRA EL ESTUCHE
 
-  Escritorio (raton):
+  Escritorio:
     arrastrar            gira
     Mayus + arrastrar    mueve (sube, baja, corre a los lados)
     boton central o
       boton derecho      mueve, sin tener que soltar Mayus
-    rueda                acerca y aleja
+    pellizco de trackpad
+      o Ctrl + rueda     acerca y aleja
+    rueda a secas        NO acerca: baja la pagina, como en cualquier sitio
     doble clic           lo devuelve a su sitio
 
   Telefono:
@@ -423,13 +425,40 @@ function CaseRig({
     };
 
     /*
-      La rueda acerca. El oyente va en el lienzo y a mano, no por React: React
-      registra `wheel` como pasivo y desde ahi `preventDefault` no hace nada, asi
-      que la pagina se desplazaria mientras se intenta acercar.
+      Acercar con la rueda: SOLO el pellizco, nunca el desplazamiento.
+
+      Decision de Alfredo del 2026-09-12, y es la correcta: el hero ocupa la
+      pantalla entera, asi que si la rueda acerca, el visitante que baja con el
+      raton se queda encerrado en la primera pantalla y no llega nunca al resto de
+      la web. El desplazamiento tiene que seguir siendo de la pagina.
+
+      Como se separan, que es lo unico con truco: **el navegador manda el pellizco
+      de trackpad como una rueda con `ctrlKey` encendido.** Es una convencion de
+      hace anios, la misma que usan los mapas y los editores de diseno. Entonces:
+
+        rueda con ctrlKey     pellizco de trackpad, o Ctrl+rueda de raton -> acerca
+        rueda sin ctrlKey     rueda de raton, o dos dedos de trackpad -> la pagina
+
+      Y por eso `preventDefault` se llama DESPUES de la comprobacion y nunca antes:
+      llamarlo en el caso de abajo es exactamente lo que cortaba el scroll.
+
+      El oyente va en el lienzo y a mano, no por React: React registra `wheel` como
+      pasivo y desde ahi `preventDefault` no hace nada.
     */
     const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) return;
       event.preventDefault();
-      const step = Math.exp(-event.deltaY * 0.0012);
+
+      /*
+        El delta se topa antes de usarlo porque los dos gestos que llegan aqui
+        mandan escalas muy distintas: el pellizco de trackpad va de a dos o tres
+        unidades por evento y Ctrl+rueda de raton salta de cien en cien. Sin el
+        tope, el mismo factor que hace suave al pellizco convierte cada muesca de
+        la rueda en un salto de acercamiento.
+      */
+      const delta = THREE.MathUtils.clamp(event.deltaY, -16, 16);
+      const step = Math.exp(-delta * 0.012);
+
       zoomTarget.current = THREE.MathUtils.clamp(
         zoomTarget.current * step,
         ZOOM_MIN,

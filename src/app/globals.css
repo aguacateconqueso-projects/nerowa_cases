@@ -705,6 +705,27 @@ body {
   background: var(--store-ink);
 }
 
+/*
+  Las ayudas del panel vertical: gesto a la izquierda, efecto a la derecha. Es
+  una lista de definiciones de verdad y no dos columnas de texto suelto, porque
+  eso es exactamente lo que es y asi un lector de pantalla las lee emparejadas.
+*/
+.store-hints {
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.625rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+}
+
+.store-hints dt {
+  opacity: 0.65;
+}
+
+.store-hints dd {
+  opacity: 0.38;
+}
+
 /* Boton de texto, sin caja hasta que se usa. Hoy lo lleva solo "Reset view", que
    es una ayuda y no una decision de compra. */
 .store-ghost {

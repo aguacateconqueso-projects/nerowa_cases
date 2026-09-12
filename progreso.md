@@ -774,3 +774,56 @@ y los gestos vueltos a pasar uno a uno — arrastre, rueda, Mayus+arrastre, dobl
 clic, Reset apareciendo y desapareciendo, el dedo vertical bajando la pagina, el
 dedo de lado girando en los dos ejes y la pinza de dos dedos acercando.
 
+---
+
+### Sesion 9, tercera vuelta — el mismo dia
+
+**El scroll del raton vuelve a ser de la pagina. Acercar queda solo en el
+pellizco.**
+
+Alfredo lo corto en seco y tiene razon: el hero ocupa la pantalla entera, asi que
+si la rueda acerca, quien baja con el raton se queda encerrado en la primera
+pantalla y no llega nunca al resto de la web. Un objeto que se deja inspeccionar
+no vale nada si el precio de inspeccionarlo es no poder seguir leyendo.
+
+**Como se separan los dos gestos, que es lo unico con truco.** El navegador manda
+el pellizco de trackpad como una rueda con `ctrlKey` encendido. Es una convencion
+de hace anios, la misma que usan los mapas y los editores de diseno. Entonces:
+
+| Lo que llega | Que hace |
+|---|---|
+| Rueda **con** `ctrlKey` — pellizco de trackpad, o Ctrl+rueda de raton | acerca |
+| Rueda **sin** `ctrlKey` — rueda de raton, o dos dedos de trackpad | baja la pagina |
+| Dos dedos en telefono | acercan y mueven, como ya estaba |
+
+Y `preventDefault` pasa a llamarse DESPUES de la comprobacion, nunca antes:
+llamarlo en el segundo caso es exactamente lo que cortaba el scroll.
+
+El delta se topa en 16 antes de usarlo, porque los dos gestos que llegan mandan
+escalas muy distintas: el pellizco va de a dos o tres unidades por evento y
+Ctrl+rueda de raton salta de cien en cien. Sin el tope, el mismo factor que hace
+suave al pellizco convierte cada muesca de la rueda en un salto.
+
+**Comprobado con eventos de verdad, los tres casos:**
+
+| Prueba | Resultado |
+|---|---|
+| Rueda sobre el lienzo | la pagina baja (scrollY 400) y NO aparece "Reset": no hubo acercamiento |
+| Ctrl+rueda sobre el lienzo | la pagina no se mueve, la escena cambia y aparece "Reset" |
+| Arrastre | sigue girando, y el scroll sigue en cero |
+
+Y vueltas a pasar las de telefono: el dedo de lado gira en los dos ejes, la pinza
+de dos dedos acerca, y el dedo vertical seco sigue bajando la pagina.
+
+**La ayuda del panel cambia de texto y de forma.** Ya no dice "scroll to zoom",
+que ahora seria mentira. En el panel vertical las tres ayudas van en columna,
+gesto y efecto — Drag/turn, Pinch/zoom, Shift-drag/move — como lista de
+definiciones de verdad, asi un lector de pantalla las lee emparejadas. En la barra
+de telefono se queda la linea corrida, que ahi lo escaso es el ancho.
+
+**`AGENTS.md` y `CLAUDE.md` pasan a estar versionados.** Los escribe `next dev` en
+cada arranque. En la vuelta anterior los mande al `.gitignore`, y estaba mal: el
+propio archivo avisa de que sacarlos del diff solo vuelve a crear el cambio sin
+confirmar, y que confirmarlos con el trabajo es lo que deja el arbol limpio.
+Comprobado: despues de confirmarlos, `next build` ya no ensucia nada.
+
