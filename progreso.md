@@ -827,3 +827,17 @@ propio archivo avisa de que sacarlos del diff solo vuelve a crear el cambio sin
 confirmar, y que confirmarlos con el trabajo es lo que deja el arbol limpio.
 Comprobado: despues de confirmarlos, `next build` ya no ensucia nada.
 
+**Como salio este cambio, y por que en un PR aparte.** El
+[PR #12](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/12) ya
+estaba mezclado cuando llego este encargo, asi que el commit del scroll se quedo
+colgando sobre una rama cerrada. Se saco a `claude/scroll-libre`, desde `main`, y
+va por el
+[PR #13](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/13).
+
+**Regla que Alfredo dejo clara, y que a partir de ahora no se discute: cada tanda
+de cambios va en su PROPIO pull request.** No es capricho de proceso — es como
+los revisa: **cada PR trae su propio despliegue de preview en Vercel, y sin PR
+nuevo no hay URL nueva que abrir.** Apilar commits sobre un PR ya mezclado lo deja
+sin forma de mirar lo que pidio. Esto ya estaba escrito arriba, en la condicion 1
+de "Condiciones de trabajo"; queda repetido aqui porque se incumplio.
+
