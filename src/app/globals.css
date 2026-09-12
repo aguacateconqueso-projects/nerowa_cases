@@ -208,23 +208,67 @@ body {
   }
 }
 
+
 /*
   ===========================================================================
-  Tienda. Todo lo que sigue solo se usa en `/store` y se apoya en tres
-  variables que la pagina escribe segun el color de estuche seleccionado:
+  Tienda. Todo lo que sigue solo se usa en `/store` y se apoya en las variables
+  que la pagina escribe segun el color de estuche seleccionado:
 
-    --store-bg      el fondo, muy oscuro y desaturado
-    --store-fg      el texto, casi blanco con una pizca del tono
-    --store-accent  el color del estuche llevado a una franja legible
+    --store-hero    la primera pantalla, a TODO COLOR
+    --store-bg      la superficie de lectura, muy oscura y desaturada
+    --store-fg      el texto de lo que se lee
+    --store-ink     el texto de lo que flota encima (cabecera, consola, carrito)
+    --store-chrome  la superficie de lo que flota encima
+    --store-accent  el acento
+    --hero-veil     de 1 a 0 segun el scroll: apaga el color del hero
 
-  Los valores de abajo son solo el punto de partida antes de que React monte:
-  el estuche arranca en negro, asi que arranca en negro.
+  `--store-ink` y `--store-chrome` se dan vuelta al pasar el hero, porque lo que
+  flota cruza las dos superficies. Todo lo demas lo escribe React una vez.
+
+  Los valores de abajo son solo el punto de partida antes de que React monte: el
+  estuche arranca en negro, asi que arranca en negro.
   ===========================================================================
 */
 :root {
+  --store-hero: #3f3f3f;
   --store-bg: #000000;
   --store-fg: #f2f2f2;
+  --store-ink: #fafafa;
+  --store-chrome: #0d0d0d;
   --store-accent: #d4a441;
+  --hero-veil: 1;
+
+  /* El filete de todo lo que flota. Sale de la tinta, asi que se da vuelta con
+     ella en vez de quedarse claro sobre un panel claro. */
+  --store-line: color-mix(in srgb, var(--store-ink) 14%, transparent);
+
+  /*
+    Ancho de la placa de la cabecera, cerrada y abierta.
+
+    Van escritos porque `width: auto` no interpola en ningun navegador que
+    importe hoy: sin dos valores concretos, la placa salta de un ancho a otro en
+    vez de estirarse. El cerrado es la suma real de la fila — relleno + boton de
+    32 + separacion + logo de 110 — y si cambia el tamano del logo, cambia aqui.
+  */
+  --store-shell-closed: 178px;
+  --store-shell-open: 290px;
+  --store-shell-w: var(--store-shell-closed);
+}
+
+@media (min-width: 640px) {
+  :root {
+    /* En escritorio el logo mide 140 y el relleno 16. */
+    --store-shell-closed: 220px;
+    --store-shell-open: 320px;
+  }
+}
+
+/* La curva de todo lo que se estira. Sale rapido y frena largo, que es lo que
+   hace que un panel parezca tener peso en vez de aparecer. Con
+   `prefers-reduced-motion` la duracion se baja al final del archivo. */
+:root {
+  --store-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --store-expand: 420ms;
 }
 
 /* ------------------------------------------------------------------ fondo */
@@ -232,7 +276,7 @@ body {
 /*
   Trenzado diagonal. Es el mismo motivo que lleva la carcasa, tan por debajo
   del umbral que de frente se lee como un fondo liso; lo que hace es quitarle
-  al negro la planitud de un color plano.
+  al color la planitud de una mancha plana.
 
   PROVISIONAL: cuando llegue la textura de Alfredo, esto se cambia por un
   `background-image` con el archivo y se deja la misma animacion.
@@ -264,51 +308,62 @@ body {
 }
 
 /*
-  Halo detras del objeto. Respira muy despacio. Su trabajo es que el estuche no
-  quede recortado sobre un vacio, no iluminar nada.
+  El pozo del hero. Una sombra negra centrada justo donde esta el estuche.
+
+  Es lo que hace posible el fondo a todo color: sin el, un estuche amarillo sobre
+  un hero amarillo se ve recortado en papel. Ademas le devuelve el volumen que los
+  haces negros le quitan al pasarle por encima.
+
+  Se vio en pantalla que sobre los colores claros — amarillo, oro, crema — hacia
+  falta mas peso del que tenia: ahi el estuche y el fondo salen de la misma franja
+  de luminosidad y lo unico que los separa es esta sombra.
 */
-.store-halo {
+.store-hero-well {
   background: radial-gradient(
-    58% 48% at 50% 46%,
-    color-mix(in srgb, var(--store-accent) 12%, transparent) 0%,
-    transparent 70%
+    66% 56% at 50% 44%,
+    rgba(0, 0, 0, 0.68) 0%,
+    rgba(0, 0, 0, 0.4) 46%,
+    transparent 80%
   );
-  animation: store-halo-breathe 20s ease-in-out infinite;
-  transition: background 700ms ease-out;
+  animation: store-well-breathe 20s ease-in-out infinite;
 }
 
-@keyframes store-halo-breathe {
+@keyframes store-well-breathe {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.85;
     transform: scale(1);
   }
   50% {
-    opacity: 0.9;
-    transform: scale(1.06);
+    opacity: 1;
+    transform: scale(1.05);
   }
 }
 
 /* ------------------------------------------------------------- superficies */
 
 /*
-  Vidrio. Se usa en la cabecera y en el menu. El borde claro de arriba y el
-  oscuro de abajo son lo que hace que el panel parezca tener canto en vez de
-  ser un rectangulo translucido.
+  Vidrio. Se usa en la cabecera, el carrito y la consola de compra.
+
+  La superficie NO sale del color de la pagina: sale de `--store-chrome`, que va
+  al extremo contrario de la tinta. Sobre un hero amarillo encendido, un vidrio
+  amarillo translucido no separa nada — el panel y el fondo son el mismo color y
+  el borde desaparece.
 */
 .store-glass {
-  background: color-mix(in srgb, var(--store-bg) 62%, transparent);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid color-mix(in srgb, var(--store-fg) 14%, transparent);
+  background: color-mix(in srgb, var(--store-chrome) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--store-line);
   border-radius: 14px;
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--store-fg) 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--store-ink) 12%, transparent),
     0 12px 32px -18px rgba(0, 0, 0, 0.9);
-  color: var(--store-fg);
+  color: var(--store-ink);
   transition:
     background 700ms ease-out,
-    border-color 700ms ease-out;
+    border-color 700ms ease-out,
+    color 700ms ease-out;
 }
 
 /* Foco visible en todo lo pulsable. Es la unica pista que tiene quien navega
@@ -319,118 +374,357 @@ body {
   border-radius: 4px;
 }
 
-/* La invitacion a comprar dentro del menu. Es el elemento que mas pesa del
-   panel: lleva el acento de fondo y el unico texto oscuro de la tienda. */
-.store-menu-buy {
-  background: var(--store-accent);
-  color: color-mix(in srgb, var(--store-bg) 88%, #000);
-  transition: filter 200ms ease;
-}
-
-.store-menu-buy:hover {
-  filter: brightness(1.12);
-}
-
-/* -------------------------------------------------------------- muestras */
+/* --------------------------------------------------- la placa que se estira */
 
 /*
-  Muestra de color. El chip va dentro de un boton mas grande que el color
-  visible: asi el area que se puede pulsar con el pulgar es holgada sin que la
-  fila de catorce colores se coma la pantalla.
+  La cabecera es UNA placa, no un rectangulo con otro rectangulo debajo.
+
+  Dos cosas se animan a la vez y con la misma curva, para que la placa crezca en
+  diagonal en un solo gesto:
+
+  - El ANCHO, entre dos valores escritos arriba. `auto` no interpola.
+  - El ALTO, por `grid-template-rows` de `0fr` a `1fr` en el cajon. No se usa
+    `max-height` con un tope inventado: con un tope, la animacion corre a una
+    velocidad distinta a la del contenido real y se nota el tiron al cerrar.
 */
-.store-swatch {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* En telefono la fila de catorce ocupa el ancho de la pantalla y las muestras
-     se estiran; en escritorio la columna no tiene ancho propio, asi que la
-     muestra lo fija ella. Sin este tamano fijo la rejilla colapsa a cero. */
-  width: 100%;
-  aspect-ratio: 1;
-  padding: 3px;
-  border-radius: 6px;
-  border: 1px solid transparent;
+.store-shell {
+  width: var(--store-shell-w);
+  overflow: hidden;
   transition:
-    border-color 200ms ease,
-    transform 200ms ease;
+    width var(--store-expand) var(--store-ease),
+    background 700ms ease-out,
+    border-color 700ms ease-out,
+    color 700ms ease-out,
+    box-shadow var(--store-expand) var(--store-ease);
+}
+
+.store-shell--open {
+  --store-shell-w: var(--store-shell-open);
+  /* Al abrirse la placa se levanta un poco del fondo. Es lo que la separa de la
+     escena mientras tapa parte de ella. */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--store-ink) 16%, transparent),
+    0 24px 60px -26px rgba(0, 0, 0, 0.95);
+}
+
+.store-shell__bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
 }
 
 @media (min-width: 640px) {
-  .store-swatch {
-    width: 36px;
-    height: 36px;
+  .store-shell__bar {
+    gap: 1rem;
+    padding: 0.5rem 1rem;
   }
 }
 
-.store-swatch:hover {
-  transform: translateY(-2px);
+/* La caja cuyo alto se anima. El `1fr` es el alto real del contenido, medido por
+   el navegador; el `0fr` es cero. */
+.store-shell__drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--store-expand) var(--store-ease);
 }
 
+.store-shell--open .store-shell__drawer {
+  grid-template-rows: 1fr;
+}
+
+/* El recorte va en el hijo. Sin el, el contenido se sale de una caja de alto
+   cero y el menu se ve entero mientras deberia estar cerrado. */
+.store-shell__drawer-clip {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Cada linea del menu entra escalonada; el retraso lo pone el componente. */
+.store-menu-item {
+  color: var(--store-ink);
+  transition:
+    opacity 260ms var(--store-ease),
+    transform 260ms var(--store-ease),
+    background-color 200ms ease,
+    filter 200ms ease;
+}
+
+.store-menu-item:hover {
+  background-color: color-mix(in srgb, var(--store-ink) 8%, transparent);
+}
+
+/* La invitacion a comprar es el elemento que mas pesa del menu, por norma del
+   proyecto. Lleva el acento de fondo y el unico texto invertido de la tienda. */
+.store-menu-buy {
+  background: var(--store-accent);
+  color: color-mix(in srgb, var(--store-bg) 88%, #000);
+}
+
+.store-menu-buy:hover {
+  background: var(--store-accent);
+  filter: brightness(1.12);
+}
+
+/* ------------------------------------------------- el panel de compra */
+
+/*
+  Una sola pieza partida en zonas por filetes de un pixel: eleccion, inspeccion
+  y cierre, en ese orden, que es el de la decision de compra.
+
+  En telefono se apoya abajo y ocupa el ancho. En escritorio se pone de pie a la
+  derecha, **de media pantalla para abajo y con el mismo ancho que el menu
+  abierto**: sin eso, todo el peso de la pantalla quedaba repartido en una franja
+  baja y el menu, que es un bloque alto arriba a la izquierda, no tenia nada que
+  le respondiera.
+*/
+.store-console {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--store-chrome) 68%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--store-line);
+  border-radius: 16px;
+  color: var(--store-ink);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--store-ink) 12%, transparent),
+    0 24px 60px -30px rgba(0, 0, 0, 0.95);
+  transition:
+    background 700ms ease-out,
+    border-color 700ms ease-out,
+    color 700ms ease-out;
+}
+
+.store-console__zone {
+  padding: 0.75rem 0.875rem;
+}
+
+.store-console__zone + .store-console__zone {
+  border-top: 1px solid var(--store-line);
+}
+
+@media (min-width: 1024px) {
+  /*
+    El alto minimo es lo que lo lleva hasta la mitad de la pantalla. El panel se
+    apoya abajo y crece hacia arriba, asi que con este minimo su borde de arriba
+    cae en el centro exacto; si el contenido creciera, crece hacia arriba y ya.
+    El `1.5rem` descuenta el relleno del hero.
+  */
+  .store-console {
+    min-height: calc(50svh - 1.5rem);
+    /* Las zonas se reparten el alto sobrante en vez de amontonarse arriba y
+       dejar un hueco muerto al pie. */
+    justify-content: space-between;
+  }
+
+  .store-console__zone {
+    padding: 1.125rem 1.25rem;
+  }
+}
+
+/* Rotulo de zona. Es lo mas chico de la consola y lo unico en mayusculas. */
+.store-console__eyebrow {
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.5;
+}
+
+.store-console__count {
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.4;
+}
+
+/* Existencias. Va al lado del nombre del color, no debajo. */
+.store-console__note {
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--store-line);
+  opacity: 0.7;
+}
+
+/* Avisos y pistas. Gris, chico, y siempre al pie de su zona. */
+.store-console__fine {
+  font-size: 0.625rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  opacity: 0.42;
+}
+
+/* ------------------------------------------------------ la cinta de color */
+
+/*
+  Las catorce muestras van PEGADAS, sin un pixel entre ellas: sueltas se leian
+  como catorce botones y pegadas se leen como una cinta, que es el catalogo
+  entero de un vistazo. Solo los dos extremos van redondeados, asi que la cinta
+  tiene principio y final.
+
+  Se reparten el ancho con `flex: 1`, asi que las catorce caben en telefono sin
+  desplazar. El alto es lo que da el area de pulsado: 44 px de alto es lo que pide
+  un pulgar, aunque cada muestra mida veintitantos de ancho.
+*/
+.store-swatches {
+  display: flex;
+  align-items: stretch;
+  /* Sin recorte: la seleccionada crece y su resplandor tiene que poder salirse
+     de la cinta. */
+  overflow: visible;
+  border-radius: 9px;
+  /*
+    Filete alrededor de la cinta entera, no de cada muestra: uno por muestra las
+    separaria, que es justo lo que no queremos. Este solo dibuja el contorno, y
+    hace falta porque el negro del catalogo es la primera muestra y sobre el panel
+    oscuro se quedaba sin borde — la cinta parecia empezar en el blanco.
+  */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--store-ink) 22%, transparent);
+}
+
+.store-swatch {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--swatch);
+  /* Filete a la derecha: dos colores vecinos parecidos se siguen distinguiendo
+     sin tener que separarlos. */
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.28);
+  transition:
+    transform 260ms var(--store-ease),
+    box-shadow 260ms var(--store-ease),
+    border-radius 260ms var(--store-ease);
+}
+
+.store-swatch:first-child {
+  border-start-start-radius: 9px;
+  border-end-start-radius: 9px;
+}
+
+.store-swatch:last-child {
+  border-start-end-radius: 9px;
+  border-end-end-radius: 9px;
+  box-shadow: none;
+}
+
+@media (min-width: 1024px) {
+  .store-swatch {
+    height: 40px;
+  }
+}
+
+.store-swatch:not(.store-swatch--on):hover {
+  transform: scaleY(1.12);
+  z-index: 2;
+}
+
+/*
+  La seleccionada. El resplandor sale del color de la PROPIA muestra
+  (`--swatch`) y no del acento: si saliera del acento, las catorce se
+  encenderian igual y la cinta perderia justo lo que la hace legible.
+
+  El anillo interior de tinta es lo que la sujeta cuando el color es casi igual al
+  de al lado, o casi igual al fondo.
+*/
 .store-swatch--on {
-  border-color: var(--store-accent);
-}
-
-.store-swatch__chip {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 3px;
-  /* Filete interior: sin el, el negro sobre fondo negro y el blanco sobre
-     fondo claro dejan de tener borde y la muestra desaparece. */
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--store-fg) 22%, transparent);
+  z-index: 3;
+  transform: scale(1.3);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--store-ink) 85%, transparent),
+    0 0 20px 2px var(--swatch),
+    0 0 44px 6px color-mix(in srgb, var(--swatch) 55%, transparent);
 }
 
 /* Agotado: una barra cruzada, sin tachar el color entero. */
 .store-swatch__out {
   position: absolute;
-  left: 15%;
-  right: 15%;
+  left: 12%;
+  right: 12%;
+  top: 50%;
   height: 1.5px;
-  background: var(--store-fg);
-  transform: rotate(-45deg);
-  opacity: 0.8;
+  background: var(--store-ink);
+  transform: translateY(-50%) rotate(-38deg);
+  opacity: 0.85;
 }
 
-/* ----------------------------------------------------------------- vistas */
+/* ---------------------------------------------------- vista e inspeccion */
 
 /*
-  Selector de vista. Rectangulos, como el boton principal: en esta marca no hay
-  esquinas redondeadas fuera del vidrio de la cabecera.
+  Selector de vista. Los dos botones comparten una sola caja con un filete en
+  medio, como la cinta de color: es la misma idea de pieza continua.
 */
-.store-view {
-  padding: 0.75rem 1.25rem;
-  border: 1px solid color-mix(in srgb, var(--store-fg) 20%, transparent);
-  color: color-mix(in srgb, var(--store-fg) 65%, transparent);
-  background: color-mix(in srgb, var(--store-bg) 55%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+.store-segmented {
+  display: inline-flex;
+  width: 100%;
+  border: 1px solid var(--store-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.store-segmented__item {
+  flex: 1 1 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  color: color-mix(in srgb, var(--store-ink) 60%, transparent);
+  background: transparent;
   transition:
     color 200ms ease,
-    border-color 200ms ease,
     background 200ms ease;
 }
 
+.store-segmented__item + .store-segmented__item {
+  border-left: 1px solid var(--store-line);
+}
+
 /*
-  El `:not()` no es adorno. `.store-view:hover` pesa mas que `.store-view--on`
-  por llevar una pseudo-clase, asi que sin el, pasar el raton por encima de la
-  vista ya seleccionada le pintaba el texto del mismo color que su fondo y la
-  etiqueta desaparecia.
+  El `:not()` no es adorno. `.store-segmented__item:hover` pesa mas que la clase
+  de seleccionado por llevar una pseudo-clase, asi que sin el, pasar el raton por
+  encima de la vista ya elegida le pintaba el texto del mismo color que su fondo y
+  la etiqueta desaparecia. Ya paso una vez, en la sesion 8.
 */
-.store-view:not(.store-view--on):hover {
-  color: var(--store-fg);
-  border-color: color-mix(in srgb, var(--store-fg) 40%, transparent);
+.store-segmented__item:not(.store-segmented__item--on):hover {
+  color: var(--store-ink);
+  background: color-mix(in srgb, var(--store-ink) 8%, transparent);
 }
 
-.store-view--on:hover {
-  filter: brightness(0.94);
+.store-segmented__item--on {
+  color: var(--store-chrome);
+  background: var(--store-ink);
 }
 
-.store-view--on {
-  color: var(--store-bg);
-  background: var(--store-fg);
-  border-color: var(--store-fg);
+/* Boton de texto, sin caja hasta que se usa. Hoy lo lleva solo "Reset view", que
+   es una ayuda y no una decision de compra. */
+.store-ghost {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: color-mix(in srgb, var(--store-ink) 60%, transparent);
+  transition:
+    color 200ms ease,
+    background 200ms ease,
+    border-color 200ms ease;
 }
+
+.store-ghost:hover {
+  color: var(--store-ink);
+  border-color: var(--store-line);
+}
+
 
 /* --------------------------------------------------------------- entradas */
 
@@ -452,12 +746,27 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .store-weave,
-  .store-halo,
+  .store-hero-well,
   .store-fade-in {
     animation: none;
   }
 
-  .store-swatch:hover {
+  /*
+    Sin movimiento, pero la placa y el menu siguen teniendo que abrirse: lo que se
+    quita es el recorrido, no la funcion. Se deja un fundido corto para que el
+    cambio no sea un parpadeo seco.
+  */
+  :root {
+    --store-expand: 1ms;
+  }
+
+  .store-swatch,
+  .store-swatch--on,
+  .store-menu-item {
+    transition-duration: 120ms;
+  }
+
+  .store-swatch:not(.store-swatch--on):hover {
     transform: none;
   }
 }

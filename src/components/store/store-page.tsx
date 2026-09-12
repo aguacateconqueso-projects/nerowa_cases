@@ -3,20 +3,36 @@
 /*
   El armado de la tienda. Una sola pagina que se baja hasta el final.
 
-  Reparto de capas, de atras hacia delante:
-    -10  fondo con textura, del color de la paleta
-      0  el lienzo 3D, fijo, que se desvanece al pasar el hero
-     30  los controles de compra
+  ---------------------------------------------------------------------------
+  EL CAMBIO DE FONDO DEL 2026-09-12, que es lo que manda en este archivo.
+
+  Antes el lienzo 3D era `fixed` y ocupaba la pantalla entera durante TODA la
+  pagina: al bajar, el estuche se quedaba clavado detras mientras las secciones
+  le pasaban por encima, y para que el texto se leyera habia que desvanecerlo.
+  Alfredo lo corto: "es un scroll, no quiero que las letras le queden encima y
+  haga fade out".
+
+  Ahora el lienzo vive DENTRO del hero, en absoluto, no en fijo. El hero es una
+  seccion normal de una pantalla de alto y se va hacia arriba como se va cualquier
+  cosa cuando se baja la pagina. El estuche no se desvanece, no se encoge y no se
+  aparta: se queda donde esta, con su consola de compra, y lo que sigue empieza
+  despues de el. Nada se superpone a nada.
+
+  Lo unico que se apaga con el scroll es el COLOR del hero, que es un fondo fijo
+  aparte (`TexturedBackground`): el amarillo encendido se va calmando hasta la
+  superficie oscura de lectura conforme se baja. Eso no es el estuche
+  desvaneciendose, es la sala bajando las luces para leer.
+  ---------------------------------------------------------------------------
+
+  Reparto de capas:
+    -10  el fondo fijo: hero a todo color arriba, superficie de lectura debajo
+      0  el lienzo 3D, dentro del hero
+     20  la consola de compra, dentro del hero
      40  la cabecera flotante
      50  el cajon del carrito
-
-  El lienzo es fijo y no vive dentro del hero porque asi el estuche no se
-  arrastra con el scroll: se queda quieto, se apaga, y el contenido pasa por
-  encima. Ademas permite apagar el bucle de dibujo en cuanto sale de vista, que
-  en telefono es la diferencia entre una pagina fluida y una que calienta.
 */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CartDrawer } from "./cart-drawer";
 import { HeroControls } from "./hero-controls";
@@ -60,6 +76,13 @@ function StoreShell() {
   const [introDone, setIntroDone] = useState(false);
   const [grabbing, setGrabbing] = useState(false);
 
+  /* Verdadero cuando el estuche ya no esta en su pose de reposo. */
+  const [poseDirty, setPoseDirty] = useState(false);
+  /* Sube de uno en uno; la escena solo mira que cambio. */
+  const [resetSignal, setResetSignal] = useState(0);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+
   /* La interfaz entra cuando el estuche ya aterrizo, no antes: si aparece
      durante el zoom, compite con lo unico que hay que mirar. */
   useEffect(() => {
@@ -75,21 +98,43 @@ function StoreShell() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  /* Se mira una sola vez por fotograma de scroll y con un margen de holgura,
-     para no encender y apagar la escena en el borde exacto. */
+  /*
+    El scroll hace dos cosas, y las dos en el mismo fotograma:
+
+    1. Apaga el color del hero, de forma continua. Se escribe en una variable CSS
+       y no en el estado de React: es un valor que cambia en cada fotograma de
+       scroll y pasarlo por un render seria pedirle a React sesenta renders por
+       segundo para mover una opacidad.
+    2. Marca cuando el hero ya salio, que si es estado porque enciende y apaga
+       cosas de verdad — el bucle de dibujo, los haces y el boton de volver.
+  */
   useEffect(() => {
     let frame = 0;
+
+    const measure = () => {
+      frame = 0;
+      const height = window.innerHeight;
+      const y = window.scrollY;
+
+      /* El color aguanta entero el primer 15% y se apaga hasta el 85%: asi el
+         hero se ve a todo color mientras todavia se ve el estuche. */
+      const veil = 1 - Math.min(Math.max((y - height * 0.15) / (height * 0.7), 0), 1);
+      rootRef.current?.style.setProperty("--hero-veil", veil.toFixed(3));
+
+      setPastHero(y > height * 0.85);
+    };
+
     const onScroll = () => {
       if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        setPastHero(window.scrollY > window.innerHeight * 0.7);
-      });
+      frame = window.requestAnimationFrame(measure);
     };
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+    window.addEventListener("resize", onScroll, { passive: true });
+    measure();
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
@@ -102,64 +147,95 @@ function StoreShell() {
     };
   }, [cartOpen]);
 
+  const resetPose = useCallback(() => setResetSignal((n) => n + 1), []);
+
   return (
     <div
+      ref={rootRef}
       /*
-        Aqui empieza y termina el cambio de color: estas tres variables las lee
-        el fondo, todo el texto, los filetes y el cajon del carrito. Nada mas
-        abajo sabe que color esta seleccionado.
+        Aqui empieza y termina el cambio de color. Estas variables las leen el
+        fondo, todo el texto, los filetes, la consola y el cajon del carrito;
+        nada mas abajo sabe que color esta seleccionado.
+
+          --store-hero    la primera pantalla, a todo color
+          --store-bg      la superficie de lectura, muy oscura
+          --store-fg      el texto de lo que se lee
+          --store-ink     el texto de lo que flota encima (cabecera, consola)
+          --store-chrome  la superficie de lo que flota encima
+          --store-accent  el acento
       */
       style={
         {
+          "--store-hero": palette.hero,
           "--store-bg": palette.background,
           "--store-fg": palette.foreground,
           "--store-accent": palette.accent,
+          /* Lo que flota cruza las dos superficies, asi que se da vuelta al
+             pasar el hero en vez de quedarse con el color de una sola. */
+          "--store-ink": pastHero ? palette.foreground : palette.heroForeground,
+          "--store-chrome": pastHero ? palette.background : palette.chrome,
+          "--hero-veil": "1",
         } as React.CSSProperties
       }
       className="relative min-h-screen text-[var(--store-fg)]"
     >
-      <TexturedBackground />
-
-      {/* ------------------------------------------------------ el estuche */}
-      <div
-        className={`fixed inset-0 z-0 transition-opacity duration-500 ${
-          pastHero ? "pointer-events-none opacity-0" : "opacity-100"
-        } ${grabbing ? "cursor-grabbing" : "cursor-grab"}`}
-      >
-        <CaseScene
-          colorHex={color.hex}
-          open={view === "open"}
-          active={!pastHero}
-          onGrabChange={setGrabbing}
-        />
-      </div>
+      <TexturedBackground
+        beamStrength={palette.beamStrength}
+        heroActive={!pastHero}
+      />
 
       <StoreHeader links={MENU_LINKS} pastHero={pastHero} />
 
-      {/* ------------------------------------------------------------ hero */}
-      <div className="relative h-[100svh]">
+      {/* ============================================================ hero */}
+      {/*
+        Seccion normal, de una pantalla de alto. El estuche va dentro y se va con
+        ella al bajar: no es fijo, no se desvanece y nada le pasa por encima.
+      */}
+      <section className="relative h-[100svh] overflow-hidden">
         <div
-          className={`transition-opacity duration-700 ${
-            introDone && !pastHero
-              ? "opacity-100"
-              : "pointer-events-none opacity-0"
+          className={`absolute inset-0 z-0 ${
+            grabbing ? "cursor-grabbing" : "cursor-grab"
           }`}
         >
-          <HeroControls />
+          <CaseScene
+            colorHex={color.hex}
+            open={view === "open"}
+            active={!pastHero}
+            resetSignal={resetSignal}
+            onGrabChange={setGrabbing}
+            onPoseDirty={setPoseDirty}
+          />
         </div>
 
-        {/* Aviso de que hay mas abajo. Se va en cuanto alguien baja. */}
+        {/*
+          `pointer-events-none` en la capa, y no solo cuando esta oculta.
+
+          Esta caja cubre el hero entero para poder fundir la consola de una sola
+          vez. Sin esta linea se queda con TODOS los gestos del lienzo aunque sea
+          transparente — una caja sin fondo sigue recibiendo el puntero — y el
+          estuche no se puede agarrar. Se vio probando el arrastre en el
+          navegador: los oyentes estaban puestos y no llegaba ni un solo evento.
+          La consola de dentro vuelve a encenderlos para si misma.
+        */}
         <div
-          aria-hidden
-          className={`pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 transition-opacity duration-500 sm:block ${
-            introDone && !pastHero ? "opacity-40" : "opacity-0"
+          className={`pointer-events-none absolute inset-0 z-20 transition-opacity duration-700 ${
+            introDone ? "opacity-100" : "opacity-0"
           }`}
         >
-          <span className="t-label text-[10px] text-[var(--store-fg)]">
+          <HeroControls poseDirty={poseDirty} onReset={resetPose} />
+
+          {/* Aviso de que hay mas abajo. Va a la IZQUIERDA: el costado derecho lo
+              ocupa ahora el panel de compra. En telefono no aparece, que ahi la
+              consola ya llena el bajo y esto solo seria ruido. */}
+          <span
+            aria-hidden
+            className="t-label pointer-events-none absolute bottom-8 left-6 hidden text-[10px] opacity-40 [writing-mode:vertical-rl] lg:block"
+            style={{ color: "var(--store-ink)" }}
+          >
             Scroll
           </span>
         </div>
-      </div>
+      </section>
 
       {/* --------------------------------------------------- lo que sigue */}
       <main className="relative z-10">
