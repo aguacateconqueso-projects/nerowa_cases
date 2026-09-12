@@ -40,7 +40,3 @@ yarn-error.log*
 /coverage
 /playwright-report
 /test-results
-
-# Los genera "next build" para agentes; no son fuente del proyecto.
-/AGENTS.md
-/CLAUDE.md

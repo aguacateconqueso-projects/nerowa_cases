@@ -185,13 +185,26 @@ export function HeroControls({ poseDirty, onReset }: HeroControlsProps) {
             ))}
           </div>
 
-          <p className="store-console__fine mt-3">
-            <span className="hidden lg:inline">
-              Drag to turn &middot; scroll to zoom &middot; shift-drag to move
-            </span>
-            <span className="lg:hidden">
-              Drag to turn it &middot; two fingers to zoom and move
-            </span>
+          {/*
+            En el panel vertical las tres ayudas van en columna, gesto y efecto,
+            porque ahi sobra alto y una linea corrida se parte en tres de todos
+            modos. En la barra de telefono van en una sola linea, que es donde lo
+            escaso es el ancho.
+
+            Y dicen "pinch", no "scroll": la rueda a secas ya no acerca — baja la
+            pagina. El motivo esta en la cabecera de `case-scene.tsx`.
+          */}
+          <dl className="store-hints mt-3 hidden lg:grid">
+            <dt>Drag</dt>
+            <dd>turn</dd>
+            <dt>Pinch</dt>
+            <dd>zoom</dd>
+            <dt>Shift-drag</dt>
+            <dd>move</dd>
+          </dl>
+
+          <p className="store-console__fine mt-2 lg:hidden">
+            Drag to turn it &middot; two fingers to zoom and move
           </p>
         </div>
 
