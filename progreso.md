@@ -16,6 +16,15 @@ el dominio sigue sirviendo solo la pagina de espera y las dos cosas conviven en
 el mismo preview de Vercel. El hero esta completo con un **estuche de relleno**;
 el modelo real todavia no existe.
 
+**Abierto ahora mismo:** el [PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10),
+con el hero entero. Alfredo lo vio y lo aprobo en lo general — *"me gusta, pero
+vamos a cambiar muchas cosas"* — **sin decir todavia cuales**. El PR se queda sin
+mezclar hasta que esos cambios entren.
+
+**Lo primero de la sesion que viene es preguntarle que quiere cambiar.** No se
+adivina y no se empieza a tocar codigo antes de tener la lista: el hero funciona,
+asi que cualquier cambio a ciegas es trabajo que se tira.
+
 **De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
 de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
 Vercel, no en el dominio. Ver "Entornos y publicacion".
@@ -55,10 +64,10 @@ color queda esperando los valores de Alfredo.
 
 ## Condiciones de trabajo
 
-1. Todo cambio entra por un **pull request nuevo**. Contra que rama, pendiente
-   de decidir desde que el dominio esta publicado: ver "Entornos y publicacion"
-   y el primer punto de "Pendiente de decidir". Hasta que se decida, nada se
-   mezcla a `main`, porque `main` es lo que sale en el dominio.
+1. Todo cambio entra por un **pull request nuevo contra `main`**. Desde el
+   2026-09-12 ya no hay conflicto con el dominio: la tienda vive en `/store` y
+   la raiz sigue siendo la pagina de espera, asi que mezclar a `main` no cambia
+   lo que ve quien llega de Instagram. Ver "Entornos y publicacion".
 2. Idioma de trabajo: **espanol neutro**. El sitio publico va en **ingles**.
 3. El despliegue se hace en **Vercel**.
 4. Cualquier duda se pregunta **antes** de aplicar el cambio.
@@ -458,3 +467,44 @@ verdadero y termina publicado.
 
 **Lo que bloquea cerrar la fase 3:** el `.glb` del estuche y los catorce colores
 con su nombre comercial y su valor exacto.
+
+**Cierre de la sesion.** El trabajo salio en el
+[PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10),
+contra `main`. Alfredo lo reviso y lo dio por bueno en lo general, pero avisa que
+**va a cambiar muchas cosas** y corta la sesion sin detallar cuales.
+
+Asi que el PR queda **abierto y sin mezclar**, y la fase 3 queda **sin cerrar**.
+No es que falte trabajo tecnico: falta la lista de cambios.
+
+**Como arranca la sesion 9, en este orden:**
+
+1. **Preguntarle a Alfredo que quiere cambiar del hero**, y no tocar nada hasta
+   tener la respuesta. El hero funciona y esta desplegado; cambiarlo a ciegas es
+   tirar trabajo. Si la lista es larga, conviene separarla en lo que es diseno
+   (proporciones, ritmo, tipografia) y lo que es comportamiento (camara, giro,
+   apertura), porque lo segundo puede obligar a rehacer la escena y lo primero no.
+2. **Recordarle las tres decisiones que tome solo** y que quedaron esperando su
+   veredicto, porque puede que alguna este en su lista sin que el lo sepa:
+   - El boton "Add to cart" **sigue dorado** en los catorce colores. Es lo unico
+     de la pagina que no reacciona al color del estuche.
+   - En telefono el dedo gira el estuche **solo en horizontal**. El vertical se
+     lo lleva el scroll de la pagina, porque el hero ocupa la pantalla entera y
+     si el lienzo capturara el vertical no se podria bajar desde ahi.
+   - Los catorce colores son inventados, y viven en `src/lib/store/catalog.ts`.
+3. **Volver a preguntar por el `.glb` y por los catorce colores reales.** Alfredo
+   esperaba dinero el lunes para mandar a modelar el estuche. Son las dos cosas
+   que bloquean cerrar la fase 3, y ninguna la puedo suplir.
+
+**Lo que NO hay que rehacer aunque cambie el diseno.** Estas piezas estan
+verificadas y son independientes de como se vea el hero:
+
+- `src/lib/store/palette.ts` — la formula del color. Si cambia la paleta, cambian
+  los valores de entrada, no la formula.
+- `src/components/store/store-context.tsx` — el estado y el carrito.
+- La separacion entre escena y modelo: `case-scene.tsx` tiene el comportamiento y
+  `case-model.tsx` + `case-shape.ts` tienen la forma. El `.glb` entra por el
+  segundo sin tocar el primero.
+
+**Y lo que si es desechable sin pena:** el estuche de relleno, los seis textos de
+preguntas frecuentes, las tres filas de envios y los catorce colores inventados.
+Todo eso esta rotulado como marcador de posicion en la propia pagina.
