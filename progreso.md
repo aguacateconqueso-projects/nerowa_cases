@@ -16,14 +16,13 @@ el dominio sigue sirviendo solo la pagina de espera y las dos cosas conviven en
 el mismo preview de Vercel. El hero esta completo con un **estuche de relleno**;
 el modelo real todavia no existe.
 
-**Abierto ahora mismo:** el [PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10),
-con el hero entero. Alfredo lo vio y lo aprobo en lo general — *"me gusta, pero
-vamos a cambiar muchas cosas"* — **sin decir todavia cuales**. El PR se queda sin
-mezclar hasta que esos cambios entren.
+El hero entro por el
+[PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10),
+**mezclado a `main` el 2026-09-12**. Alfredo lo aprobo en lo general — *"me
+gusta, pero vamos a cambiar muchas cosas"* — **sin decir todavia cuales**.
 
-**Lo primero de la sesion que viene es preguntarle que quiere cambiar.** No se
-adivina y no se empieza a tocar codigo antes de tener la lista: el hero funciona,
-asi que cualquier cambio a ciegas es trabajo que se tira.
+Que este mezclado no lo da por bueno: lo pone donde la proxima sesion lo
+encuentra. Los cambios entran despues, por PR nuevo.
 
 **De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
 de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
@@ -33,32 +32,51 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ## Lo primero de la proxima sesion
 
-La fase 2 (sistema de diseno) esta lista para arrancar, pero **tiene dos frenos
-que no dependen del codigo**. Conviene resolverlos antes de escribir nada, o al
-menos saber que estan ahi.
+**Preguntarle a Alfredo que quiere cambiar del hero, y no tocar nada hasta tener
+la respuesta.** El hero funciona y esta en `main`; cambiarlo a ciegas es tirar
+trabajo. Si la lista es larga, conviene partirla en dos, porque no cuestan lo
+mismo:
 
-**1. Contra que rama se trabaja.** Es el freno duro: hoy `main` es lo que sale
-en el dominio, y la condicion 1 manda todo por PR contra `main`. Hasta decidir
-esto no se puede mezclar nada de la fase 2 sin cambiarle la cara al dominio.
-Las dos formas estan en "Pendiente de decidir"; la recomendada es congelar
-`main` y abrir una rama larga `dev`.
+- **Diseno** (proporciones, ritmo, tipografia, colores de la interfaz): se toca
+  marcado y CSS, no obliga a rehacer nada.
+- **Comportamiento** (camara, giro, apertura, arrastre): vive en
+  `case-scene.tsx` y puede obligar a rehacer la escena entera.
 
-**2. Los 14 colores del catalogo.** La paleta y la formula del fondo oscuro por
-color son el corazon de la fase 2, y sin los valores exactos no se pueden
-escribir. Falta el nombre comercial y el valor de cada uno.
+**Recordarle las tres decisiones que tome solo** y que siguen esperando su
+veredicto, porque puede que alguna ya este en su lista sin que el lo sepa:
 
-**Lo que si se puede hacer sin esperar a nadie:**
+1. El boton "Add to cart" **sigue dorado** en los catorce colores. Es lo unico de
+   la pagina que no reacciona al color del estuche.
+2. En telefono el dedo gira el estuche **solo en horizontal**. El vertical se lo
+   lleva el scroll de la pagina, porque el hero ocupa la pantalla entera y si el
+   lienzo capturara el vertical no se podria bajar desde ahi.
+3. Los catorce colores son inventados, y viven en `src/lib/store/catalog.ts`.
 
-- Escala tipografica completa. La base ya existe: Archivo cargada con
-  `next/font` y las clases `.t-*` en `globals.css`.
-- Grid de 8 px y los tokens de espaciado.
-- Tokens estructurales (radios, bordes, sombras, capas) y los neutros.
-- Dejar la formula del fondo **parametrizada**, con los tres dorados de hoy
-  como unico caso cargado, para que meter los 14 colores despues sea rellenar
-  una tabla y no reescribir el sistema.
+**Volver a pedir lo que bloquea cerrar la fase 3**, que no lo puedo suplir yo:
 
-O sea: la fase 2 se puede empezar hoy por la mitad estructural, y la mitad de
-color queda esperando los valores de Alfredo.
+| Que falta | Por que bloquea |
+|---|---|
+| El `.glb` del estuche | Hoy corre un estuche de relleno. Alfredo esperaba dinero el lunes para mandarlo a modelar |
+| Los 14 colores: nombre comercial y valor exacto | Son la entrada de la formula del fondo. Sin ellos, la paleta es inventada |
+
+**Lo que NO hay que rehacer aunque cambie el diseno.** Estas piezas estan
+verificadas y son independientes de como se vea el hero:
+
+- `src/lib/store/palette.ts` — la formula del color. Si cambia la paleta, cambian
+  los valores de entrada, no la formula.
+- `src/components/store/store-context.tsx` — el estado y el carrito.
+- La separacion entre escena y modelo: `case-scene.tsx` tiene el comportamiento y
+  `case-model.tsx` + `case-shape.ts` tienen la forma. El `.glb` entra por el
+  segundo sin tocar el primero.
+
+**Y lo que si es desechable sin pena:** el estuche de relleno, los seis textos de
+preguntas frecuentes, las tres filas de envios y los catorce colores inventados.
+Todo eso esta rotulado como marcador de posicion en la propia pagina.
+
+**De la fase 2 (sistema de diseno) sigue pendiente** lo que no depende de nadie:
+escala tipografica completa, grid de 8 px y tokens de espaciado, y tokens
+estructurales (radios, bordes, sombras, capas). La mitad de color ya quedo
+resuelta por la formula de `palette.ts`; lo que falta son los valores.
 
 ---
 
@@ -72,6 +90,13 @@ color queda esperando los valores de Alfredo.
 3. El despliegue se hace en **Vercel**.
 4. Cualquier duda se pregunta **antes** de aplicar el cambio.
 5. Este archivo se actualiza al cerrar cada sesion.
+6. **La rama de la sesion se mezcla antes de cerrarla.** Cada sesion nueva
+   arranca de un clon limpio sobre `main`, asi que lo que se quede en una rama
+   sin mezclar no existe para la sesion siguiente, ni el codigo ni lo escrito en
+   este archivo. **Una rama sin mezclar es trabajo perdido en la practica**, y se
+   recupera solo si alguien se acuerda del nombre exacto de la rama. Un PR nuevo
+   por sesion sigue siendo la regla; lo que no puede quedar pendiente es el
+   merge.
 
 ---
 
@@ -470,41 +495,21 @@ con su nombre comercial y su valor exacto.
 
 **Cierre de la sesion.** El trabajo salio en el
 [PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10),
-contra `main`. Alfredo lo reviso y lo dio por bueno en lo general, pero avisa que
-**va a cambiar muchas cosas** y corta la sesion sin detallar cuales.
+contra `main`, y **Alfredo lo mezclo el mismo dia**. Lo dio por bueno en lo
+general, pero avisa que **va a cambiar muchas cosas** y corta la sesion sin
+detallar cuales.
 
-Asi que el PR queda **abierto y sin mezclar**, y la fase 3 queda **sin cerrar**.
-No es que falte trabajo tecnico: falta la lista de cambios.
+La fase 3 queda **sin cerrar**. No es que falte trabajo tecnico: falta la lista
+de cambios.
 
-**Como arranca la sesion 9, en este orden:**
+**Por que se mezclo aunque falten cambios.** Cada sesion arranca de un clon nuevo
+del repositorio, sobre `main`. Lo que se queda en una rama sin mezclar no lo ve
+la sesion siguiente a menos que alguien le diga el nombre de la rama, y ese
+nombre esta escrito justamente en el archivo que se quedo en la rama. Mezclar es
+lo que rompe ese circulo. No cuesta nada hacerlo porque `main` no cambia lo que
+ve el publico: la tienda vive en `/store`, con `noindex`, y `/` sigue siendo la
+pagina de espera. **Esa es la razon de fondo por la que la tienda se monto en una
+ruta aparte, y no solo una comodidad para el preview.**
 
-1. **Preguntarle a Alfredo que quiere cambiar del hero**, y no tocar nada hasta
-   tener la respuesta. El hero funciona y esta desplegado; cambiarlo a ciegas es
-   tirar trabajo. Si la lista es larga, conviene separarla en lo que es diseno
-   (proporciones, ritmo, tipografia) y lo que es comportamiento (camara, giro,
-   apertura), porque lo segundo puede obligar a rehacer la escena y lo primero no.
-2. **Recordarle las tres decisiones que tome solo** y que quedaron esperando su
-   veredicto, porque puede que alguna este en su lista sin que el lo sepa:
-   - El boton "Add to cart" **sigue dorado** en los catorce colores. Es lo unico
-     de la pagina que no reacciona al color del estuche.
-   - En telefono el dedo gira el estuche **solo en horizontal**. El vertical se
-     lo lleva el scroll de la pagina, porque el hero ocupa la pantalla entera y
-     si el lienzo capturara el vertical no se podria bajar desde ahi.
-   - Los catorce colores son inventados, y viven en `src/lib/store/catalog.ts`.
-3. **Volver a preguntar por el `.glb` y por los catorce colores reales.** Alfredo
-   esperaba dinero el lunes para mandar a modelar el estuche. Son las dos cosas
-   que bloquean cerrar la fase 3, y ninguna la puedo suplir.
-
-**Lo que NO hay que rehacer aunque cambie el diseno.** Estas piezas estan
-verificadas y son independientes de como se vea el hero:
-
-- `src/lib/store/palette.ts` — la formula del color. Si cambia la paleta, cambian
-  los valores de entrada, no la formula.
-- `src/components/store/store-context.tsx` — el estado y el carrito.
-- La separacion entre escena y modelo: `case-scene.tsx` tiene el comportamiento y
-  `case-model.tsx` + `case-shape.ts` tienen la forma. El `.glb` entra por el
-  segundo sin tocar el primero.
-
-**Y lo que si es desechable sin pena:** el estuche de relleno, los seis textos de
-preguntas frecuentes, las tres filas de envios y los catorce colores inventados.
-Todo eso esta rotulado como marcador de posicion en la propia pagina.
+**Como arranca la sesion 9:** esta escrito arriba, en "Lo primero de la proxima
+sesion", que es donde se lee primero.
