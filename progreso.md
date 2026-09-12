@@ -46,8 +46,9 @@ son decisiones de gusto que tome yo y que conviene que mire de frente:
 2. **El menu del logo.** El logo ya no sube al principio de la pagina: abre el
    menu, como la hamburguesa. Subir se hace desde "Buy the case" o desde el boton
    de volver al estuche.
-3. **El interruptor "Inspect" de telefono.** Es un boton a la vista, no un gesto
-   adivinado. Explicacion completa en la cabecera de `case-scene.tsx`.
+3. **En telefono no hay ningun boton para inspeccionar, y no hace falta.** Se
+   comprobo con eventos tactiles de verdad: `touch-action: pan-y` ya reparte bien
+   el gesto. Detalle en el cierre de la sesion 9.
 
 **Y las tres decisiones de la sesion 8 que siguen sin veredicto:**
 
@@ -56,7 +57,8 @@ son decisiones de gusto que tome yo y que conviene que mire de frente:
    porque el resto de la consola si se da vuelta entera.
 2. Los catorce colores son inventados, y viven en `src/lib/store/catalog.ts`.
 3. ~~En telefono el dedo gira el estuche solo en horizontal.~~ **Resuelto en la
-   sesion 9** con el modo Inspect.
+   sesion 9:** el dedo que arranca de lado gira en los dos ejes y los dos dedos
+   acercan y mueven, sin ningun boton de por medio.
 
 **Volver a pedir lo que bloquea cerrar la fase 3**, que no lo puedo suplir yo:
 
@@ -433,9 +435,9 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
   (fase 2).~~ **Resuelta y ampliada el 2026-09-12:** ahora son dos superficies,
   el hero a todo color y el fondo de lectura oscuro. Las dos en `palette.ts`.
 - ~~Cual de las tres alternativas de movimiento en movil se implementa (fase 3).~~
-  **Resuelto el 2026-09-12:** ninguna de las tres. Se puso un interruptor
-  "Inspect" a la vista, que cambia el lienzo entre dejar pasar el scroll y
-  quedarse con todos los gestos. Razon en `case-scene.tsx`.
+  **Resuelto el 2026-09-12:** ninguna de las tres, y sin interfaz de por medio.
+  `touch-action: pan-y` reparte el gesto solo. Razon y medicion en
+  `case-scene.tsx`.
 - Proveedor de base de datos y de correo para el panel y las reservas (fases 5 a 7).
 
 ### Sesion 8 — 2026-09-12
@@ -700,3 +702,75 @@ porque lo pedido fue el mismo color, no uno parecido.
 
 **Lo que bloquea cerrar la fase 3** sigue igual: el `.glb` del estuche y los
 catorce colores con su nombre comercial y su valor exacto.
+
+---
+
+### Sesion 9, segunda vuelta — el mismo dia
+
+Alfredo vio el hero rehecho, le gusto, y mando dos cosas.
+
+**1. La pantalla quedaba descompensada. El panel de compra se pone de pie.**
+
+La barra horizontal de abajo funcionaba pero dejaba todo el peso repartido en una
+franja baja, y el menu abierto — que es un bloque alto arriba a la izquierda — no
+tenia nada que le respondiera. Ahora, **en escritorio, el panel es vertical,
+pegado a la derecha, de media pantalla para abajo y con el mismo ancho que el menu
+abierto (320 px)**. Las dos esquinas opuestas se equilibran.
+
+Lo lleva `min-height: calc(50svh - 1.5rem)` con el panel apoyado abajo: crece
+hacia arriba y su borde superior cae en el centro exacto. Las zonas se reparten el
+alto sobrante con `space-between`, para que no se amontonen arriba dejando un
+hueco muerto al pie.
+
+**El estuche se aparta, no se encoge.** En escritorio lo que sobra ya no es alto
+sino ancho, asi que el encaje descuenta los 344 px del panel mas su margen y corre
+el estuche a la izquierda, al centro de lo que queda libre. En telefono no cambia
+nada: el panel sigue siendo la barra de abajo, que es donde lo escaso es el ancho.
+
+**2. El boton "Inspect" se fue, y la pregunta de Alfredo estaba bien hecha.**
+
+Pregunto por que existia y si inspeccionar no deberia poderse siempre. Lo medi con
+eventos tactiles de verdad, **con el boton apagado**:
+
+| Gesto | Llega al lienzo | La pagina se mueve |
+|---|---|---|
+| Un dedo, empezando de lado y siguiendo en diagonal | Si, **los dos ejes** (dx 200, dy 154) | No |
+| Dos dedos, pinza | Si | No |
+| Dos dedos, arrastre vertical | Si | No |
+| Un dedo hacia abajo, vertical seco | No | **Si**, como debe ser |
+
+O sea que el boton no hacia falta: `touch-action: pan-y` ya reparte bien. Si el
+dedo arranca de lado, el navegador nos entrega el gesto completo y el componente
+vertical tambien llega; si arranca hacia abajo, se lo queda la pagina. Lo unico
+que se cede es girar con un dedo que arranque en vertical seco, y eso es
+exactamente lo que hay que ceder: el hero ocupa la pantalla entera y el gesto de
+bajar a leer el precio no se puede fallar. Los dos dedos cubren ese hueco.
+
+**Estaba ofreciendo como modo algo que ya estaba disponible siempre.** Fuera.
+
+**Lo que si hubo que anadir, y NO se puede comprobar desde aqui.** Safari en
+iPhone entiende el pellizco como acercar la PAGINA entera, porque la etiqueta de
+ventana de Next deja escalar. Se pusieron dos guardas en el lienzo: un `touchmove`
+no pasivo que corta **solo cuando hay dos dedos o mas**, y `gesturestart` /
+`gesturechange`, que son de Safari. El dedo suelto no se toca, porque es el que
+baja la pagina. **Esto esta probado en Chromium; el pellizco en un iPhone de
+verdad lo tiene que mirar Alfredo.** Es lo unico de esta sesion que no pude
+verificar yo.
+
+**Tercer arreglo, de mirarlo:** la cinta de color perdia el borde contra el panel
+oscuro. El negro es la primera muestra y sin filete la cinta parecia empezar en el
+blanco. Se le puso un filete **a la cinta entera**, no a cada muestra: uno por
+muestra las separaria, que es justo lo que no queremos.
+
+**Un susto que no era.** En la captura del estuche negro sobre hero negro el
+estuche parecia haberse encogido a un tercio. No era cierto: sobre ese fondo solo
+se le ve el filo iluminado. Se comprobo con una sonda en el bucle de dibujo
+(escala real 0,817, la manda el alto) y en la captura del azul marino se ve
+entero y del tamano que toca. Queda anotado porque el mismo susto va a volver.
+
+**Comprobado otra vez de punta a punta:** `typecheck`, `lint` y `build` limpios,
+cinco rutas estaticas, sin desbordamiento a 390 ni 1440, cero errores de consola,
+y los gestos vueltos a pasar uno a uno — arrastre, rueda, Mayus+arrastre, doble
+clic, Reset apareciendo y desapareciendo, el dedo vertical bajando la pagina, el
+dedo de lado girando en los dos ejes y la pinza de dos dedos acercando.
+

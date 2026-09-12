@@ -467,18 +467,21 @@ body {
   filter: brightness(1.12);
 }
 
-/* ------------------------------------------------- la consola de compra */
+/* ------------------------------------------------- el panel de compra */
 
 /*
-  Una sola pieza apoyada abajo, partida en tres zonas por filetes de un pixel:
-  eleccion, inspeccion y cierre, en ese orden, que es el de la decision de compra.
+  Una sola pieza partida en zonas por filetes de un pixel: eleccion, inspeccion
+  y cierre, en ese orden, que es el de la decision de compra.
 
-  En telefono las zonas se apilan y los filetes pasan de verticales a
-  horizontales; el orden no cambia.
+  En telefono se apoya abajo y ocupa el ancho. En escritorio se pone de pie a la
+  derecha, **de media pantalla para abajo y con el mismo ancho que el menu
+  abierto**: sin eso, todo el peso de la pantalla quedaba repartido en una franja
+  baja y el menu, que es un bloque alto arriba a la izquierda, no tenia nada que
+  le respondiera.
 */
 .store-console {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   background: color-mix(in srgb, var(--store-chrome) 68%, transparent);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
@@ -498,36 +501,26 @@ body {
   padding: 0.75rem 0.875rem;
 }
 
-/* El filete entre zonas. Horizontal mientras estan apiladas. */
 .store-console__zone + .store-console__zone {
   border-top: 1px solid var(--store-line);
 }
 
 @media (min-width: 1024px) {
+  /*
+    El alto minimo es lo que lo lleva hasta la mitad de la pantalla. El panel se
+    apoya abajo y crece hacia arriba, asi que con este minimo su borde de arriba
+    cae en el centro exacto; si el contenido creciera, crece hacia arriba y ya.
+    El `1.5rem` descuenta el relleno del hero.
+  */
   .store-console {
-    /*
-      La zona del color se lleva casi la mitad: es la unica decision real que
-      toma el comprador. El cierre va ultimo y con ancho fijo para que el boton
-      no cambie de tamano al cambiar de color.
-    */
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1.15fr) 250px;
+    min-height: calc(50svh - 1.5rem);
+    /* Las zonas se reparten el alto sobrante en vez de amontonarse arriba y
+       dejar un hueco muerto al pie. */
+    justify-content: space-between;
   }
 
   .store-console__zone {
-    padding: 1.125rem 1.375rem;
-  }
-
-  .store-console__zone + .store-console__zone {
-    border-top: 0;
-    border-left: 1px solid var(--store-line);
-  }
-
-  /* El cierre se pega abajo: el boton queda alineado con el pie de la consola
-     aunque la zona del color sea mas alta. */
-  .store-console__zone--buy {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    padding: 1.125rem 1.25rem;
   }
 }
 
@@ -586,6 +579,14 @@ body {
   /* Sin recorte: la seleccionada crece y su resplandor tiene que poder salirse
      de la cinta. */
   overflow: visible;
+  border-radius: 9px;
+  /*
+    Filete alrededor de la cinta entera, no de cada muestra: uno por muestra las
+    separaria, que es justo lo que no queremos. Este solo dibuja el contorno, y
+    hace falta porque el negro del catalogo es la primera muestra y sobre el panel
+    oscuro se quedaba sin borde — la cinta parecia empezar en el blanco.
+  */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--store-ink) 22%, transparent);
 }
 
 .store-swatch {
@@ -704,8 +705,8 @@ body {
   background: var(--store-ink);
 }
 
-/* Boton de texto, sin caja hasta que se usa. Para "Inspect" y "Reset view", que
-   son ayudas y no decisiones de compra. */
+/* Boton de texto, sin caja hasta que se usa. Hoy lo lleva solo "Reset view", que
+   es una ayuda y no una decision de compra. */
 .store-ghost {
   padding: 0.4rem 0.7rem;
   font-size: 0.625rem;
@@ -724,16 +725,6 @@ body {
   border-color: var(--store-line);
 }
 
-.store-ghost--on {
-  color: var(--store-chrome);
-  background: var(--store-accent);
-  border-color: var(--store-accent);
-}
-
-.store-ghost--on:hover {
-  color: var(--store-chrome);
-  filter: brightness(1.1);
-}
 
 /* --------------------------------------------------------------- entradas */
 

@@ -76,9 +76,6 @@ function StoreShell() {
   const [introDone, setIntroDone] = useState(false);
   const [grabbing, setGrabbing] = useState(false);
 
-  /* Inspeccion en telefono: mientras esta encendida el lienzo se queda con todos
-     los gestos y la pagina no se desplaza. */
-  const [inspect, setInspect] = useState(false);
   /* Verdadero cuando el estuche ya no esta en su pose de reposo. */
   const [poseDirty, setPoseDirty] = useState(false);
   /* Sube de uno en uno; la escena solo mira que cambio. */
@@ -124,15 +121,7 @@ function StoreShell() {
       const veil = 1 - Math.min(Math.max((y - height * 0.15) / (height * 0.7), 0), 1);
       rootRef.current?.style.setProperty("--hero-veil", veil.toFixed(3));
 
-      const gone = y > height * 0.85;
-      setPastHero(gone);
-
-      /* Si alguien logra bajar con la inspeccion encendida, se apaga sola: dejar
-         la pagina bloqueada con el estuche fuera de vista es una trampa. Se
-         resuelve aqui, dentro del propio fotograma de scroll, y no en un efecto
-         aparte que reaccione a `pastHero`: ese efecto encadenaria un render de
-         mas por cada vez que se cruza el borde del hero. */
-      if (gone) setInspect(false);
+      setPastHero(y > height * 0.85);
     };
 
     const onScroll = () => {
@@ -150,15 +139,13 @@ function StoreShell() {
     };
   }, []);
 
-  /* Mientras el carrito esta abierto, o mientras se inspecciona el estuche en
-     telefono, la pagina de detras no se mueve. */
+  /* Mientras el carrito esta abierto, la pagina de detras no se mueve. */
   useEffect(() => {
-    const locked = cartOpen || inspect;
-    document.body.style.overflow = locked ? "hidden" : "";
+    document.body.style.overflow = cartOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [cartOpen, inspect]);
+  }, [cartOpen]);
 
   const resetPose = useCallback(() => setResetSignal((n) => n + 1), []);
 
@@ -214,7 +201,6 @@ function StoreShell() {
             colorHex={color.hex}
             open={view === "open"}
             active={!pastHero}
-            inspect={inspect}
             resetSignal={resetSignal}
             onGrabChange={setGrabbing}
             onPoseDirty={setPoseDirty}
@@ -236,19 +222,14 @@ function StoreShell() {
             introDone ? "opacity-100" : "opacity-0"
           }`}
         >
-          <HeroControls
-            inspect={inspect}
-            onInspectChange={setInspect}
-            poseDirty={poseDirty}
-            onReset={resetPose}
-          />
+          <HeroControls poseDirty={poseDirty} onReset={resetPose} />
 
-          {/* Aviso de que hay mas abajo. En pantallas grandes la consola no llega
-              a los bordes y queda sitio de sobra al costado; en telefono la
-              consola ya ocupa todo el bajo y esto solo seria ruido. */}
+          {/* Aviso de que hay mas abajo. Va a la IZQUIERDA: el costado derecho lo
+              ocupa ahora el panel de compra. En telefono no aparece, que ahi la
+              consola ya llena el bajo y esto solo seria ruido. */}
           <span
             aria-hidden
-            className="t-label pointer-events-none absolute bottom-8 right-6 hidden text-[10px] opacity-40 [writing-mode:vertical-rl] xl:block"
+            className="t-label pointer-events-none absolute bottom-8 left-6 hidden text-[10px] opacity-40 [writing-mode:vertical-rl] lg:block"
             style={{ color: "var(--store-ink)" }}
           >
             Scroll

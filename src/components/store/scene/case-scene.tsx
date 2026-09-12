@@ -25,21 +25,26 @@
     rueda                acerca y aleja
     doble clic           lo devuelve a su sitio
 
-  Telefono, y aqui esta el unico punto con truco:
-    El hero ocupa la pantalla entera. Si el lienzo se quedara con el dedo en
-    vertical, no habria forma de bajar la pagina desde el hero — que es donde
-    empieza todo el mundo. Por eso hay DOS estados, y los manda el boton
-    "Inspect" de la consola de compra:
+  Telefono:
+    un dedo, empezando de lado    gira, en los dos ejes
+    dos dedos                     acercan, alejan y mueven
+    doble toque                   lo devuelve a su sitio
+    un dedo hacia abajo           baja la pagina, como debe ser
 
-      Inspect apagado (por defecto)  el dedo en vertical baja la pagina y en
-                                     horizontal gira el estuche. Es lo que habia.
-      Inspect encendido              el lienzo se queda con todo: un dedo gira en
-                                     los dos ejes, dos dedos acercan y mueven, y
-                                     la pagina no se desplaza mientras tanto.
+  **No hay modo de inspeccion y no hace falta.** El reparto lo hace
+  `touch-action: pan-y` en el lienzo, y se comprobo con eventos tactiles de
+  verdad: si el dedo arranca de lado, el navegador nos entrega el gesto COMPLETO
+  y el componente vertical tambien nos llega, asi que se gira en los dos ejes sin
+  pedir permiso a nadie; si arranca hacia abajo, se lo queda la pagina. Los dos
+  dedos llegan siempre.
 
-    Se eligio un interruptor a la vista y no adivinar la intencion del gesto
-    porque adivinar falla justo en el unico gesto que no se puede fallar: el de
-    bajar a leer el precio.
+  Lo unico que no se puede es girar con un dedo que arranque en vertical seco, y
+  eso es exactamente lo que hay que ceder: el hero ocupa la pantalla entera y el
+  gesto de bajar a leer el precio no se puede fallar. Los dos dedos cubren ese
+  hueco.
+
+  Hubo una version con un boton "Inspect" que cambiaba el lienzo entre las dos
+  cosas. Se quito: ofrecia como modo algo que ya estaba disponible siempre.
 
   La pose NO se pierde sola. Antes cualquier desplazamiento de la pagina la
   devolvia a la diagonal; ahora se queda donde la dejaron hasta que alguien pulse
@@ -82,8 +87,6 @@ interface CaseSceneProps {
   /* Falso cuando el hero salio de pantalla: con esto se apaga el bucle de
      dibujo y la escena deja de gastar bateria mientras se lee el resto. */
   active: boolean;
-  /* Telefono: verdadero cuando el lienzo se queda con todos los gestos. */
-  inspect: boolean;
   /* Sube cada vez que alguien pide "Reset view". */
   resetSignal: number;
   onGrabChange?: (grabbing: boolean) => void;
@@ -96,7 +99,6 @@ export function CaseScene({
   colorHex,
   open,
   active,
-  inspect,
   resetSignal,
   onGrabChange,
   onPoseDirty,
@@ -108,10 +110,11 @@ export function CaseScene({
       gl={{ antialias: true, alpha: true }}
       camera={{ position: [0, 0, 19], fov: 32 }}
       /*
-        `pan-y` deja pasar el dedo vertical a la pagina; `none` se lo queda el
-        lienzo. Es el interruptor entero del modo inspeccion, en una linea.
+        `pan-y` es todo el reparto de gestos del telefono, en una linea: el dedo
+        que arranca hacia abajo se lo queda la pagina y el que arranca de lado nos
+        lo entrega entero. Los dos dedos llegan siempre.
       */
-      style={{ touchAction: inspect ? "none" : "pan-y" }}
+      style={{ touchAction: "pan-y" }}
     >
       <Lighting />
       <CaseRig
@@ -448,6 +451,26 @@ function CaseRig({
        de mover. */
     const onContextMenu = (event: MouseEvent) => event.preventDefault();
 
+    /*
+      Guardas para los dos dedos, y solo para los dos dedos.
+
+      `touch-action: pan-y` reparte bien el dedo suelto, pero no dice nada del
+      acercamiento de pellizco: Safari en iPhone lo entiende como acercar la
+      PAGINA entera, porque la etiqueta de ventana de Next deja escalar. Estas dos
+      guardas se lo quitan de las manos sin tocar el dedo suelto, que es el que
+      baja la pagina y tiene que seguir siendo del navegador.
+
+      `touchmove` va con `passive: false` a proposito: registrado como pasivo,
+      `preventDefault` no hace nada. Solo corta cuando hay dos dedos o mas.
+
+      `gesturestart` y `gesturechange` son de Safari y no existen en el resto; van
+      con el nombre en crudo porque TypeScript no los conoce.
+    */
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length >= 2) event.preventDefault();
+    };
+    const onSafariGesture = (event: Event) => event.preventDefault();
+
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove, { passive: true });
     canvas.addEventListener("pointerup", onPointerUp);
@@ -455,6 +478,9 @@ function CaseRig({
     canvas.addEventListener("wheel", onWheel, { passive: false });
     canvas.addEventListener("dblclick", onDoubleClick);
     canvas.addEventListener("contextmenu", onContextMenu);
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    canvas.addEventListener("gesturestart", onSafariGesture);
+    canvas.addEventListener("gesturechange", onSafariGesture);
 
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
@@ -464,9 +490,13 @@ function CaseRig({
       canvas.removeEventListener("wheel", onWheel);
       canvas.removeEventListener("dblclick", onDoubleClick);
       canvas.removeEventListener("contextmenu", onContextMenu);
+      canvas.removeEventListener("touchmove", onTouchMove);
+      canvas.removeEventListener("gesturestart", onSafariGesture);
+      canvas.removeEventListener("gesturechange", onSafariGesture);
     };
-    /* El modo inspeccion no entra aqui: solo cambia `touch-action`, que es cosa
-       del estilo. Volver a montar los oyentes en mitad de un gesto lo cortaria. */
+    /* Solo el lienzo. `markDirty` se deja fuera a proposito: volver a montar los
+       oyentes en mitad de un gesto lo cortaria, y lo unico que cierra encima es
+       una devolucion de llamada estable. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gl]);
 
@@ -553,25 +583,35 @@ function CaseRig({
         (CASE_LENGTH * Math.abs(Math.sin(DIAGONAL)) + 1.5 * openFactor) * 1.16;
 
       /*
-        En vertical, la consola de compra se come el tercio de abajo de la
-        pantalla. El estuche no puede repartirse el sitio con ella: se encoge a
-        la altura que queda libre y sube para quedar centrado en ese hueco. En
-        escritorio la consola es una barra baja y deja mas sitio arriba.
+        El estuche no se reparte el sitio con el panel de compra: se aparta.
+
+        En vertical el panel es una barra que se come el tercio de abajo, asi que
+        el estuche se encoge a la altura que queda libre y sube para quedar
+        centrado en ese hueco. En escritorio el panel esta de pie a la derecha, asi
+        que lo que sobra no es alto sino ancho: el estuche se queda casi entero de
+        alto y se corre a la izquierda, al centro de lo que el panel deja libre.
       */
       const portrait = width < height * 0.8;
-      const usableHeight = height * (portrait ? 0.6 : 0.76);
+      const usableHeight = height * (portrait ? 0.6 : 0.8);
+      /* Ancho del panel mas su margen, en unidades del mundo. Sale de los mismos
+         320 px + 24 que fija `globals.css`. */
+      const panel = portrait ? 0 : (344 / state.size.width) * width;
+      const usableWidth = (width - panel) * 0.96;
 
-      const scale = Math.min(
-        usableHeight / needHeight,
-        (width * 0.94) / needWidth,
-      );
+      const scale = Math.min(usableHeight / needHeight, usableWidth / needWidth);
 
       fit.current.scale.setScalar(
         THREE.MathUtils.damp(fit.current.scale.x, scale, 6, delta),
       );
       fit.current.position.y = THREE.MathUtils.damp(
         fit.current.position.y,
-        portrait ? height * 0.16 : height * 0.03,
+        portrait ? height * 0.16 : height * 0.02,
+        6,
+        delta,
+      );
+      fit.current.position.x = THREE.MathUtils.damp(
+        fit.current.position.x,
+        -panel / 2,
         6,
         delta,
       );
