@@ -18,11 +18,9 @@ el modelo real todavia no existe.
 
 El hero entro por el
 [PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10),
-**mezclado a `main` el 2026-09-12**. Alfredo lo aprobo en lo general — *"me
-gusta, pero vamos a cambiar muchas cosas"* — **sin decir todavia cuales**.
-
-Que este mezclado no lo da por bueno: lo pone donde la proxima sesion lo
-encuentra. Los cambios entran despues, por PR nuevo.
+mezclado a `main` el 2026-09-12. Alfredo lo aprobo en lo general — *"me gusta,
+pero vamos a cambiar muchas cosas"* — y **la lista de cambios llego el mismo dia,
+en la sesion 9**: siete puntos, todos hechos. Ver "Sesion 9" al final.
 
 **De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
 de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
@@ -32,38 +30,49 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ## Lo primero de la proxima sesion
 
-**Preguntarle a Alfredo que quiere cambiar del hero, y no tocar nada hasta tener
-la respuesta.** El hero funciona y esta en `main`; cambiarlo a ciegas es tirar
-trabajo. Si la lista es larga, conviene partirla en dos, porque no cuestan lo
-mismo:
+**Ensenarle a Alfredo el hero rehecho y recoger la siguiente tanda de cambios.**
+Los siete puntos que mando en la sesion 9 estan hechos y comprobados en el
+navegador; lo que falta es su veredicto sobre como quedaron. Tres en particular
+son decisiones de gusto que tome yo y que conviene que mire de frente:
 
-- **Diseno** (proporciones, ritmo, tipografia, colores de la interfaz): se toca
-  marcado y CSS, no obliga a rehacer nada.
-- **Comportamiento** (camara, giro, apertura, arrastre): vive en
-  `case-scene.tsx` y puede obligar a rehacer la escena entera.
+1. **El estuche de color claro se confunde con su propio fondo.** Es la
+   consecuencia directa de "la pagina full color en reaccion al color del
+   estuche": con un estuche amarillo, el fondo es amarillo. Lo que hoy los separa
+   es el pozo negro del centro (`.store-hero-well`) y los haces. Sobre azul
+   marino, vinotinto o morado se ve perfecto; sobre amarillo, oro y crema el
+   estuche se apoya menos. **Si le molesta, la salida es girar el tono del fondo
+   unos grados respecto al del estuche** — se cambia en una linea, en
+   `heroSurfaceFor`. No lo hice porque el pidio el mismo color, no uno parecido.
+2. **El menu del logo.** El logo ya no sube al principio de la pagina: abre el
+   menu, como la hamburguesa. Subir se hace desde "Buy the case" o desde el boton
+   de volver al estuche.
+3. **El interruptor "Inspect" de telefono.** Es un boton a la vista, no un gesto
+   adivinado. Explicacion completa en la cabecera de `case-scene.tsx`.
 
-**Recordarle las tres decisiones que tome solo** y que siguen esperando su
-veredicto, porque puede que alguna ya este en su lista sin que el lo sepa:
+**Y las tres decisiones de la sesion 8 que siguen sin veredicto:**
 
 1. El boton "Add to cart" **sigue dorado** en los catorce colores. Es lo unico de
-   la pagina que no reacciona al color del estuche.
-2. En telefono el dedo gira el estuche **solo en horizontal**. El vertical se lo
-   lleva el scroll de la pagina, porque el hero ocupa la pantalla entera y si el
-   lienzo capturara el vertical no se podria bajar desde ahi.
-3. Los catorce colores son inventados, y viven en `src/lib/store/catalog.ts`.
+   la pagina que no reacciona al color del estuche. Ahora se nota mas que antes,
+   porque el resto de la consola si se da vuelta entera.
+2. Los catorce colores son inventados, y viven en `src/lib/store/catalog.ts`.
+3. ~~En telefono el dedo gira el estuche solo en horizontal.~~ **Resuelto en la
+   sesion 9** con el modo Inspect.
 
 **Volver a pedir lo que bloquea cerrar la fase 3**, que no lo puedo suplir yo:
 
 | Que falta | Por que bloquea |
 |---|---|
 | El `.glb` del estuche | Hoy corre un estuche de relleno. Alfredo esperaba dinero el lunes para mandarlo a modelar |
-| Los 14 colores: nombre comercial y valor exacto | Son la entrada de la formula del fondo. Sin ellos, la paleta es inventada |
+| Los 14 colores: nombre comercial y valor exacto | Son la entrada de la formula del fondo. Sin ellos, tanto la paleta como el fondo a todo color son inventados |
 
 **Lo que NO hay que rehacer aunque cambie el diseno.** Estas piezas estan
 verificadas y son independientes de como se vea el hero:
 
-- `src/lib/store/palette.ts` — la formula del color. Si cambia la paleta, cambian
-  los valores de entrada, no la formula.
+- `src/lib/store/palette.ts` — la formula del color, ahora con las dos
+  superficies (hero a todo color y fondo de lectura). Si cambia la paleta, cambian
+  los valores de entrada, no la formula. La comprobacion de contraste corre sola:
+  `enforceContrast` empuja el hero hasta que el texto cumple AA, asi que un color
+  nuevo no puede publicar texto ilegible.
 - `src/components/store/store-context.tsx` — el estado y el carrito.
 - La separacion entre escena y modelo: `case-scene.tsx` tiene el comportamiento y
   `case-model.tsx` + `case-shape.ts` tienen la forma. El `.glb` entra por el
@@ -420,8 +429,13 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
 - **Encender Vercel Authentication** en el proyecto para que los previews no se
   abran solo con tener la URL. Lo hace Alfredo en el panel.
 - Tipografias definitivas (fase 2). Hoy corre una pila de sistema, provisional.
-- Formula exacta del fondo oscuro y desaturado a partir del color del estuche (fase 2).
-- Cual de las tres alternativas de movimiento en movil se implementa (fase 3).
+- ~~Formula exacta del fondo oscuro y desaturado a partir del color del estuche
+  (fase 2).~~ **Resuelta y ampliada el 2026-09-12:** ahora son dos superficies,
+  el hero a todo color y el fondo de lectura oscuro. Las dos en `palette.ts`.
+- ~~Cual de las tres alternativas de movimiento en movil se implementa (fase 3).~~
+  **Resuelto el 2026-09-12:** ninguna de las tres. Se puso un interruptor
+  "Inspect" a la vista, que cambia el lienzo entre dejar pasar el scroll y
+  quedarse con todos los gestos. Razon en `case-scene.tsx`.
 - Proveedor de base de datos y de correo para el panel y las reservas (fases 5 a 7).
 
 ### Sesion 8 — 2026-09-12
@@ -513,3 +527,176 @@ ruta aparte, y no solo una comodidad para el preview.**
 
 **Como arranca la sesion 9:** esta escrito arriba, en "Lo primero de la proxima
 sesion", que es donde se lee primero.
+
+---
+
+### Sesion 9 — 2026-09-12
+
+**Punto de partida:** el hero de la sesion 8 mezclado en `main` y Alfredo
+avisando que iba a cambiar muchas cosas sin decir cuales. **Esta sesion llego la
+lista: siete puntos.** Los siete estan hechos.
+
+---
+
+**1 y 2 — La cabecera es UNA placa que se estira, y el logo tambien la abre.**
+
+Antes habia un rectangulo de vidrio con la hamburguesa y el logo, y al pulsar
+salia OTRO rectangulo de vidrio ocho pixeles mas abajo. Ahora es una sola pieza
+que crece hacia abajo y hacia los lados y ensena lo que tenia guardado. Y el logo
+hace lo mismo que la hamburguesa: si la placa es una pieza, toda la pieza
+responde igual.
+
+Subir al principio de la pagina, que es lo que hacia el logo, no se perdio: lo
+hacen "Buy the case" dentro del menu y el boton de volver al estuche.
+
+Los dos detalles con truco, por si hay que tocarlo:
+
+- **El alto** se anima con `grid-template-rows` de `0fr` a `1fr`, que es el alto
+  real del contenido medido por el navegador. Con `max-height` y un tope
+  inventado, la animacion corre a una velocidad distinta a la real y se nota el
+  tiron al cerrar.
+- **El ancho** va entre dos valores escritos en `globals.css`
+  (`--store-shell-closed` y `--store-shell-open`). `width: auto` no interpola en
+  ningun navegador que importe hoy. **Si cambia el tamano del logo, hay que
+  cambiar esos dos numeros.**
+
+**3 — Se puede agarrar el estuche de verdad: girar, acercar, mover, dar la
+vuelta.**
+
+| Escritorio | |
+|---|---|
+| arrastrar | gira, sin tope: se le puede dar la vuelta entera |
+| rueda | acerca y aleja, entre 0,55 y 3,2 |
+| Mayus + arrastrar, o boton central/derecho | mueve: sube, baja, corre a los lados |
+| doble clic | lo devuelve a su sitio |
+
+En telefono el hero ocupa la pantalla entera, asi que si el lienzo se quedara con
+el dedo en vertical no habria forma de bajar la pagina desde ahi. La salida es un
+**interruptor "Inspect"** en la consola: apagado, el dedo vertical baja la pagina
+y el horizontal gira; encendido, el lienzo se queda con todo — un dedo gira en los
+dos ejes, dos dedos acercan y mueven — y la pagina queda bloqueada mientras tanto.
+Si alguien consigue bajar con la inspeccion encendida, se apaga sola.
+
+Se eligio un interruptor a la vista y no adivinar la intencion del gesto porque
+adivinar falla justo en el gesto que no se puede fallar: el de bajar a leer el
+precio.
+
+**La pose ya no se pierde sola.** Antes cualquier desplazamiento la devolvia a la
+diagonal. Ahora se queda donde la dejaron y aparece un boton "Reset" — solo
+cuando hay algo que reiniciar.
+
+**4 — La pagina entera a todo color, con los haces negros.**
+
+El fondo ya no es solo la version oscura y desaturada del color del estuche. Son
+**dos superficies**:
+
+- **El hero, a todo color.** El color del estuche llevado a su version mas
+  encendida, con los haces del fondo de la pagina de espera encima pero **en
+  negro**, y un pozo negro en el centro.
+- **Lo que se lee, debajo.** La superficie oscura de siempre. Seis secciones de
+  texto sobre un amarillo encendido no las lee nadie, y eso no es una opinion:
+  es lo que sale de medir el contraste.
+
+Entre las dos hay un degradado de una pantalla de alto, manejado por `--hero-veil`
+segun el scroll, asi que al bajar no se cruza una linea — el color se apaga solo.
+
+**Lo que hubo que resolver para que esto no publicara texto ilegible.** Sobre un
+hero encendido no se puede dar por hecho que el texto claro contrasta: el amarillo
+pide texto negro y el azul marino pide texto blanco. `heroForegroundFor` no elige,
+**mide** con `contrastRatio` y se queda con el que mas saca. Aun asi, dos de los
+catorce colores caian justo en la franja media donde ninguno de los dos llega a
+AA — el verde bosque en 4,16 y el naranja en 4,24. Para eso esta `enforceContrast`:
+empuja la luminosidad del hero de a una centesima, en la direccion que le conviene
+al texto que iba ganando, hasta cruzar el 4,5. **Comprobado con los catorce: el
+peor queda en 4,55.** Es un ajuste que no se ve y sin el la pagina publica texto
+que no se lee.
+
+Los haces negros viven en `store-beams.tsx`, aparte de `beams-background.tsx`.
+Aquel monta su propio contenedor negro con velo y vineta; aqui hace falta lo
+contrario, una capa transparente que se pinta encima de un color que cambia. Lo
+unico que comparten es la matematica de los carriles, que son treinta lineas. Su
+peso sale de `beamStrengthFor`: sobre un hero claro se sujetan y sobre uno oscuro
+se suben, porque si no, sobre azul marino no aparecen.
+
+**5 — El scroll: el estuche se queda donde esta y nada le pasa por encima.**
+
+Antes el lienzo era `fixed` y ocupaba la pantalla entera durante toda la pagina:
+al bajar, el estuche se quedaba clavado detras mientras las secciones le pasaban
+por encima, y para que el texto se leyera habia que desvanecerlo. Ahora **el
+lienzo vive dentro del hero, en absoluto**. El hero es una seccion normal de una
+pantalla de alto y se va hacia arriba como se va cualquier cosa. El estuche no se
+desvanece, no se encoge y no se aparta: se va con su consola de compra, y lo que
+sigue empieza despues de el.
+
+Lo unico que se sigue apagando con el scroll es el color del hero, que es un
+fondo fijo aparte. Eso no es el estuche desvaneciendose, es la sala bajando las
+luces para leer.
+
+**6 — Las muestras de color van pegadas, y la elegida se enciende con su color.**
+
+Catorce muestras sin un pixel entre ellas, con las esquinas de los extremos
+redondeadas: una cinta, no catorce botones. La seleccionada crece y lleva el
+`box-shadow` de color del ejemplo que mando Alfredo. **El resplandor sale del
+color de la propia muestra y no del acento**: si saliera del acento, las catorce
+se encenderian igual y la cinta perderia lo que la hace legible. Se reparten el
+ancho, asi que las catorce caben en telefono sin desplazar.
+
+**7 — La zona del color y el estuche, reordenada.**
+
+Antes era una columna en la esquina inferior derecha con seis bloques apilados del
+mismo peso, y lo que mas espacio ocupaba era el aviso legal. Ahora es **una sola
+barra apoyada abajo, partida en tres zonas por filetes de un pixel**, en el orden
+de la decision de compra:
+
+```
+┌───────────────────────────┬──────────────┬──────────────────┐
+│ FINISH                    │ VIEW         │        ONE PRICE │
+│ Burgundy · Last few       │ Closed  Open │             €180 │
+│ ▮▮▮▮▮▮▮▮▮▮▮▮▮▮            │ Inspect Reset│   ADD TO CART    │
+│ Screen colours may differ │              │                  │
+└───────────────────────────┴──────────────┴──────────────────┘
+      eleccion                 inspeccion        cierre
+```
+
+El nombre del color pasa a titular, que es lo que pesa: es la unica decision real
+que toma el comprador. El aviso de fidelidad baja a pie de zona, en gris. El
+precio sale de dentro del boton y se pone al lado: un precio metido en el boton se
+lee como parte de la etiqueta.
+
+**Es una propuesta, no un final.** Alfredo dijo que no tenia solucion y que
+propusiera. Esta es la propuesta.
+
+---
+
+**Comprobado en el navegador, no de memoria.** `typecheck`, `lint` y `build`
+limpios; las cinco rutas siguen estaticas; sin desbordamiento horizontal a 390 y
+1440 px, ni antes ni despues de bajar; cero errores de consola. Y los gestos
+probados uno a uno, con eventos de verdad: arrastre, rueda, Mayus+arrastre, doble
+clic, el boton Reset apareciendo y desapareciendo, y en telefono el dedo vertical
+bajando la pagina con Inspect apagado, quedandose en el lienzo con Inspect
+encendido, y la pinza de dos dedos acercando.
+
+**Cuatro fallos encontrados mirando, que no habrian salido leyendo el codigo:**
+
+1. **El estuche no se podia agarrar.** Los oyentes estaban bien puestos y no
+   llegaba ni un solo evento. La causa: la capa que funde la consola de compra
+   cubre el hero entero, y una caja sin fondo sigue recibiendo el puntero. Le
+   faltaba `pointer-events-none`. **El arrastre parecia funcionar** en la primera
+   prueba porque la deriva y el seguimiento del cursor cambiaban la escena igual;
+   lo que lo delato fue que el boton "Reset" no aparecia nunca.
+2. **En telefono la consola se comia media pantalla** y el estuche quedaba sin
+   sitio. Se reordeno: el selector de vista y los botones de inspeccion comparten
+   fila, y el precio y el boton tambien.
+3. **El boton de volver al estuche chocaba con el carrito** a 390 px. En telefono
+   quedo solo la flecha.
+4. **Sobre los colores claros el pozo no pesaba lo suficiente** y el estuche se
+   veia recortado en papel. Se subio el pozo y se subieron los haces.
+
+**Lo que queda abierto, y es de gusto, no tecnico:** sobre amarillo, oro y crema
+el estuche se apoya menos en el fondo, porque son el mismo color. Es la
+consecuencia directa de lo que se pidio. Si molesta, se gira el tono del fondo
+unos grados respecto al del estuche, en una linea de `heroSurfaceFor`. No lo hice
+porque lo pedido fue el mismo color, no uno parecido.
+
+**Lo que bloquea cerrar la fase 3** sigue igual: el `.glb` del estuche y los
+catorce colores con su nombre comercial y su valor exacto.
