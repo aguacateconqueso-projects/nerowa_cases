@@ -9,7 +9,12 @@ Si algo no esta escrito aqui, no paso.
 
 **Fase 1 de 7 — cerrada.** La pagina de espera esta **publicada en
 `nerowacases.com`**. El repositorio, Next.js, Tailwind y el despliegue en Vercel
-funcionan. Todavia no hay sistema de diseno ni tienda: eso arranca en la fase 2.
+funcionan.
+
+**Fase 3 — el hero, en marcha.** La tienda vive en **`/store`**, no en la raiz:
+el dominio sigue sirviendo solo la pagina de espera y las dos cosas conviven en
+el mismo preview de Vercel. El hero esta completo con un **estuche de relleno**;
+el modelo real todavia no existe.
 
 **De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
 de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
@@ -80,6 +85,11 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 | 2026-09-11 | **Se retira el tope de dos animaciones por pagina** | Decision de Alfredo: no aplica a este proyecto. El criterio pasa a ser el juicio, no un numero |
 | 2026-09-11 | El boton principal se queda **rectangular**, sin silueta | Se probo con el perfil del estuche y Alfredo lo descarto: si no es igual al estuche real, no sirve |
 | 2026-09-11 | **El dominio queda congelado en la pagina de espera**; todo lo demas se revisa en previews de Vercel | Decision de Alfredo. Lo que llega de Instagram no puede toparse con la tienda a medio hacer |
+| 2026-09-12 | La tienda se monta en **`/store`**, sobre la rama de trabajo | Resuelve el punto que bloqueaba la fase 2 sin tocar `main` ni crear una rama larga: en el mismo preview, `/` es la pagina de espera y `/store` es lo nuevo. Pasar a produccion sera cambiar una linea en `src/app/page.tsx` |
+| 2026-09-12 | **El fondo toma el color del estuche oscurecido y desaturado**, no el color literal | Decision de Alfredo entre tres opciones. Es lo unico que garantiza que el estuche no se pierda contra el fondo y que el texto cumpla AA en los catorce colores sin revisarlos de a uno |
+| 2026-09-12 | **Sin cortina de entrada.** La entrada es el zoom-out del estuche girando | Decision de Alfredo. Una sola idea en la apertura; la cortina alargaba la espera antes de ver el producto |
+| 2026-09-12 | **Dos vistas: cerrado y abierto.** La de "detalle" queda fuera | Decision de Alfredo. La tercera vista depende de que el modelo real tenga herrajes que aguanten un acercamiento, y todavia no se sabe |
+| 2026-09-12 | El boton principal dice **"Add to cart"** y no "Buy now" | Decision de Alfredo: hoy la gente compra de a varias cajas y mandarlos a pagar despues de la primera rompe esa compra |
 
 ---
 
@@ -89,7 +99,7 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 |---|---|---|---|
 | 1 | Andamiaje | Repositorio, Next.js, Tailwind, `progreso.md`, despliegue en Vercel, pagina de espera | **Hecha** — publicada en `nerowacases.com` el 2026-09-11 |
 | 2 | Sistema de diseno | Paleta, escala tipografica, grid de 8 px, tokens, formula del fondo por color | Pendiente |
-| 3 | Hero | Cortina de entrada, escena 3D, selector de vista, selector de color, boton de compra | Pendiente |
+| 3 | Hero | Escena 3D, selector de vista, selector de color, boton de compra | **En marcha** — completo con estuche de relleno; falta el `.glb` real y los 14 colores |
 | 4 | Bloques y pie | Los 6 bloques al bajar, el menu y el pie | Pendiente |
 | 5 | Stripe | Salida al checkout alojado y las dos pantallas de vuelta | Pendiente |
 | 6 | Apoyo y correos | 4 paginas de apoyo y 3 plantillas de correo | Pendiente |
@@ -317,7 +327,8 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
 
 | Que hace falta | Para que fase | Estado |
 |---|---|---|
-| Modelo 3D del estuche en `.glb`, o las fotos para mandarlo a modelar | 3 | Falta |
+| Modelo 3D del estuche en `.glb`, o las fotos para mandarlo a modelar | 3 | Falta — **es lo unico que bloquea el hero**. Mientras, corre un estuche de relleno |
+| Textura real del fondo | 3 | Falta — hoy es un trenzado hecho en CSS |
 | Los 14 colores del catalogo: nombre comercial y valor exacto | 2 y 3 | Falta |
 | Medidas exteriores, medida util interior, peso y materiales | 4 | Falta |
 | Foto del interior con los dos arcos dentro | 4 | Falta |
@@ -331,18 +342,84 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
 
 ## Pendiente de decidir
 
-- **Como se separa lo publicado de lo que se esta armando.** Es lo primero,
-  porque bloquea el arranque de la fase 2. Dos formas:
-  1. **Rama larga `dev`.** `main` se congela con la pagina de espera y es lo
-     unico que va al dominio. Todo el trabajo se acumula en `dev`, que tiene su
-     propia URL de preview fija, y `dev` se mezcla a `main` solo el dia que
-     Alfredo diga "esto sale". Es lo recomendado.
-  2. Seguir mezclando a `main` y **desconectar el dominio del despliegue
-     automatico**, publicandolo a mano desde Vercel. Menos ramas, pero el
-     dominio depende de acordarse de no promover un despliegue.
+- ~~Como se separa lo publicado de lo que se esta armando.~~ **Resuelto el
+  2026-09-12 por la via de la ruta:** la tienda vive en `/store` y la pagina de
+  espera se queda en `/`. Las dos conviven en el mismo despliegue, asi que no
+  hace falta ni rama larga ni desconectar el dominio. El dia que la tienda salga,
+  `src/app/page.tsx` pasa a renderizar `<StorePage />` y `/store` se borra.
+  Mientras tanto `/store` lleva `robots: noindex`.
 - **Encender Vercel Authentication** en el proyecto para que los previews no se
   abran solo con tener la URL. Lo hace Alfredo en el panel.
 - Tipografias definitivas (fase 2). Hoy corre una pila de sistema, provisional.
 - Formula exacta del fondo oscuro y desaturado a partir del color del estuche (fase 2).
 - Cual de las tres alternativas de movimiento en movil se implementa (fase 3).
 - Proveedor de base de datos y de correo para el panel y las reservas (fases 5 a 7).
+
+### Sesion 8 — 2026-09-12
+
+**Punto de partida:** la pagina de espera publicada y la fase 2 sin arrancar,
+bloqueada por no saber donde montar lo nuevo sin tocar el dominio.
+
+**Lo primero que se resolvio fue eso, y no hizo falta ninguna de las dos formas
+que estaban anotadas.** La tienda se monta en **`/store`**: en el mismo preview
+de Vercel, `/` sigue siendo la pagina de espera y `/store` es la tienda. No hay
+rama larga que mantener ni despliegue manual que recordar, y la vuelta atras es
+borrar una carpeta.
+
+**Hecho — el hero completo, en `/store`:**
+
+- **Sistema de color reactivo** (`src/lib/store/palette.ts`). Del color del
+  estuche salen el fondo, el texto y el acento. El fondo conserva el tono, corta
+  la saturacion a un tercio con tope en 0.20 y aplasta la luminosidad a la
+  franja 0.05–0.085. Los grises se van a negro puro en vez de inventarles un
+  tono. Como el fondo nunca pasa del 10% de luminosidad, el texto claro cumple
+  AA en los catorce colores sin revisarlos de a uno; `contrastRatio` esta escrita
+  en el mismo archivo para poder comprobarlo.
+- **Escena 3D** (`src/components/store/scene/`). Entrada con zoom-out y una
+  vuelta entera sobre el eje, aterrizaje en diagonal de la esquina superior
+  derecha a la inferior izquierda, seguimiento del cursor muy leve, deriva lenta
+  cuando nadie toca nada, y arrastre para inspeccionar que **mantiene la pose al
+  soltar** y solo vuelve a la diagonal con el scroll. Cambio de color con una
+  vuelta completa. Sin mapa de entorno: cuatro luces explicitas, para no
+  descargar un HDRI en cada visita.
+- **Estuche de relleno** (`case-shape.ts` + `case-model.tsx`). No es un cilindro:
+  es la silueta sacada de las fotos, proporcion 1:7, extremos redondeados, panza
+  asimetrica, banda negra en la costura, interior con varilla y cintas, cierres y
+  anillas. La tapa gira media vuelta sobre la bisagra del canto largo. Cuando
+  llegue el `.glb`, se borran esos dos archivos y nada mas.
+- **Cabecera flotante**: menu de hamburguesa y logo en un bloque de vidrio,
+  panel desplegable con las secciones y la invitacion a comprar destacada, y el
+  boton **"Back to the case"** que aparece pasado el hero.
+- **Controles de compra** abajo a la derecha: catorce muestras con el nombre del
+  color apareciendo encima al pasar por encima, aviso de fidelidad de color,
+  selector de vista y "Add to cart" con el precio.
+- **Carrito** en cajon lateral, con cantidades y persistencia en el navegador.
+  La salida a pagar esta desactivada a la vista hasta la fase de Stripe.
+- **Fondo con textura**: trenzado diagonal en CSS que se desplaza 14 px en 40 s,
+  halo que respira en 20 s, y vineta. Todo se apaga con `prefers-reduced-motion`.
+- **Secciones al bajar**: que es, especificaciones, envios, seis preguntas
+  frecuentes en acordeon, contacto y pie.
+
+**Comprobado en el navegador, no de memoria:** `typecheck`, `lint` y `build`
+limpios; las cinco rutas estaticas; sin desbordamiento horizontal a 390 y
+1440 px; cero errores de consola; el arrastre gira el estuche, la pose se
+mantiene 1,5 s despues de soltar y el scroll la devuelve a la diagonal.
+
+**Dos fallos encontrados mirando, que no habrian salido leyendo el codigo:**
+
+1. **La etiqueta de la vista seleccionada desaparecia al pasarle el raton por
+   encima.** `.store-view:hover` lleva una pseudo-clase y por eso pesa mas que
+   `.store-view--on`, asi que le pintaba el texto del mismo color que su fondo.
+   Se arreglo acotando el hover con `:not(.store-view--on)`.
+2. **El logo salia del tamano de una uña en telefono.** El boton "Back to the
+   case", aunque invisible, seguia ocupando sitio en la fila y empujaba al logo
+   contra el carrito. Ahora va colocado en absoluto, fuera del flujo.
+
+**Todo lo que hay de contenido es marcador de posicion** y esta rotulado como
+tal en la propia pagina: los catorce colores, las medidas, los materiales, los
+precios de envio y las preguntas. Los valores que faltan van con un guion largo
+y no con un numero inventado, que en una tabla de especificaciones se lee como
+verdadero y termina publicado.
+
+**Lo que bloquea cerrar la fase 3:** el `.glb` del estuche y los catorce colores
+con su nombre comercial y su valor exacto.

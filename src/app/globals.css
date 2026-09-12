@@ -207,3 +207,257 @@ body {
     animation: none;
   }
 }
+
+/*
+  ===========================================================================
+  Tienda. Todo lo que sigue solo se usa en `/store` y se apoya en tres
+  variables que la pagina escribe segun el color de estuche seleccionado:
+
+    --store-bg      el fondo, muy oscuro y desaturado
+    --store-fg      el texto, casi blanco con una pizca del tono
+    --store-accent  el color del estuche llevado a una franja legible
+
+  Los valores de abajo son solo el punto de partida antes de que React monte:
+  el estuche arranca en negro, asi que arranca en negro.
+  ===========================================================================
+*/
+:root {
+  --store-bg: #000000;
+  --store-fg: #f2f2f2;
+  --store-accent: #d4a441;
+}
+
+/* ------------------------------------------------------------------ fondo */
+
+/*
+  Trenzado diagonal. Es el mismo motivo que lleva la carcasa, tan por debajo
+  del umbral que de frente se lee como un fondo liso; lo que hace es quitarle
+  al negro la planitud de un color plano.
+
+  PROVISIONAL: cuando llegue la textura de Alfredo, esto se cambia por un
+  `background-image` con el archivo y se deja la misma animacion.
+*/
+.store-weave {
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.022) 0px,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(0, 0, 0, 0.28) 0px,
+      rgba(0, 0, 0, 0.28) 1px,
+      transparent 1px,
+      transparent 7px
+    );
+  background-size: 14px 14px;
+  animation: store-weave-drift 40s linear infinite;
+}
+
+@keyframes store-weave-drift {
+  to {
+    background-position: 14px 14px, -14px 14px;
+  }
+}
+
+/*
+  Halo detras del objeto. Respira muy despacio. Su trabajo es que el estuche no
+  quede recortado sobre un vacio, no iluminar nada.
+*/
+.store-halo {
+  background: radial-gradient(
+    58% 48% at 50% 46%,
+    color-mix(in srgb, var(--store-accent) 12%, transparent) 0%,
+    transparent 70%
+  );
+  animation: store-halo-breathe 20s ease-in-out infinite;
+  transition: background 700ms ease-out;
+}
+
+@keyframes store-halo-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+
+/* ------------------------------------------------------------- superficies */
+
+/*
+  Vidrio. Se usa en la cabecera y en el menu. El borde claro de arriba y el
+  oscuro de abajo son lo que hace que el panel parezca tener canto en vez de
+  ser un rectangulo translucido.
+*/
+.store-glass {
+  background: color-mix(in srgb, var(--store-bg) 62%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid color-mix(in srgb, var(--store-fg) 14%, transparent);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--store-fg) 12%, transparent),
+    0 12px 32px -18px rgba(0, 0, 0, 0.9);
+  color: var(--store-fg);
+  transition:
+    background 700ms ease-out,
+    border-color 700ms ease-out;
+}
+
+/* Foco visible en todo lo pulsable. Es la unica pista que tiene quien navega
+   con teclado, y el acento cambia con el color, asi que siempre contrasta. */
+.store-focus:focus-visible {
+  outline: 2px solid var(--store-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* La invitacion a comprar dentro del menu. Es el elemento que mas pesa del
+   panel: lleva el acento de fondo y el unico texto oscuro de la tienda. */
+.store-menu-buy {
+  background: var(--store-accent);
+  color: color-mix(in srgb, var(--store-bg) 88%, #000);
+  transition: filter 200ms ease;
+}
+
+.store-menu-buy:hover {
+  filter: brightness(1.12);
+}
+
+/* -------------------------------------------------------------- muestras */
+
+/*
+  Muestra de color. El chip va dentro de un boton mas grande que el color
+  visible: asi el area que se puede pulsar con el pulgar es holgada sin que la
+  fila de catorce colores se coma la pantalla.
+*/
+.store-swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* En telefono la fila de catorce ocupa el ancho de la pantalla y las muestras
+     se estiran; en escritorio la columna no tiene ancho propio, asi que la
+     muestra lo fija ella. Sin este tamano fijo la rejilla colapsa a cero. */
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition:
+    border-color 200ms ease,
+    transform 200ms ease;
+}
+
+@media (min-width: 640px) {
+  .store-swatch {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.store-swatch:hover {
+  transform: translateY(-2px);
+}
+
+.store-swatch--on {
+  border-color: var(--store-accent);
+}
+
+.store-swatch__chip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  /* Filete interior: sin el, el negro sobre fondo negro y el blanco sobre
+     fondo claro dejan de tener borde y la muestra desaparece. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--store-fg) 22%, transparent);
+}
+
+/* Agotado: una barra cruzada, sin tachar el color entero. */
+.store-swatch__out {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  height: 1.5px;
+  background: var(--store-fg);
+  transform: rotate(-45deg);
+  opacity: 0.8;
+}
+
+/* ----------------------------------------------------------------- vistas */
+
+/*
+  Selector de vista. Rectangulos, como el boton principal: en esta marca no hay
+  esquinas redondeadas fuera del vidrio de la cabecera.
+*/
+.store-view {
+  padding: 0.75rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--store-fg) 20%, transparent);
+  color: color-mix(in srgb, var(--store-fg) 65%, transparent);
+  background: color-mix(in srgb, var(--store-bg) 55%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+/*
+  El `:not()` no es adorno. `.store-view:hover` pesa mas que `.store-view--on`
+  por llevar una pseudo-clase, asi que sin el, pasar el raton por encima de la
+  vista ya seleccionada le pintaba el texto del mismo color que su fondo y la
+  etiqueta desaparecia.
+*/
+.store-view:not(.store-view--on):hover {
+  color: var(--store-fg);
+  border-color: color-mix(in srgb, var(--store-fg) 40%, transparent);
+}
+
+.store-view--on:hover {
+  filter: brightness(0.94);
+}
+
+.store-view--on {
+  color: var(--store-bg);
+  background: var(--store-fg);
+  border-color: var(--store-fg);
+}
+
+/* --------------------------------------------------------------- entradas */
+
+/* El nombre del color entra fundiendose desde abajo cada vez que cambia. */
+.store-fade-in {
+  animation: store-fade-in 260ms ease-out both;
+}
+
+@keyframes store-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .store-weave,
+  .store-halo,
+  .store-fade-in {
+    animation: none;
+  }
+
+  .store-swatch:hover {
+    transform: none;
+  }
+}
