@@ -17,6 +17,37 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ---
 
+## Lo primero de la proxima sesion
+
+La fase 2 (sistema de diseno) esta lista para arrancar, pero **tiene dos frenos
+que no dependen del codigo**. Conviene resolverlos antes de escribir nada, o al
+menos saber que estan ahi.
+
+**1. Contra que rama se trabaja.** Es el freno duro: hoy `main` es lo que sale
+en el dominio, y la condicion 1 manda todo por PR contra `main`. Hasta decidir
+esto no se puede mezclar nada de la fase 2 sin cambiarle la cara al dominio.
+Las dos formas estan en "Pendiente de decidir"; la recomendada es congelar
+`main` y abrir una rama larga `dev`.
+
+**2. Los 14 colores del catalogo.** La paleta y la formula del fondo oscuro por
+color son el corazon de la fase 2, y sin los valores exactos no se pueden
+escribir. Falta el nombre comercial y el valor de cada uno.
+
+**Lo que si se puede hacer sin esperar a nadie:**
+
+- Escala tipografica completa. La base ya existe: Archivo cargada con
+  `next/font` y las clases `.t-*` en `globals.css`.
+- Grid de 8 px y los tokens de espaciado.
+- Tokens estructurales (radios, bordes, sombras, capas) y los neutros.
+- Dejar la formula del fondo **parametrizada**, con los tres dorados de hoy
+  como unico caso cargado, para que meter los 14 colores despues sea rellenar
+  una tabla y no reescribir el sistema.
+
+O sea: la fase 2 se puede empezar hoy por la mitad estructural, y la mitad de
+color queda esperando los valores de Alfredo.
+
+---
+
 ## Condiciones de trabajo
 
 1. Todo cambio entra por un **pull request nuevo**. Contra que rama, pendiente
@@ -266,7 +297,7 @@ venia de un despliegue anterior, de cuando `main` todavia no tenia la
 aplicacion. Si reapareciera, el problema estaria en el dominio o el alias, no
 en el build.
 
-### Sesion 7 — 2026-09-11
+### Sesion 7 — 2026-09-11 y 12
 
 **Hecho:**
 
@@ -308,6 +339,10 @@ condicion 1 dice que todo entra por pull request contra `main`, y `main` es lo
 que Vercel publica en el dominio. Si se sigue asi al pie de la letra, el primer
 PR de la fase 2 que se mezcle cambia lo que ve el publico. Hay que separar
 las dos cosas antes de empezar la fase 2.
+
+**Como cerro la sesion.** Dos pull requests mezclados a `main` y publicados en
+el dominio: el #7 (linea de envio) y el #8 (cierre en dos lineas, mas esta
+bitacora). `main` esta en `2f1d90d`. No queda nada a medio hacer en el codigo.
 
 ---
 
