@@ -1,0 +1,252 @@
+/*
+  Estilos del panel. Aparte de los de la tienda a proposito: la tienda es una
+  vitrina en ingles para un comprador, y el panel es una herramienta de trabajo
+  en espanol para dos personas. Comparten marca y tipografia, no reglas.
+
+  La norma que manda aqui: se usa de pie, con una mano, con el pulgar, con poca
+  luz y con prisa. Todo lo tactil mide 48 px o mas.
+*/
+
+.panel {
+  /* Gris muy oscuro en vez de negro puro: el negro absoluto de la tienda hace
+     que las tarjetas se peguen unas a otras y aqui hay que distinguirlas. */
+  --panel-fondo: #0b0b0c;
+  --panel-tarjeta: #17171a;
+  --panel-tarjeta-alta: #202024;
+  --panel-borde: #2c2c31;
+  --panel-texto: #f2f2f2;
+  --panel-tenue: #9a9aa2;
+
+  --panel-urgente: #e4574c;
+  --panel-aviso: #e0a33a;
+  --panel-bien: #4fae72;
+
+  /* La altura de la barra de pestanas, para que el contenido no quede debajo. */
+  --panel-barra: 4.5rem;
+
+  background: var(--panel-fondo);
+  color: var(--panel-texto);
+  min-height: 100dvh;
+}
+
+/* --- Barra de pestanas, abajo, donde llega el pulgar --- */
+
+.panel-barra {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: color-mix(in srgb, var(--panel-fondo) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--panel-borde);
+  /* En iPhone, por encima de la barra de gestos del sistema. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.panel-pestana {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 4.5rem;
+  padding: 0.5rem 0.25rem;
+  color: var(--panel-tenue);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.panel-pestana[aria-current="page"] {
+  color: var(--gold-bright);
+}
+
+.panel-pestana-icono {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* --- Contenido --- */
+
+.panel-lienzo {
+  padding-top: max(env(safe-area-inset-top, 0px), 0.5rem);
+  padding-bottom: calc(var(--panel-barra) + env(safe-area-inset-bottom, 0px) + 1.5rem);
+  padding-inline: 1rem;
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+/* --- Tarjeta de pedido --- */
+
+.panel-tarjeta {
+  display: block;
+  width: 100%;
+  background: var(--panel-tarjeta);
+  border: 1px solid var(--panel-borde);
+  border-radius: 0.875rem;
+  padding: 1rem;
+  text-align: start;
+  color: inherit;
+  text-decoration: none;
+}
+
+.panel-tarjeta:active {
+  background: var(--panel-tarjeta-alta);
+}
+
+/* El filete de color a la izquierda dice de un vistazo como va de tiempo. */
+.panel-tarjeta[data-urgencia="alta"] {
+  border-inline-start: 4px solid var(--panel-urgente);
+}
+.panel-tarjeta[data-urgencia="media"] {
+  border-inline-start: 4px solid var(--panel-aviso);
+}
+.panel-tarjeta[data-urgencia="baja"] {
+  border-inline-start: 4px solid var(--panel-borde);
+}
+
+/* --- Muestra de color --- */
+
+.panel-muestra {
+  border-radius: 999px;
+  /*
+    El anillo es grueso y claro a proposito. Con un filete de 1px al 25%, la
+    muestra del color negro (#111) contra la tarjeta (#17171a) desaparecia: no
+    se distinguia que el pedido era negro. Es el mismo susto del estuche negro
+    de la sesion 9, pero aqui si era un fallo — Alfredo tiene que saber de un
+    vistazo que caja agarrar.
+  */
+  border: 2px solid rgb(255 255 255 / 0.55);
+  flex: none;
+}
+
+/* --- Botones --- */
+
+.panel-boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 1.0625rem;
+  cursor: pointer;
+}
+
+.panel-boton-principal {
+  background: var(--gold);
+  color: #1a1204;
+}
+.panel-boton-principal:active {
+  background: var(--gold-bright);
+}
+.panel-boton-principal:disabled {
+  background: var(--panel-tarjeta-alta);
+  color: var(--panel-tenue);
+  cursor: not-allowed;
+}
+
+/* Variante compacta, para acciones secundarias que van en una cabecera.
+   44 px es el minimo pulsable con el pulgar; por debajo no se baja. */
+.panel-boton-compacto {
+  width: auto;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  font-size: 0.9375rem;
+}
+
+.panel-boton-suave {
+  background: var(--panel-tarjeta-alta);
+  border-color: var(--panel-borde);
+  color: var(--panel-texto);
+}
+
+/*
+  La accion principal, pegada abajo.
+
+  Se descubrio midiendo: en un iPhone de 664 px de alto, el boton "Marcar
+  enviado" quedaba en y=641 y habia que bajar para verlo. Eso rompe la prueba de
+  aceptacion — quince segundos, de pie, con una mano — porque el primer gesto
+  deja de ser tocar el boton y pasa a ser buscarlo.
+
+  Es `sticky` y no `fixed`: cuando ya se llego al final de la pagina se queda en
+  su sitio y no tapa lo que hay debajo.
+*/
+.panel-accion-anclada {
+  position: sticky;
+  bottom: calc(var(--panel-barra) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  z-index: 20;
+  padding-top: 0.75rem;
+  /* El degradado evita que el contenido pase por detras del boton "a pelo". */
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--panel-fondo) 45%
+  );
+}
+
+/* --- Campos --- */
+
+.panel-campo {
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--panel-borde);
+  background: #0e0e10;
+  color: var(--panel-texto);
+  font-size: 1.0625rem;
+}
+
+.panel-campo:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* El foco visible tiene que verse en TODO lo pulsable, no solo en los campos:
+   se usa con el teclado en escritorio y con lector de pantalla. */
+.panel a:focus-visible,
+.panel button:focus-visible,
+.panel summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* --- Franjas de aviso --- */
+
+.panel-franja {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.panel-franja-demo {
+  background: #3a2c07;
+  color: #f4d78a;
+  border-bottom: 1px solid #5a4410;
+}
+
+.panel-franja-sinred {
+  background: #3a1512;
+  color: #f6b3ad;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel *,
+  .panel *::before,
+  .panel *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
