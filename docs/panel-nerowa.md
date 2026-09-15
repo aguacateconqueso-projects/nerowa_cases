@@ -25,6 +25,7 @@ Lo que se supo en esta sesión y cambia decisiones concretas:
 | **Alfredo usa iPhone** | Las notificaciones web en iPhone solo existen si él instala la app en la pantalla de inicio, y Apple puede apagarlas sin avisar. No se puede depender de ellas para lo urgente. Ver §4 |
 | **Envía con la agencia de correos nacional de Lituania** | La operación es lituana: euros, IVA lituano, envíos desde Lituania a la UE. Y el seguimiento de envíos se integra distinto que con un courier privado. Ver §6.4 y §12.5 |
 | **Adrián monitorea, Alfredo opera** | Son dos trabajos distintos, no dos copias del mismo panel. Ver §5 |
+| **Los estuches se fabrican en China y se importan a Vilnius** | El costo de un estuche no es el precio de fábrica: el lote actual salió a 24 € en fábrica y a **34 € puesto en Vilnius**. El panel calcula el costo **por lote de importación**, no con un número fijo. Ver `docs/economia-nerowa.md` |
 | **Alfredo está despachando solo y a veces no le da el tiempo** | Este es **el problema real que el panel tiene que resolver**. No es "llevar control": es que ningún pedido se quede parado sin que alguien se entere. Ver §4.3 |
 
 **La prueba de aceptación no se toca:** si Alfredo no puede pegar un número de
@@ -276,7 +277,8 @@ Qué muestra:
 | Gráfico | Qué dice | Advertencia |
 |---|---|---|
 | Ventas por mes | Dinero entrado, barras | — |
-| **Ganancia por mes** | Ventas **menos** costo de producto, envío y comisión de Stripe | Depende de que se carguen los costos en la pestaña 3, §10.3 |
+| **Ganancia por mes** | Ingreso neto **menos** costo del lote, envío real y comisión real de Stripe. Hoy: **≈142 € por venta web**, 66–86 € por venta a tienda | Depende de que se carguen los costos en la pestaña 3, §9.3. Números en `docs/economia-nerowa.md` |
+| **Recuperación del lote** | Cuánto falta para pagar el lote de importación, y cuántos estuches quedan | Es la cifra que decide cuándo pedir el lote siguiente. Con el lote actual, se paga con 24 ventas web |
 | Unidades por color | Cuál se vende y cuál se queda | Es lo que decide qué mandar a producir |
 | Países | Lista ordenada, no mapa | Con pocos pedidos un mapa del mundo con tres puntos es decoración. El mapa llega cuando haya volumen |
 | Ticket medio y unidades por pedido | Si la gente compra de a una o de a varias | Decidió el botón "Add to cart" en su día; conviene comprobar que era cierto |
@@ -384,7 +386,7 @@ Un enlace propio por tienda, que se manda por correo, **sin contraseña**: el
 enlace lleva el código firmado, igual que el del cliente. La tienda entra y ve:
 
 - Los colores con sus fotos, y cuáles hay disponibles de verdad.
-- **Sus** precios, con sus tramos por volumen. No los de otra tienda.
+- **Sus** precios, con sus tramos por volumen: hoy **120 € de 1 a 5, 110 € de 6 a 15, 100 € de 16 en adelante**, envío siempre aparte. Si alguna tienda tiene condiciones propias, ve las suyas y no las de otra.
 - Especificaciones, medidas, materiales, qué trae la caja.
 - Condiciones: pedido mínimo, plazos de entrega, forma de pago, devoluciones.
 - Un formulario de pedido: cantidades por color, y enviar.
@@ -406,6 +408,11 @@ una tienda del propio país, o a una sin número válido, se le cobra IVA.
 Esto no es un matiz contable: **cambia el total de la factura**. La ficha de la
 tienda debe guardar el número de IVA y si está validado, y el pedido debe dejar
 constancia de cuál de los dos casos se aplicó.
+
+Con los precios de hoy no es poca cosa: un pedido de 16 estuches son 1.600 €, y
+el IVA lituano sobre eso son **336 € de diferencia** entre facturar a una tienda
+de Vilnius y a una de Berlín con número válido. El desglose está en
+`docs/economia-nerowa.md`, §4.3.
 
 **Lo digo para que lo confirmen con su contador antes de emitir la primera
 factura, no para que me crean a mí.** Es el tipo de cosa que se arregla barato
@@ -454,7 +461,7 @@ perdida en una carpeta y se convierte en un número que el panel puede sumar.
 
 | Tipo | Ejemplo | Para qué sirve el dato |
 |---|---|---|
-| Producción | Factura del fabricante de estuches | Es el costo de cada unidad |
+| Importación | Factura de fábrica, flete, aduana y despacho de **cada lote** | De aquí sale el costo real por unidad — 34 € en el lote actual, no los 24 € de fábrica |
 | Envío | Comprobante del correo lituano | Es el costo de ese envío, pegado a ese pedido |
 | Materiales | Cajas, cinta, etiquetas | Costo del mes |
 | Comisiones | Lo que se queda Stripe | Sale solo, no hay que cargarlo |
@@ -578,13 +585,15 @@ Bloquea trabajo. Nada de esto lo puedo inventar.
 | Qué | Para qué fase | Quién |
 |---|---|---|
 | Los 14 colores: nombre comercial y valor exacto | 7.1 — **ya bloqueaba la 2 y la 3** | Alfredo |
-| Precio de venta del estuche, y **cuánto cuesta producirlo** | 7.1 y 7.5 | Alfredo |
+| ~~Precio de venta y costo de producción~~ | ~~7.1 y 7.5~~ | **Ya está** — 180 € sin IVA, 34 € puesto en Vilnius |
+| **Desglose de los 1.000 €** de traer el lote: flete, arancel, IVA de importación, despacho | 7.5 | Alfredo — puede bajar el costo real de 34 € a ~28 € |
+| **A nombre de quién se importó el lote actual** | 7.6 | Alfredo + asesor |
 | Cuenta de Telegram de los dos, para el grupo | 7.0 | Los dos |
 | Correos con los que entran al panel | 7.0 | Los dos |
 | Cuenta de Stripe, en modo de prueba primero | 7.2 | Alfredo |
-| Datos fiscales de la empresa en Lituania | 7.6 | Alfredo |
+| Datos fiscales de la empresa en Lituania | 7.6 | Alfredo — **los define esta semana o la próxima** |
 | Política de devoluciones revisada con su asesor: plazo, quién paga el retorno, en qué estado se acepta el estuche | 7.4 | Los dos + asesor |
-| Precios mayoristas y pedido mínimo | 7.6 | Adrián |
+| ~~Precios mayoristas~~ | ~~7.6~~ | **Ya están** — 120 / 110 / 100 € por tramo. Falta decidir si hay pedido mínimo |
 | Confirmar si el correo lituano da acceso técnico al seguimiento para clientes de empresa | 7.3 en adelante | Alfredo |
 
 Y lo que sigue pendiente de antes, sin cambios: el `.glb` del estuche, la textura
@@ -603,12 +612,17 @@ No bloquean empezar, pero hay que contestarlas antes de la fase que las toca:
    Si se reservan estuches para una tienda, ¿siguen apareciendo disponibles?
 3. **¿Se venden colores de edición limitada o todos son permanentes?** Cambia
    cómo funcionan existencias y reservas.
-4. **¿Alfredo despacha desde su casa o desde otro sitio?** Es la dirección de
-   retorno de las devoluciones, y aparece en un correo que ve el cliente.
-5. **¿Facturan a los clientes particulares o basta el recibo de Stripe?** En
+4. **¿Desde qué dirección exacta de Vilnius despacha Alfredo?** Ya sabemos que es
+   Vilnius; falta la dirección concreta, porque es la de retorno de las
+   devoluciones y aparece en un correo que ve el cliente.
+5. **Precio final igual en toda la UE, o precio neto igual?** Explicado en
+   `docs/economia-nerowa.md`, §3.3. Recomiendo el primero. No bloquea hasta la
+   fase 5, pero conviene decidirlo antes de imprimir el precio en la tienda.
+6. **¿Pedido mínimo para tiendas?** Los tramos están, el mínimo no.
+7. **¿Facturan a los clientes particulares o basta el recibo de Stripe?** En
    varios países de la Unión hay que emitir factura si el cliente la pide.
-6. **¿Cuántos estuches tienen hoy, y de qué colores?** Es el punto de partida de
-   las existencias.
+8. **¿Cuántos estuches quedan del lote de 100, y de qué colores?** Es el punto de
+   partida de las existencias y de la cuenta de recuperación del lote.
 
 ---
 
@@ -620,9 +634,14 @@ No bloquean empezar, pero hay que contestarlas antes de la fase que las toca:
 | Los costos no se cargan y el gráfico de ganancia queda vacío | **Alto** | El panel los pide en el momento del envío, con el importe de la última vez ya sugerido (§9.3) |
 | El seguimiento del correo lituano no se puede consultar automáticamente | Medio | Manual con recordatorio. Ya funciona sin esto (§6.4) |
 | La política de devoluciones se publica mal y sale caro | Medio | Revisarla con su asesor antes de la fase 7.4 (§7.1) |
+| El costo real del estuche no es 34 € sino más, porque el lote 2 llegue más caro | Medio | El panel calcula por lote, no con un número fijo (§9.3). Un lote caro no ensucia el histórico |
 | El panel crece hasta parecerse a Stripe y Alfredo se pierde otra vez | **Alto, y es el que más me preocupa** | La prueba de los quince segundos se vuelve a pasar en cada fase. Si una pantalla nueva la rompe, la pantalla nueva está mal |
 
 ---
+
+**Los números del negocio — costos, precios, márgenes y recuperación del lote —
+viven en `docs/economia-nerowa.md`.** Este documento dice cómo se muestran; aquél,
+de dónde salen.
 
 *Escrito en la sesión 10. Ninguna línea de código todavía: primero esto se
 aprueba o se corrige.*

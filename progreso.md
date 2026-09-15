@@ -216,6 +216,9 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 | 2026-09-15 | Los graficos miden **ganancia real**, no ventas | Decision de Adrian. Obliga a cargar los costos de envio y produccion en la pestana 3, y a cambio el numero dice cuanto quedo y no cuanto entro |
 | 2026-09-15 | **Sin chat interno.** Cada nota va pegada a un pedido, una tienda o una tarea | Decision de Adrian. Dos personas que ya tienen WhatsApp no abren un chat aparte, y lo que se escriba ahi queda lejos del pedido del que habla |
 | 2026-09-15 | **Sin contrasenas en el panel.** Se entra con enlace de un solo uso al correo y la sesion dura meses | Alfredo no va a recordar una contrasena: va a terminar anotada en algun sitio, que es peor que no tenerla |
+| 2026-09-15 | **Precios fijados:** 180 EUR sin IVA al publico, y a tiendas 120 EUR de 1 a 5, 110 EUR de 6 a 15, 100 EUR de 16 en adelante. Envio siempre aparte | Datos de Adrian. Con 34 EUR de costo, quedan ~142 EUR por venta web y 66-86 EUR por venta a tienda |
+| 2026-09-15 | **El costo de un estuche es 34 EUR, no 24 EUR**, y el panel lo calcula **por lote de importacion** | Los 24 EUR son precio de fabrica en China; traer el lote a Vilnius costo 1.000 EUR mas por cada 100 unidades. Usar 24 inflaria el margen un 42%. Y como el flete y la aduana cambian con cada lote, un numero fijo ensuciaria todo el historico al cambiar de ruta |
+| 2026-09-15 | **En la tienda se muestra el precio con IVA** (217,80 EUR), no los 180 EUR netos | Vendiendo a consumidores en la Union Europea el precio que se enseña tiene que ser el final con impuestos. El numero de hoy en el hero es un marcador de posicion y hay que cambiarlo |
 | 2026-09-15 | **Los numeros y graficos no van en la pantalla de pedidos**, sino a un toque de distancia | Unica cosa de la lista de Adrian que se movio de sitio. La pestana 1 es la cola de trabajo: si arriba hay un grafico, lo primero que ve Alfredo al abrir ya no es lo que le falta despachar |
 
 ---
@@ -997,3 +1000,67 @@ Lituania** (sin eso no hay factura mayorista).
 **Que sale de aqui:** un solo pull request con el documento de diseno y esta
 bitacora. Ninguna pantalla, ninguna tabla de base de datos. La fase 7.0 arranca
 cuando Adrian diga que el diseno esta bien.
+
+---
+
+### Sesion 10, segunda vuelta — el mismo dia
+
+**Llegaron los numeros del negocio, y con ellos el documento
+`docs/economia-nerowa.md`.** Adrian dio precios y costo; de ahi salen el precio
+de la tienda, los tramos del portal de tiendas y el grafico de ganancia del panel.
+
+| Dato | Valor |
+|---|---|
+| Fabrica, en China | 24 EUR por estuche |
+| Ultimo lote | 100 unidades, 2.400 EUR de factura, **~3.400 EUR desembolsados** |
+| **Costo puesto en Vilnius** | **34 EUR** por estuche |
+| Venta al publico | 180 EUR **sin IVA** → 217,80 EUR con el IVA lituano |
+| A tiendas | 120 EUR (1-5), 110 EUR (6-15), 100 EUR (16+), envio aparte |
+| Envio al cliente | Se cobra lo que cuesta o mas: no come margen |
+
+**Lo que dejan:** unos **142 EUR por venta web** (79% del ingreso neto) y entre 66
+y 86 EUR por venta a tienda. **El lote de 3.400 EUR se paga con 24 ventas web**, o
+con 52 en el peor tramo mayorista. Vendido entero por la web serian unos 14.200
+EUR sobre 3.400 invertidos.
+
+**Tres cosas que se corrigieron al hacer las cuentas, y las tres cambian codigo:**
+
+1. **El costo no es 24 EUR, es 34.** Los 24 son precio de fabrica; traer el lote
+   costo 1.000 EUR mas. Usar 24 habria inflado el margen un 42% en cada venta y
+   1.000 EUR por lote a fin de anio. Y como el flete y la aduana cambian en cada
+   pedido, **el panel guarda lotes de importacion y calcula el costo unitario de
+   cada uno**, en vez de un numero fijo: asi un lote mas caro no ensucia hacia
+   atras lo que ya se vendio.
+2. **En la tienda hay que mostrar 217,80 EUR, no 180.** Adrian confirmo que los
+   180 son netos, y a consumidores de la Union Europea el precio que se enseña
+   tiene que llevar el IVA dentro. El precio del hero es un marcador de posicion
+   y hay que cambiarlo.
+3. **Una parte de esos 1.000 EUR probablemente no sea costo.** El IVA de
+   importacion se recupera si la empresa esta registrada, y podrian ser 500-600
+   EUR del total. Si es asi, el costo real baja de 34 a unos 28 EUR. **Mientras no
+   haya desglose, el panel usa 34**: mejor que el grafico se quede corto y luego
+   mejore, a que prometa un margen que no esta.
+
+**Una bandera que hay que pasarle al asesor, y que no es de software.** Si el lote
+actual se importo antes de que exista la empresa, a nombre de Alfredo como
+particular, ese IVA probablemente no se recupere y ademas complica revender la
+mercancia a nombre de una sociedad que aun no existia. No se como se hizo. Alfredo
+define la empresa esta semana o la proxima; es de lo primero que hay que preguntar.
+
+**Un comentario de negocio, no de codigo, que quedo escrito en el documento.** La
+tienda que compra a 120 EUR y revende a 180 se queda con un 33%, por debajo de lo
+que suele pedir una tienda de instrumentos; a 100 EUR se queda con un 44%, que ya
+es lo normal. O sea que **el tramo que una tienda nueva va a querer comprar
+(tres o cinco, para probar) es justo el que peor margen le deja**, y el que le
+resulta atractivo le exige comprometer 1.600 EUR con un producto que nunca ha
+vendido. Los precios de Adrian no estan mal — el margen propio es excelente en los
+tres tramos — pero eso puede costar cerrar la primera tienda, que es la que
+importa. Dos salidas sin tocar la tabla: envio gratis desde 6 unidades, o un
+precio de primera compra por una vez. Decision de Adrian, no bloquea nada.
+
+**Lo que se tacho de la lista de pendientes:** precio de venta, costo de
+produccion y precios mayoristas. **Lo que entro en su lugar:** el desglose de los
+1.000 EUR del lote, y a nombre de quien se importo.
+
+**Sigue sin resolverse, y es de Alfredo:** los datos fiscales de la empresa. Es lo
+unico que bloquea la fase 7.6, el portal de tiendas.
