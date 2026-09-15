@@ -1148,3 +1148,18 @@ pantallas.
 pagina de espera publicada dice "180 EUR", que es el precio SIN IVA. Al
 consumidor hay que ensenarle 217,80 EUR. Es texto de cara al publico en el
 dominio, asi que va en su propio PR y lo decide Alfredo.
+
+**Arreglo posterior al PR #15: el preview no dejaba entrar a nadie.** El modo de
+entrada sin correo dependia de poner `PANEL_MODO_DEMO=1` a mano, y en Vercel no
+esta puesta. O sea que Adrian habria abierto el preview en su telefono, pedido el
+enlace, y el enlace se habria escrito en el registro del servidor donde no lo ve
+nadie: puerta cerrada y ningun modo de abrirla.
+
+Ahora **se enciende solo** mientras el almacen sea de memoria Y el correo sea de
+consola — en esa situacion no hay datos reales que proteger y el enlace no puede
+llegar a ningun sitio, asi que la alternativa era un panel al que no entra nadie.
+**En cuanto se conecte una base de datos o un correo de verdad, se apaga solo.**
+No hay que acordarse de nada, que es justo lo que no se le puede confiar a la
+memoria de nadie en un panel que maneja dinero. `PANEL_MODO_DEMO` sigue
+existiendo para forzarlo en los dos sentidos, y los dos estan comprobados en el
+navegador.
