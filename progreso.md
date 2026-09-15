@@ -30,6 +30,14 @@ El hero entro por el
 **Lo que hay hoy en `main` es el hero que Alfredo dio por bueno a la vista**, con
 un **estuche de relleno**: el modelo real todavia no existe.
 
+**Fase 7 — el panel, disenada y sin codigo.** En la sesion 10 se diseno entero
+en **`docs/panel-nerowa.md`**: tres pestanas (ventas de la web, tiendas
+mayoristas, administracion), entregado como **aplicacion instalable en el
+telefono**, con **Telegram** como canal de los avisos urgentes y **escalado** para
+que ningun pedido se quede parado. Sale en nueve subfases, de la 7.0 a la 7.8, y
+**empieza por pedidos cargados a mano**, para que sirva antes de que la tienda
+venda su primer estuche. Falta que Adrian lo apruebe o lo corrija.
+
 **De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
 de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
 Vercel, no en el dominio. Ver "Entornos y publicacion".
@@ -37,6 +45,17 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 ---
 
 ## Lo primero de la proxima sesion
+
+**Leer `docs/panel-nerowa.md` y ver si Adrian lo aprobo, lo corrigio o dejo
+preguntas.** Es el diseno completo de la fase 7 y **no hay una linea de codigo
+escrita todavia**, a proposito: primero se aprueba. Si esta aprobado, se arranca
+por la **fase 7.0** (base de datos, entrar con enlace al correo, instalable en el
+iPhone, bot de Telegram), que es la unica que no depende de ningun dato que falte.
+
+**Lo que hace falta para poder empezar el panel** esta en el apartado 14 de ese
+documento. Lo mas urgente, porque ya bloqueaba tambien las fases 2 y 3: **los 14
+colores con nombre y valor exacto**, y **cuanto cuesta producir un estuche** —
+sin ese segundo numero, el grafico de ganancia que Adrian pidio no puede existir.
 
 **Preguntarle a Alfredo que quiere cambiar del hero rehecho.** Lo aprobo a la
 vista en la sesion 9 — *"me gusta lo que hiciste, visualmente"* — y los tres PR
@@ -189,6 +208,15 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 | 2026-09-12 | **Sin cortina de entrada.** La entrada es el zoom-out del estuche girando | Decision de Alfredo. Una sola idea en la apertura; la cortina alargaba la espera antes de ver el producto |
 | 2026-09-12 | **Dos vistas: cerrado y abierto.** La de "detalle" queda fuera | Decision de Alfredo. La tercera vista depende de que el modelo real tenga herrajes que aguanten un acercamiento, y todavia no se sabe |
 | 2026-09-12 | El boton principal dice **"Add to cart"** y no "Buy now" | Decision de Alfredo: hoy la gente compra de a varias cajas y mandarlos a pagar despues de la primera rompe esa compra |
+| 2026-09-15 | El panel se entrega como **PWA instalable**, no como app de tienda | Decision de Adrian. Esta en manos de Alfredo el dia que este lista, sin costo fijo ni revision de Apple. Si las notificaciones del iPhone fallan en la practica, se envuelve con Capacitor sin rehacer codigo |
+| 2026-09-15 | **Telegram es el canal principal de los avisos urgentes**; la notificacion web es el extra | Alfredo usa iPhone, y ahi el aviso web solo existe si la app esta instalada en la pantalla de inicio, y se apaga en silencio si la quita. Un panel cuyo unico aviso puede desaparecer sin que nadie se entere no sirve |
+| 2026-09-15 | El panel arranca por la **pestana 1 con pedidos cargados a mano** | Decision de Adrian. Sirve desde el dia uno para lo que Alfredo ya vende por mensaje directo. Cuando llegue Stripe, esos pedidos entran por el mismo sitio sin rehacer nada |
+| 2026-09-15 | **Solo Adrian confirma un reembolso.** Alfredo hace todo lo demas de la devolucion | Decision de Adrian. Es la unica operacion que saca dinero y no tiene vuelta atras. No le quita autonomia a Alfredo en su trabajo |
+| 2026-09-15 | El portal de tiendas es **catalogo y pedido, sin pago en linea** | Decision de Adrian. Las tiendas piden, reciben factura y pagan por transferencia. Un segundo checkout con Stripe seria mucho trabajo para un flujo que no usarian |
+| 2026-09-15 | Los graficos miden **ganancia real**, no ventas | Decision de Adrian. Obliga a cargar los costos de envio y produccion en la pestana 3, y a cambio el numero dice cuanto quedo y no cuanto entro |
+| 2026-09-15 | **Sin chat interno.** Cada nota va pegada a un pedido, una tienda o una tarea | Decision de Adrian. Dos personas que ya tienen WhatsApp no abren un chat aparte, y lo que se escriba ahi queda lejos del pedido del que habla |
+| 2026-09-15 | **Sin contrasenas en el panel.** Se entra con enlace de un solo uso al correo y la sesion dura meses | Alfredo no va a recordar una contrasena: va a terminar anotada en algun sitio, que es peor que no tenerla |
+| 2026-09-15 | **Los numeros y graficos no van en la pantalla de pedidos**, sino a un toque de distancia | Unica cosa de la lista de Adrian que se movio de sitio. La pestana 1 es la cola de trabajo: si arriba hay un grafico, lo primero que ve Alfredo al abrir ya no es lo que le falta despachar |
 
 ---
 
@@ -202,7 +230,7 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 | 4 | Bloques y pie | Los 6 bloques al bajar, el menu y el pie | Pendiente |
 | 5 | Stripe | Salida al checkout alojado y las dos pantallas de vuelta | Pendiente |
 | 6 | Apoyo y correos | 4 paginas de apoyo y 3 plantillas de correo | Pendiente |
-| 7 | Panel del dueno | Las 6 pantallas (A–F) mas los estados vacios, instalable en el telefono | Pendiente |
+| 7 | Panel del dueno | Tres pestanas (ventas web, mayoristas, administracion) mas los numeros, instalable en el telefono. Disenada en `docs/panel-nerowa.md`, en 9 subfases de la 7.0 a la 7.8 | **Disenada** — sin codigo todavia |
 
 ---
 
@@ -907,3 +935,65 @@ Alfredo.
 **Como arranca la sesion 10:** esta escrito arriba, en "Lo primero de la proxima
 sesion", que es donde se lee primero.
 
+
+---
+
+### Sesion 10 — 2026-09-15
+
+**Punto de partida:** `main` en `3110539`, con el hero rehecho y los tres PR de la
+sesion 9 mezclados. Adrian no pidio tocar el hero: pidio **disenar el panel**.
+
+**No se escribio codigo, a proposito.** El encargo terminaba en *"pregunta y haz
+las recomendaciones que consideres antes de armar algo"*, asi que la sesion fue de
+preguntas y diseno. El resultado esta en **`docs/panel-nerowa.md`**, 16 apartados.
+
+**Las ocho decisiones que tomo Adrian** estan arriba, en la tabla de decisiones,
+con su motivo. En resumen: aplicacion instalable en vez de app de tienda, arranque
+por pedidos cargados a mano, el reembolso solo lo confirma Adrian, portal de
+tiendas sin pago en linea, graficos de ganancia real, notas ancladas sin chat.
+
+**Los dos datos que aparecieron preguntando y que cambiaron el diseno:**
+
+1. **Alfredo usa iPhone.** En iPhone la notificacion web solo existe si la
+   aplicacion esta instalada en la pantalla de inicio, y se apaga en silencio si
+   la quita. Un panel cuyo unico aviso de "vendiste algo" puede desaparecer sin
+   que nadie se entere no sirve para el trabajo que tiene que hacer. De ahi sale
+   **Telegram como canal principal de lo urgente**, con la notificacion web como
+   extra y el panel comprobando solo que su suscripcion sigue viva.
+2. **Envia con la agencia de correos nacional de Lituania.** O sea que la
+   operacion es lituana: euros, IVA lituano, y el IVA intracomunitario de las
+   ventas mayoristas deja de ser un detalle contable y pasa a cambiar el total de
+   la factura. Y marcar "entregado" se automatiza distinto que con un courier
+   privado: queda manual con recordatorio a los 7 dias, y **antes de prometer lo
+   automatico hay que comprobar si el correo lituano da acceso tecnico al
+   seguimiento**. No se dio por hecho.
+
+**Lo unico que se le movio de sitio a lo que pidio Adrian.** El queria los
+graficos en la pestana 1, junto a los pedidos. Van a una seccion propia, a un
+toque del encabezado. El motivo: la pestana 1 es la cola de trabajo, y si arriba
+hay un grafico, **lo primero que ve Alfredo al abrir el panel corriendo ya no es
+lo que le falta despachar**. Queda anotado por si Adrian prefiere lo contrario.
+
+**Tres cosas que se anadieron porque el encargo las pedia sin saberlo:**
+
+1. **Escalado de avisos.** Adrian dijo que Alfredo despacha solo y a veces no
+   tiene tiempo. Avisar una vez no resuelve eso: el pedido sin enviar vuelve a
+   avisar a las 24 h, y a las 48 h le llega tambien a Adrian.
+2. **Costos pegados al envio.** Se pidio "ganancias" y un grafico de ventas no es
+   eso. Para que la palabra sea cierta hay que restar produccion, envio y
+   comision, asi que al marcar un pedido como enviado el panel pregunta ahi mismo
+   cuanto costo el envio, con el importe de la ultima vez ya sugerido.
+3. **Separar desistimiento de producto defectuoso** en el formulario de
+   devolucion. No es lo mismo y **quien paga el envio de vuelta cambia segun cual
+   sea**. Mezclarlos en un solo formulario garantiza discutir con el cliente
+   despues. Queda escrito que esto lo confirmen con su asesor en Lituania antes
+   de publicar los terminos.
+
+**Lo que bloquea arrancar** esta en el apartado 14 del documento. Dos cosas
+nuevas que antes no estaban en la lista: **cuanto cuesta producir un estuche**
+(sin eso no hay grafico de ganancia) y **los datos fiscales de la empresa en
+Lituania** (sin eso no hay factura mayorista).
+
+**Que sale de aqui:** un solo pull request con el documento de diseno y esta
+bitacora. Ninguna pantalla, ninguna tabla de base de datos. La fase 7.0 arranca
+cuando Adrian diga que el diseno esta bien.
