@@ -17,10 +17,18 @@ el mismo preview de Vercel. El hero esta completo con un **estuche de relleno**;
 el modelo real todavia no existe.
 
 El hero entro por el
-[PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10),
-mezclado a `main` el 2026-09-12. Alfredo lo aprobo en lo general — *"me gusta,
-pero vamos a cambiar muchas cosas"* — y **la lista de cambios llego el mismo dia,
-en la sesion 9**: siete puntos, todos hechos. Ver "Sesion 9" al final.
+[PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10) y se
+**rehizo entero en la sesion 9**, en tres tandas, todas mezcladas a `main` el
+2026-09-12:
+
+| PR | Que trae |
+|---|---|
+| [#12](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/12) | Los siete puntos de Alfredo: menu de una sola placa que se estira, logo que lo abre, estuche que se agarra de verdad, pagina a todo color con haces negros, scroll sin superposicion, cinta de color pegada, y la zona de compra reordenada |
+| [#12](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/12) (2.ª tanda) | El panel de compra de pie a la derecha, y fuera el boton "Inspect" |
+| [#13](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/13) | La rueda vuelve a bajar la pagina; acercar queda solo en el pellizco |
+
+**Lo que hay hoy en `main` es el hero que Alfredo dio por bueno a la vista**, con
+un **estuche de relleno**: el modelo real todavia no existe.
 
 **De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
 de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
@@ -30,52 +38,55 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ## Lo primero de la proxima sesion
 
-**Ensenarle a Alfredo el hero rehecho y recoger la siguiente tanda de cambios.**
-Los siete puntos que mando en la sesion 9 estan hechos y comprobados en el
-navegador; lo que falta es su veredicto sobre como quedaron. Tres en particular
-son decisiones de gusto que tome yo y que conviene que mire de frente:
+**Preguntarle a Alfredo que quiere cambiar del hero rehecho.** Lo aprobo a la
+vista en la sesion 9 — *"me gusta lo que hiciste, visualmente"* — y los tres PR
+estan mezclados, asi que lo que hay en `main` es lo que el vio. Pero ya avisa dos
+veces que va cambiando sobre la marcha: **no adelantar trabajo sobre el hero sin
+su lista.**
 
-1. **El estuche de color claro se confunde con su propio fondo.** Es la
-   consecuencia directa de "la pagina full color en reaccion al color del
-   estuche": con un estuche amarillo, el fondo es amarillo. Lo que hoy los separa
-   es el pozo negro del centro (`.store-hero-well`) y los haces. Sobre azul
-   marino, vinotinto o morado se ve perfecto; sobre amarillo, oro y crema el
-   estuche se apoya menos. **Si le molesta, la salida es girar el tono del fondo
-   unos grados respecto al del estuche** — se cambia en una linea, en
-   `heroSurfaceFor`. No lo hice porque el pidio el mismo color, no uno parecido.
-2. **El menu del logo.** El logo ya no sube al principio de la pagina: abre el
-   menu, como la hamburguesa. Subir se hace desde "Buy the case" o desde el boton
-   de volver al estuche.
-3. **En telefono no hay ningun boton para inspeccionar, y no hace falta.** Se
-   comprobo con eventos tactiles de verdad: `touch-action: pan-y` ya reparte bien
-   el gesto. Detalle en el cierre de la sesion 9.
+**Recordarle las dos cosas que tiene que hacer el, y que no puede hacer nadie
+mas:**
 
-**Y las tres decisiones de la sesion 8 que siguen sin veredicto:**
+1. **Abrir el preview en un iPhone y probar el pellizco.** Es lo unico de la
+   sesion 9 que no se pudo comprobar aqui. Safari entiende el pellizco como
+   acercar la PAGINA entera, porque la etiqueta de ventana de Next deja escalar.
+   Las guardas estan puestas (`touchmove` no pasivo que corta solo con dos dedos
+   o mas, mas `gesturestart` / `gesturechange`) y probadas en Chromium, pero el
+   aparato real hay que mirarlo. Si falla, se arregla en `case-scene.tsx`.
+2. **Encender Vercel Authentication** en el panel, para que los previews no se
+   abran solo con tener la URL.
 
-1. El boton "Add to cart" **sigue dorado** en los catorce colores. Es lo unico de
-   la pagina que no reacciona al color del estuche. Ahora se nota mas que antes,
-   porque el resto de la consola si se da vuelta entera.
-2. Los catorce colores son inventados, y viven en `src/lib/store/catalog.ts`.
-3. ~~En telefono el dedo gira el estuche solo en horizontal.~~ **Resuelto en la
-   sesion 9:** el dedo que arranca de lado gira en los dos ejes y los dos dedos
-   acercan y mueven, sin ningun boton de por medio.
+**Y las dos decisiones que tome yo y siguen sin veredicto:**
+
+1. **Sobre amarillo, oro y crema el estuche se apoya poco en el fondo**, porque
+   son el mismo color. Es la consecuencia directa de "la pagina full color en
+   reaccion al color del estuche". Lo que hoy los separa es el pozo negro del
+   centro (`.store-hero-well`) y los haces. Sobre azul marino, vinotinto o morado
+   se ve perfecto. **Si molesta, la salida es girar el tono del fondo unos grados
+   respecto al del estuche** — una linea en `heroSurfaceFor`. No lo hice porque
+   pidio el mismo color, no uno parecido.
+2. **El boton "Add to cart" sigue dorado en los catorce colores.** Es lo unico de
+   la pagina que no reacciona al color del estuche, y ahora se nota mas que antes
+   porque el resto del panel si se da vuelta entero.
 
 **Volver a pedir lo que bloquea cerrar la fase 3**, que no lo puedo suplir yo:
 
 | Que falta | Por que bloquea |
 |---|---|
 | El `.glb` del estuche | Hoy corre un estuche de relleno. Alfredo esperaba dinero el lunes para mandarlo a modelar |
-| Los 14 colores: nombre comercial y valor exacto | Son la entrada de la formula del fondo. Sin ellos, tanto la paleta como el fondo a todo color son inventados |
+| Los 14 colores: nombre comercial y valor exacto | Son la entrada de la formula del fondo. Sin ellos, tanto la paleta como el color del hero son inventados |
 
 **Lo que NO hay que rehacer aunque cambie el diseno.** Estas piezas estan
 verificadas y son independientes de como se vea el hero:
 
-- `src/lib/store/palette.ts` — la formula del color, ahora con las dos
-  superficies (hero a todo color y fondo de lectura). Si cambia la paleta, cambian
-  los valores de entrada, no la formula. La comprobacion de contraste corre sola:
+- `src/lib/store/palette.ts` — la formula del color, con las dos superficies (el
+  hero a todo color y el fondo de lectura). Si cambia la paleta, cambian los
+  valores de entrada, no la formula. La comprobacion de contraste corre sola:
   `enforceContrast` empuja el hero hasta que el texto cumple AA, asi que un color
   nuevo no puede publicar texto ilegible.
 - `src/components/store/store-context.tsx` — el estado y el carrito.
+- `src/components/store/scene/case-scene.tsx` — el reparto de gestos. Esta medido
+  con eventos de verdad y documentado en su cabecera; **no se toca por intuicion**.
 - La separacion entre escena y modelo: `case-scene.tsx` tiene el comportamiento y
   `case-model.tsx` + `case-shape.ts` tienen la forma. El `.glb` entra por el
   segundo sin tocar el primero.
@@ -87,16 +98,28 @@ Todo eso esta rotulado como marcador de posicion en la propia pagina.
 **De la fase 2 (sistema de diseno) sigue pendiente** lo que no depende de nadie:
 escala tipografica completa, grid de 8 px y tokens de espaciado, y tokens
 estructurales (radios, bordes, sombras, capas). La mitad de color ya quedo
-resuelta por la formula de `palette.ts`; lo que falta son los valores.
+resuelta por `palette.ts`; lo que falta son los valores.
 
 ---
 
 ## Condiciones de trabajo
 
-1. Todo cambio entra por un **pull request nuevo contra `main`**. Desde el
-   2026-09-12 ya no hay conflicto con el dominio: la tienda vive en `/store` y
-   la raiz sigue siendo la pagina de espera, asi que mezclar a `main` no cambia
-   lo que ve quien llega de Instagram. Ver "Entornos y publicacion".
+1. **Cada tanda de cambios entra por un pull request NUEVO contra `main`.** No es
+   uno por sesion: es uno **por cada cosa que Alfredo pide**, aunque sean tres el
+   mismo dia.
+
+   **El motivo es como los revisa, y por eso no se negocia:** cada PR trae su
+   propio despliegue de preview en Vercel, con URL propia. **Sin PR nuevo no hay
+   URL nueva que abrir.** Apilar commits sobre un PR ya mezclado deja a Alfredo
+   sin forma de mirar lo que pidio — paso en la sesion 9 y hubo que rehacerlo.
+
+   De ahi sale una regla practica: **si el PR de la rama en la que estas ya se
+   mezclo, el trabajo siguiente NO va encima.** Se arranca rama nueva desde
+   `main` (`git fetch origin main && git checkout -b <rama-nueva> origin/main`) y
+   se abre PR nuevo.
+
+   Mezclar a `main` no cambia lo que ve el publico: la tienda vive en `/store` y
+   la raiz sigue siendo la pagina de espera. Ver "Entornos y publicacion".
 2. Idioma de trabajo: **espanol neutro**. El sitio publico va en **ingles**.
 3. El despliegue se hace en **Vercel**.
 4. Cualquier duda se pregunta **antes** de aplicar el cambio.
@@ -408,6 +431,7 @@ Nada de esto lo puedo inventar. Cada linea que falte frena una fase.
 | Que hace falta | Para que fase | Estado |
 |---|---|---|
 | Modelo 3D del estuche en `.glb`, o las fotos para mandarlo a modelar | 3 | Falta — **es lo unico que bloquea el hero**. Mientras, corre un estuche de relleno |
+| **Abrir el preview en un iPhone de verdad y probar el pellizco** | 3 | Falta — es lo unico de la sesion 9 que no pude comprobar yo. Detalle abajo |
 | Textura real del fondo | 3 | Falta — hoy es un trenzado hecho en CSS |
 | Los 14 colores del catalogo: nombre comercial y valor exacto | 2 y 3 | Falta |
 | Medidas exteriores, medida util interior, peso y materiales | 4 | Falta |
@@ -840,4 +864,46 @@ los revisa: **cada PR trae su propio despliegue de preview en Vercel, y sin PR
 nuevo no hay URL nueva que abrir.** Apilar commits sobre un PR ya mezclado lo deja
 sin forma de mirar lo que pidio. Esto ya estaba escrito arriba, en la condicion 1
 de "Condiciones de trabajo"; queda repetido aqui porque se incumplio.
+
+---
+
+### Cierre de la sesion 9
+
+**Los tres PR estan mezclados a `main`.** No queda nada a medio hacer ni ninguna
+rama con trabajo dentro.
+
+| PR | Que trae | Mezclado |
+|---|---|---|
+| [#12](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/12) | Los siete puntos, mas el panel de pie y quitar el "Inspect" | 2026-09-12 |
+| [#13](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/13) | La rueda vuelve a bajar la pagina; acercar solo con pellizco | 2026-09-12 |
+
+**Lo que se aprendio, y no es de codigo.** Esta sesion se hizo bien el trabajo y
+se hizo mal el proceso, dos veces:
+
+1. **Mirar no es opcional.** Cinco de los fallos de esta sesion no habrian salido
+   leyendo el codigo: el estuche que no se podia agarrar porque una caja
+   transparente se quedaba con el puntero, la consola comiendose media pantalla
+   en telefono, el boton chocando con el carrito a 390 px, el pozo sin peso sobre
+   los colores claros, y la cinta perdiendo el borde contra el panel oscuro.
+   **Todos aparecieron en una captura.** Y uno de ellos — el del arrastre —
+   *parecia* funcionar en la primera prueba, porque la deriva movia la escena
+   igual; lo delato que el boton "Reset" no aparecia nunca. Una prueba que mira
+   el sintoma equivocado da verde y miente.
+2. **Un PR por tanda, sin excepcion.** Alfredo lo pidio dos veces antes de que se
+   hiciera. El motivo esta en la condicion 1 y se repite aqui porque costo dos
+   vueltas: sin PR nuevo no hay preview nuevo, y sin preview no hay forma de que
+   el mire lo que pidio. **Si el PR de la rama ya se mezclo, el trabajo siguiente
+   arranca de rama nueva desde `main`.** No encima.
+3. **Un gesto medido gana a un gesto supuesto.** El boton "Inspect" existio
+   porque di por hecho que en telefono no se podia girar sin el. Alfredo pregunto
+   por que, se midio con eventos tactiles de verdad, y resulto que `touch-action:
+   pan-y` ya repartia bien el gesto. Se quito. **Estaba ofreciendo como modo algo
+   que ya estaba disponible siempre.**
+
+**La fase 3 sigue sin cerrar,** y no por falta de trabajo tecnico: faltan el
+`.glb` del estuche y los catorce colores de verdad. Las dos cosas las tiene
+Alfredo.
+
+**Como arranca la sesion 10:** esta escrito arriba, en "Lo primero de la proxima
+sesion", que es donde se lee primero.
 
