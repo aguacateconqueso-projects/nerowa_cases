@@ -1064,3 +1064,87 @@ produccion y precios mayoristas. **Lo que entro en su lugar:** el desglose de lo
 
 **Sigue sin resolverse, y es de Alfredo:** los datos fiscales de la empresa. Es lo
 unico que bloquea la fase 7.6, el portal de tiendas.
+
+---
+
+### Sesion 10, tercera vuelta — la fase 7.0 construida
+
+Adrian dio luz verde: *"empieza a armar todo, dale play, deja margen para
+cambiar bases a futuro conforme vayamos definiendo todo lo tecnico de la
+empresa"*. Eso ultimo no es un detalle de estilo: es la decision de arquitectura
+de esta tanda.
+
+**El panel vive en `/panel`**, en el mismo repositorio, con `noindex` y detras de
+sesion. La tienda sigue en `/store` y la raiz sigue siendo la pagina de espera.
+
+**La capa que cumple el encargo de Adrian.** Ninguna pantalla, ningun formulario
+y ninguna accion del panel importa un proveedor. Todos piden `servicios()` y
+reciben interfaces:
+
+| Puerto | Que abstrae | Adaptador de hoy |
+|---|---|---|
+| `Almacen` | Todos los datos | memoria, con datos de ejemplo |
+| `Correo` | Enlaces de entrada y avisos al cliente | consola |
+| `Avisos` | Telegram, notificacion web, correo | consola |
+| `Archivos` | Facturas y comprobantes | memoria |
+
+**Cambiar de base de datos son tres pasos:** escribir el adaptador, anadir su
+caso en `src/lib/panel/servicios.ts`, y poner `PANEL_ALMACEN=postgres` en Vercel.
+No hay paso cuatro. Si algun dia hiciera falta tocar una pantalla, el puerto
+estaria mal disenado y lo que habria que arreglar es el puerto.
+
+**Lo que se puede hacer ya, abriendo el preview:** entrar con enlace sin
+contrasena, ver la cola de pedidos ordenada por antiguedad con el atraso a la
+vista, abrir un pedido, copiar la direccion de un toque, pegar el seguimiento y
+marcarlo enviado, anotar lo que costo el envio, y ver el desglose del margen
+—que solo ve el rol dueno—. El panel se instala en la pantalla de inicio del
+telefono.
+
+**El dinero va en centimos enteros, nunca en euros con decimales.** 0,1 + 0,2 no
+da 0,3 en coma flotante, y un panel que suma lineas de pedido termina descuadrado
+por centimos que nadie sabe de donde salieron. Hay **17 comprobaciones** de la
+aritmetica (`npm run pruebas`) atadas a `docs/economia-nerowa.md`: si un calculo
+deja de cuadrar con el documento, una de las dos cosas esta mal.
+
+**Tres fallos que aparecieron MIRANDO, y los tres pasaban typecheck, lint y
+build.** La leccion de la sesion 9 vuelve a valer entera:
+
+1. **El boton "Marcar enviado" quedaba fuera de pantalla.** Medido con el
+   navegador: caia en y=641 de un iPhone de 664 px de alto. Rompia la prueba de
+   los quince segundos, porque el primer gesto dejaba de ser tocar el boton y
+   pasaba a ser buscarlo. Se anclo el boton abajo y se compacto la direccion.
+2. **La muestra del color negro desaparecia** contra la tarjeta oscura: `#111`
+   sobre `#17171a`. No se veia de que color era el pedido. Anillo mas grueso y
+   claro. Es el mismo susto del estuche negro de la sesion 9, pero esta vez si
+   era un fallo.
+3. **La confirmacion de "marcado enviado" no se veia nunca.** La accion ocurria,
+   pero al revalidar el formulario dejaba de dibujarse y se llevaba el mensaje
+   consigo. Era exactamente el "guardar en silencio" que la especificacion
+   prohibe. Ahora la confirmacion viaja en la URL y sobrevive al cambio de
+   estado. **Este no lo habria encontrado nadie leyendo el codigo.**
+
+**Un cuarto arreglo, de disenar mejor:** preguntar el coste del envio DENTRO del
+formulario de envio estaba mal por dos razones. El boton anclado lo tapaba, y el
+orden era el equivocado: el comprobante del correo lo tiene Alfredo DESPUES de
+despachar. Ahora se pregunta al volver, con el importe de la ultima vez ya
+sugerido. Es lo que hace que el grafico diga ganancia y no solo ventas.
+
+**Sobre Next 16.** `experimental.useOffline` da de serie la deteccion de falta de
+conexion y el reintento automatico de las acciones de servidor bloqueadas — justo
+la regla 4 de `docs/panel-nerowa.md` §11.3, sin escribirla a mano. Queda
+encendido y el panel avisa en pantalla cuando no hay senal.
+
+**Comprobado de punta a punta, no de memoria:** `typecheck`, `lint`, `build` y
+las 17 pruebas en verde; el flujo entero de despachar recorrido en un navegador a
+390 px; cero errores de consola; sin desbordamiento horizontal; el rol operacion
+NO ve el margen y el rol dueno si.
+
+**Lo que NO esta y por que:** base de datos de verdad, correos, bot de Telegram,
+notificaciones web y el escalado de avisos. Todos necesitan cuentas de terceros
+que todavia no existen. Los puertos ya estan escritos, asi que entran sin tocar
+pantallas.
+
+**Una incoherencia que esta tanda deja a la vista y hay que arreglar aparte:** la
+pagina de espera publicada dice "180 EUR", que es el precio SIN IVA. Al
+consumidor hay que ensenarle 217,80 EUR. Es texto de cara al publico en el
+dominio, asi que va en su propio PR y lo decide Alfredo.

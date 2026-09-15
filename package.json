@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pruebas": "tsc -p tsconfig.pruebas.json && node .pruebas/lib/panel/dominio/__pruebas__/economia.prueba.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
@@ -16,6 +17,7 @@
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "three": "^0.186.0"
   },
   "devDependencies": {

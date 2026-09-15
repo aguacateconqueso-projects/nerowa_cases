@@ -541,7 +541,7 @@ como todo lo demás en este proyecto.
 
 | # | Qué sale | Qué se puede hacer al terminarla |
 |---|---|---|
-| **7.0** | Base de datos, entrar con enlace al correo, instalable en el iPhone, bot de Telegram | Alfredo tiene el ícono en su pantalla de inicio y recibe un mensaje de prueba |
+| **7.0** ✅ | Armazón de tres pestañas, entrar con enlace sin contraseña, instalable en el iPhone, capa de puertos y adaptadores, y la pantalla de pedidos funcionando con datos de ejemplo | **Hecha.** Se abre el preview, se entra, se despacha un pedido de punta a punta. Falta la base de datos real y el bot de Telegram, que necesitan cuentas |
 | **7.1** | Pestaña 1 con **pedidos cargados a mano** | **Sirve desde ya para lo que venden hoy por mensaje directo.** Registrar la venta, pegar el seguimiento, marcar enviado |
 | **7.2** | Enganche con Stripe y correos automáticos | Las ventas de la web entran solas y el cliente recibe sus avisos |
 | **7.3** | Escalado de avisos y resumen diario | Ningún pedido se queda parado sin que alguien se entere |
@@ -643,5 +643,60 @@ No bloquean empezar, pero hay que contestarlas antes de la fase que las toca:
 viven en `docs/economia-nerowa.md`.** Este documento dice cómo se muestran; aquél,
 de dónde salen.
 
-*Escrito en la sesión 10. Ninguna línea de código todavía: primero esto se
-aprueba o se corrige.*
+---
+
+## 17. Lo que está construido (sesión 10)
+
+La fase 7.0 está en el código. Lo que existe y funciona:
+
+| Pieza | Dónde |
+|---|---|
+| Dinero en céntimos enteros, IVA, márgenes, coste por lote | `src/lib/panel/dominio/` |
+| La máquina de estados de un pedido, en un solo sitio | `dominio/estados.ts` |
+| **Los puertos**: almacén, correo, avisos, archivos | `puertos/` |
+| Los adaptadores de hoy: memoria y consola | `adaptadores/` |
+| **El único archivo que decide qué proveedor se usa** | `servicios.ts` |
+| Entrar con enlace de un solo uso, sesión de 3 meses | `sesion.ts` |
+| Las pantallas | `src/app/panel/` |
+| 17 comprobaciones de la aritmética | `npm run pruebas` |
+
+### Cómo se cambia de base de datos, que era el requisito de Adrián
+
+Tres pasos, y no hay un cuarto:
+
+1. Se escribe `adaptadores/almacen-postgres.ts` implementando la interfaz `Almacen`.
+2. Se añade su caso al `switch` de `servicios.ts`.
+3. Se pone `PANEL_ALMACEN=postgres` en Vercel.
+
+Ninguna pantalla, ningún formulario y ninguna acción importa un proveedor:
+todos piden `servicios()` y reciben interfaces. **Si algún día hiciera falta
+tocar una pantalla para cambiar de proveedor, el puerto estaría mal diseñado y
+lo que habría que arreglar es el puerto.** Lo mismo vale para el correo, los
+avisos y el almacenamiento de archivos.
+
+### Tres fallos que aparecieron mirando, no leyendo
+
+Los tres pasaban el typecheck, el lint y el build:
+
+1. **El botón "Marcar enviado" quedaba fuera de pantalla.** Medido: caía en
+   y=641 de un iPhone de 664 px de alto. Había que bajar para verlo, que es
+   exactamente lo que la prueba de los quince segundos no puede permitir. Se
+   ancló el botón abajo y se compactó el bloque de dirección.
+2. **La muestra del color negro desaparecía.** `#111` sobre la tarjeta
+   `#17171a` no se distinguía: no se veía de qué color era el pedido. Anillo más
+   grueso y más claro.
+3. **La confirmación de "marcado enviado" no se veía nunca.** La acción ocurría,
+   pero al revalidar el formulario dejaba de dibujarse y se llevaba el mensaje
+   consigo — el "guardar en silencio" que la especificación prohíbe. Ahora la
+   confirmación viaja en la URL y sobrevive al cambio de estado.
+
+### Lo que hace falta para la fase 7.1
+
+- Cuenta de base de datos (Postgres con almacenamiento de archivos).
+- Los 14 colores reales, que ya bloqueaban las fases 2 y 3.
+- Cuentas de Telegram de los dos, para el grupo de avisos.
+
+---
+
+*Escrito en la sesión 10. La fase 7.0 está construida y verificada en el
+navegador; el resto del documento sigue siendo diseño a la espera de aprobación.*

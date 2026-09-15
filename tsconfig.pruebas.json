@@ -1,0 +1,23 @@
+/*
+  Configuracion aparte solo para correr las comprobaciones del dominio.
+
+  El proyecto compila a modulos de ESNext para el navegador; Node necesita
+  CommonJS y extensiones resueltas. En vez de anadir un marco de pruebas y sus
+  dependencias, se compila el dominio con el mismo `tsc` que ya usa el proyecto
+  y se corre el resultado con Node a secas.
+*/
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "incremental": false,
+    "outDir": ".pruebas",
+    "rootDir": "src",
+    "types": ["node"],
+    "plugins": []
+  },
+  "include": ["src/lib/panel/**/*.ts"],
+  "exclude": ["node_modules"]
+}
