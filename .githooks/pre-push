@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Avisa antes de empujar a una rama cuyo pull request YA se mezclo.
+#
+# POR QUE EXISTE
+#
+# La condicion 1 de progreso.md dice que cada tanda de cambios va en un pull
+# request nuevo, y que si el PR de la rama actual ya se mezclo, el trabajo
+# siguiente arranca de rama nueva desde `main`. En la sesion 10 esa regla se
+# incumplio CUATRO veces, siempre igual: se da por hecho que el PR sigue abierto
+# en vez de mirarlo, y el commit acaba colgando sobre una rama cerrada, sin
+# despliegue de preview que Adrian pueda abrir.
+#
+# Escribirlo en la bitacora no basto. Esto si es mecanico.
+#
+# COMO LO DETECTA, SIN NECESITAR GITHUB
+#
+# Busca en el historial de `origin/main` un commit de mezcla que nombre esta
+# rama. Si existe, su pull request ya se mezclo.
+#
+# La primera version comprobaba si la rama estaba contenida en `main`, y NO
+# detectaba el caso real: cuando el commit que se quedo colgando es posterior al
+# merge, la rama tiene trabajo que main no tiene, asi que "contenida en main" es
+# falso justo cuando mas falta hace el aviso. Se descubrio probando el hook
+# contra el error de verdad, no leyendolo.
+#
+# Para saltarselo a proposito: git push --no-verify
+
+rama=$(git rev-parse --abbrev-ref HEAD)
+
+[ "$rama" = "main" ] && exit 0
+[ "$rama" = "HEAD" ] && exit 0
+
+git fetch --quiet origin main 2>/dev/null || exit 0
+
+# "Merge pull request #N from <cuenta>/<rama>", que es como los mezcla GitHub.
+mezclada=$(git log origin/main --merges --grep="from .*/$rama\$" --format=%h -1 2>/dev/null)
+
+if [ -n "$mezclada" ]; then
+  cat >&2 <<AVISO
+
+  ✋ La rama "$rama" ya esta mezclada en main.
+
+  Su pull request esta cerrado, asi que este commit quedaria colgando: sin PR
+  no hay despliegue de preview nuevo, y sin preview Adrian no puede mirar lo
+  que pidio. Es la condicion 1 de progreso.md.
+
+  Lo que toca:
+
+      git fetch origin main
+      git checkout -B <rama-nueva> origin/main
+      git cherry-pick $(git rev-parse --short HEAD)
+      git push -u origin <rama-nueva>
+
+  Y despues, pull request nuevo.
+
+  (Si de verdad hace falta empujar aqui: git push --no-verify)
+
+AVISO
+  exit 1
+fi
+
+exit 0

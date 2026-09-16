@@ -127,6 +127,13 @@ resuelta por `palette.ts`; lo que falta son los valores.
    uno por sesion: es uno **por cada cosa que Alfredo pide**, aunque sean tres el
    mismo dia.
 
+   **Desde el 2026-09-16 hay un guardia mecanico**, porque esta regla se
+   incumplio cuatro veces en la sesion 10 y escribirla aqui no basto:
+   `.githooks/pre-push` corta el empujon si el pull request de la rama actual ya
+   se mezclo, y dice los cuatro comandos que hay que correr en su lugar. Se
+   configura solo con `npm install` (script `prepare`), asi que **lo primero de
+   cada sesion sigue siendo instalar las dependencias**.
+
    **El motivo es como los revisa, y por eso no se negocia:** cada PR trae su
    propio despliegue de preview en Vercel, con URL propia. **Sin PR nuevo no hay
    URL nueva que abrir.** Apilar commits sobre un PR ya mezclado deja a Alfredo
@@ -1515,3 +1522,23 @@ y respaldo de entrada.
 **La leccion, que es la misma de siempre con otra cara:** probar en `next dev`
 no es probar. El fallo estaba a un `npm run build && npx next start` de
 distancia, con una variable de entorno mal puesta a proposito.
+
+**La condicion 1, incumplida por cuarta vez, y lo que se hizo al respecto.** El
+arreglo del panel se empujo a `claude/base-de-datos`, cuyo PR #20 ya estaba
+mezclado. Adrian lo corto: *"no puedo mezclar de nuevo, tienes que hacer PR
+nuevo, es una regla del proyecto, siguela porfa"*.
+
+Cuatro veces el mismo fallo, y siempre por lo mismo: **dar por hecho el estado
+del PR en vez de mirarlo**. Escribirlo en la bitacora no funciono, asi que ahora
+hay un **guardia de `pre-push`** que corta el empujon a una rama cuyo PR ya se
+mezclo, y dice exactamente que comandos correr en su lugar. Se instala solo con
+`npm install`.
+
+**La primera version del guardia no detectaba mi propio caso**, y eso tambien
+vale la pena anotarlo: comprobaba si la rama estaba contenida en `main`, y
+cuando el commit que se queda colgando es POSTERIOR al merge, la rama tiene
+trabajo que main no tiene — asi que la comprobacion daba "no mezclada" justo
+cuando mas falta hacia el aviso. Se descubrio **probando el hook contra el error
+de verdad**, no leyendolo. Ahora busca el commit de mezcla en el historial de
+`main`, y esta comprobado en los tres casos: bloquea la rama mezclada, deja
+pasar una rama nueva, y deja pasar el segundo empujon a una rama abierta.
