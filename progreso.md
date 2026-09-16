@@ -1163,3 +1163,40 @@ No hay que acordarse de nada, que es justo lo que no se le puede confiar a la
 memoria de nadie en un panel que maneja dinero. `PANEL_MODO_DEMO` sigue
 existiendo para forzarlo en los dos sentidos, y los dos estan comprobados en el
 navegador.
+
+---
+
+### Sesion 10, cuarta vuelta — los correos de verdad
+
+**`alfredo@nerowacases.com` no existe.** Era inventado por mi en los datos de
+ejemplo y Adrian lo corrigio al abrir el preview del PR #15. Los correos del
+panel son dos, y solo dos:
+
+| Persona | Rol | Correo |
+|---|---|---|
+| Alfredo | operacion | **info@nerowacases.com** |
+| Adrian | dueno | **hello@arcmediahouse.com** |
+
+**El de Alfredo se importa de `src/lib/brand.ts`**, donde ya vivia como
+`CONTACT_EMAIL` porque lo usan la pagina de espera y la tienda. No se repite la
+cadena: el dia que cambie, cambia en un sitio y el panel se entera solo.
+
+**Se quito `correosAlternos`.** Se habia anadido una vuelta antes para que Adrian
+pudiera entrar con dos direcciones suyas; con un correo por persona se quedo sin
+usuario, y una abstraccion sin usuario es deuda. Si hace falta otro correo, se
+vuelve a anadir en cinco minutos.
+
+**La pantalla de entrada ya no dice "y el de Adrian".** Lista los correos que de
+verdad valen, sacados del almacen y no escritos a mano en el texto, y cada uno es
+un boton que rellena el campo de un toque.
+
+**Sobre el merge del PR #15, que conviene saber:** se mezclo con el head que
+GitHub tenia registrado (`a384261`) y dejo fuera el ultimo commit de la rama
+(`3315d95`, el que anadia `correosAlternos`). No se perdio nada que hiciera
+falta —ese commit traia justo lo que ahora se quita— pero **el head que se mezcla
+hay que mirarlo, no darlo por supuesto**. Los cambios de esta vuelta se rehicieron
+limpios desde `main`.
+
+**Comprobado en el navegador, los ocho casos:** los dos correos nuevos entran,
+los dos viejos ya no, tocar un correo rellena el campo, `info@` entra como
+Alfredo y NO ve el margen, y `hello@` entra como Adrian y si lo ve.

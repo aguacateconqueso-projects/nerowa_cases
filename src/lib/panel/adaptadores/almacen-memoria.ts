@@ -17,6 +17,8 @@
   variable de entorno. Ver `src/lib/panel/servicios.ts`.
 */
 
+import { CONTACT_EMAIL } from "@/lib/brand";
+
 import { euros, IVA_LITUANIA } from "../dominio/dinero";
 import { PRECIO_PUBLICO } from "../dominio/economia";
 import type {
@@ -135,18 +137,35 @@ export function crearAlmacenMemoria(): Almacen {
   const colores = [...COLORES];
   const lotes = [LOTE_ACTUAL];
   const pedidos = [...PEDIDOS];
+  /*
+    Las dos personas del panel, con los correos que existen de verdad. Son dos
+    y solo dos; el dia que haga falta otro, se anade aqui.
+
+    El de Alfredo es el correo de contacto de Nerowa, que ya vive en
+    `src/lib/brand.ts` porque lo usan la pagina de espera y la tienda. Se
+    importa de ahi en vez de repetir la cadena: el dia que cambie, cambia en un
+    solo sitio y el panel se entera solo.
+
+    Estan escritos con un valor por defecto, y no solo en la variable de
+    entorno, por lo mismo que la entrada sin correo se enciende sola: si
+    dependieran de configurar algo en Vercel, el preview seria un panel al que
+    no entra nadie.
+
+    Cuando llegue la base de datos, las personas viven ahi y esto se borra
+    entero. Dar de alta a alguien no puede ser un commit.
+  */
   const usuarios: Usuario[] = [
     {
       id: "u-alfredo",
       nombre: "Alfredo",
-      correo: process.env.PANEL_CORREO_OPERACION ?? "alfredo@nerowacases.com",
+      correo: process.env.PANEL_CORREO_OPERACION ?? CONTACT_EMAIL,
       rol: "operacion",
       creadoEn: hace(24 * 60),
     },
     {
       id: "u-adrian",
       nombre: "Adrian",
-      correo: process.env.PANEL_CORREO_DUENO ?? "adrianmendozam@gmail.com",
+      correo: process.env.PANEL_CORREO_DUENO ?? "hello@arcmediahouse.com",
       rol: "dueno",
       creadoEn: hace(24 * 60),
     },
