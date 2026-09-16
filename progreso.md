@@ -1452,3 +1452,66 @@ Existe porque la alternativa era mirar variables de entorno en el panel de
 Vercel, y eso es justo lo que este proyecto no le puede pedir a nadie.
 Comprobada en los dos escenarios —con Postgres y sin el—, sin filtrar secretos y
 con el rol operacion rebotado.
+
+---
+
+### Sesion 10, novena vuelta — el panel se caia entero por la base de datos
+
+Adrian conecto Supabase, abrio el preview y se encontro con **"This page
+couldn't load. A server error occurred."** El muro de Next, sin decir que pasa
+ni que hacer.
+
+**Lo reproduje con el build de produccion y una base inalcanzable**, que es lo
+que no habia hecho: hasta ahora solo habia probado `next dev`. `/panel/entrar`
+devolvia **500**.
+
+**La causa no es la base: es como estaba montado el panel.** Cualquier fallo de
+conexion tumbaba TODAS las pantallas, porque las dos primeras cosas que hace
+cada una —saber quien eres y listar los correos— iban a la base. Y con ellas se
+caia tambien `/panel/estado`, **la pantalla que existe justo para decir que le
+pasa a la base de datos.**
+
+Una herramienta de diagnostico que se cae por lo mismo que tiene que
+diagnosticar no sirve de nada. Eso es un fallo de diseno mio, no de Supabase.
+
+**Los tres arreglos:**
+
+1. **La sesion ya no consulta la base.** La cookie firmada lleva tambien el rol
+   y el nombre, asi que `usuarioActual()` funciona con la base caida. El precio,
+   dicho en el codigo: si a alguien se le cambia el rol, su sesion abierta
+   conserva el viejo hasta que caduque. Con dos personas vale la pena.
+2. **Entrar tiene respaldo.** Si la base no responde, se identifica a quien entra
+   con la lista configurada. **La clave sigue siendo obligatoria** y los correos
+   son los mismos, asi que no se permite nada nuevo — pero se puede entrar y
+   llegar al diagnostico.
+3. **`error.tsx`**: en vez del muro de Next, una pantalla en castellano que dice
+   que probablemente sea la base, que no se perdio nada, y con botones para
+   reintentar o ir a ver el estado. Y el identificador del error, para buscarlo
+   en el registro de Vercel.
+
+**De paso se quito una duplicacion de verdad:** las dos personas del panel
+estaban definidas en dos sitios con los valores copiados. Ahora salen de
+`personas.ts`, que alimenta los tres usos: datos de ejemplo, semilla de la base
+y respaldo de entrada.
+
+**Comprobado en el build de produccion, los dos escenarios:**
+
+| Con la base caida | |
+|---|---|
+| La pantalla de entrada | aparece (antes: 500) |
+| Entrar | funciona |
+| `/panel/estado` | **se llega, y dice "La base de datos no responde"** |
+| El mensaje exacto de la base | se ve: `connect ECONNREFUSED ...` |
+| La cadena de conexion | no se filtra |
+| Una pantalla que si necesita la base | "Esta pantalla no cargó", no el muro |
+
+| Con la base buena | |
+|---|---|
+| Entrar, ver pedidos | bien |
+| Estado | "✓ Guardando en la base de datos" |
+| Crear una tienda | se guarda, y el contador del estado sube a 1 |
+| Errores de consola | 0 |
+
+**La leccion, que es la misma de siempre con otra cara:** probar en `next dev`
+no es probar. El fallo estaba a un `npm run build && npx next start` de
+distancia, con una variable de entorno mal puesta a proposito.

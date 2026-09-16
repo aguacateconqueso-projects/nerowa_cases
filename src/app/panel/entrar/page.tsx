@@ -24,8 +24,20 @@ export const dynamic = "force-dynamic";
 export default async function PantallaEntrar() {
   if (await usuarioActual()) redirect("/panel");
 
-  /* Se sacan del almacen, no se escriben a mano: asi siguen siendo ciertos. */
-  const correos = (await servicios().almacen.listarUsuarios()).map((u) => u.correo);
+  /*
+    Los correos que valen, para elegirlos en vez de escribirlos.
+
+    Va en un `try` porque es un lujo, no un requisito: **si la base de datos no
+    responde, esta pantalla tiene que seguir apareciendo**. Antes no lo hacia, y
+    una base caida dejaba el panel entero con un "A server error occurred" desde
+    la mismisima pantalla de entrada — sin forma de entrar ni de ver que pasaba.
+  */
+  let correos: string[] = [];
+  try {
+    correos = (await servicios().almacen.listarUsuarios()).map((u) => u.correo);
+  } catch {
+    /* Sin sugerencias, se escribe el correo a mano y se entra igual. */
+  }
 
   return (
     <div className="grid min-h-[70dvh] place-items-center">
