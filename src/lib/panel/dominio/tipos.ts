@@ -179,3 +179,104 @@ export interface Apunte {
   detalle: string;
   creadoEn: Instante;
 }
+
+/* --------------------------------------------------------------------------
+   Tiendas mayoristas
+   -------------------------------------------------------------------------- */
+
+/**
+ * Como se le cobra el IVA a una tienda. Lo decide su pais y su numero de IVA.
+ *
+ * No es un matiz contable: **cambia el total de la factura**. Un pedido de 16
+ * estuches son 1.600 EUR, y el IVA lituano sobre eso son 336 EUR de diferencia
+ * entre facturar a una tienda de Vilnius y a una de Berlin con numero valido.
+ * Ver `docs/economia-nerowa.md` §4.3.
+ *
+ * El panel lo calcula y lo deja por escrito en cada pedido, pero **el
+ * procedimiento hay que confirmarlo con el asesor** antes de emitir la primera
+ * factura. Aqui solo se guarda que caso se aplico y por que.
+ */
+export type RegimenIva =
+  /** Tienda del mismo pais. Se le cobra el IVA. */
+  | "nacional"
+  /** Otro pais de la UE con numero de IVA validado. Normalmente sin IVA. */
+  | "intracomunitario"
+  /** Otro pais de la UE sin numero valido. Se le cobra el IVA. */
+  | "sin_numero_valido"
+  /** Fuera de la UE. Exportacion. */
+  | "exportacion";
+
+export interface Tienda {
+  id: Id;
+  /** El nombre con el que se la conoce. "Musik Schmidt". */
+  nombre: string;
+  /** El nombre legal, que va en la factura. Puede faltar al darla de alta. */
+  razonSocial?: string;
+  /** Numero de IVA intracomunitario. Sin el, se le cobra IVA. */
+  numeroIva?: string;
+  /** Si alguien comprobo ese numero. Sin comprobar, no se asume valido. */
+  ivaValidado: boolean;
+  direccion: Direccion;
+
+  contactoNombre?: string;
+  contactoCorreo?: string;
+  contactoTelefono?: string;
+
+  /**
+   * Precio por unidad propio de esta tienda, si se le acordo uno.
+   * Sin esto, se usan los tramos por volumen de `economia.ts`.
+   */
+  precioPersonalizado?: Centimos;
+  /** Dias que se le dan para pagar desde que se factura. */
+  plazoPagoDias: number;
+
+  notas?: string;
+  activa: boolean;
+  creadaEn: Instante;
+}
+
+/**
+ * Por donde va un pedido mayorista.
+ *
+ * Son TRES cosas a la vez y no una, que es la diferencia con un pedido de la
+ * web: se confirma, se cobra y se envia. **El cobro y el envio van por
+ * separado porque en mayorista casi nunca pasan a la vez** — se envia y se
+ * cobra a treinta dias, o se cobra por adelantado y se envia cuando hay stock.
+ *
+ * Un solo estado lineal obligaria a elegir un orden que no siempre se cumple, y
+ * a mentir el resto de las veces.
+ */
+export type EstadoMayorista = "por_confirmar" | "confirmado" | "cancelado";
+export type EstadoCobro = "sin_facturar" | "facturado" | "pagado";
+export type EstadoEnvio = "sin_enviar" | "enviado" | "entregado";
+
+export interface PedidoMayorista {
+  id: Id;
+  numero: number;
+  tiendaId: Id;
+
+  estado: EstadoMayorista;
+  cobro: EstadoCobro;
+  envio: EstadoEnvio;
+
+  lineas: LineaPedido[];
+  /** Envio, siempre aparte del precio del estuche. */
+  envioCobrado: Centimos;
+  envioCoste?: Centimos;
+
+  /** Que caso de IVA se aplico, congelado al confirmar el pedido. */
+  regimenIva: RegimenIva;
+  tipoIva: PuntosBase;
+
+  creadoEn: Instante;
+  confirmadoEn?: Instante;
+  facturadoEn?: Instante;
+  pagadoEn?: Instante;
+  enviadoEn?: Instante;
+  entregadoEn?: Instante;
+
+  /** El numero de la factura, cuando se emita. */
+  referenciaFactura?: string;
+  seguimiento?: string;
+  notas?: string;
+}
