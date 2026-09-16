@@ -1,84 +1,53 @@
 /*
-  Entrar al panel sin contrasena.
+  Entrar al panel.
 
-  Por que no hay contrasenas, y queda decidido: Alfredo no va a recordar una.
-  Va a terminar anotada en algun sitio, que es peor que no tenerla. En su lugar,
-  un enlace de un solo uso al correo y una sesion que dura meses, para que en la
-  practica no tenga que volver a entrar casi nunca.
-
-  Ver `docs/panel-nerowa.md` §10 y la decision del 2026-09-15 en `progreso.md`.
+  Correo mas una clave compartida, y una sesion que dura tres meses para que en
+  la practica no haya que volver a entrar casi nunca. El porque de la clave, y
+  lo que hay que cambiar antes de que haya datos de verdad, esta en `clave.ts`.
 */
 
 import "server-only";
 
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
+import { claveCorrecta } from "./clave";
 import type { Rol, Sesion, Usuario } from "./dominio/tipos";
 import { servicios } from "./servicios";
 
 const COOKIE = "nerowa_panel";
-/** La sesion dura tres meses. Se renueva sola cada vez que se usa. */
+/** La sesion dura tres meses. */
 const DIAS_SESION = 90;
-/** El enlace de entrada, quince minutos. Lo justo para ir al correo y volver. */
-const MINUTOS_ENLACE = 15;
-
-function hash(testigo: string): string {
-  return createHash("sha256").update(testigo).digest("hex");
-}
 
 function enMilisegundos(dias: number) {
   return dias * 24 * 3_600_000;
 }
 
 /* --------------------------------------------------------------------------
-   Pedir el enlace
+   Entrar
    -------------------------------------------------------------------------- */
-
-export interface EnlacePedido {
-  /** La ruta completa a la que hay que ir. Solo se enseña en modo demostracion. */
-  ruta: string;
-}
 
 /**
- * Crea un enlace de entrada para un correo.
+ * Comprueba correo y clave, y si cuadran deja la sesion puesta.
  *
- * Devuelve la ruta SIEMPRE, y quien llama decide si la manda por correo o la
- * enseña. Nunca dice si el correo existe o no: eso lo decide el llamante, y la
- * pantalla contesta lo mismo en los dos casos para no filtrar quien tiene
- * cuenta.
+ * Devuelve `undefined` cuando falla, sin decir cual de los dos estaba mal: si
+ * dijera "ese correo no existe", cualquiera podria averiguar quien tiene acceso
+ * probando direcciones.
  */
-export async function crearEnlaceEntrada(correo: string): Promise<EnlacePedido | undefined> {
+export async function entrar(
+  correo: string,
+  clave: string,
+): Promise<Usuario | undefined> {
   const { almacen } = servicios();
   const usuario = await almacen.usuarioPorCorreo(correo);
-  if (!usuario) return undefined;
 
-  const testigo = randomBytes(32).toString("base64url");
-  await almacen.crearEnlaceEntrada({
-    id: crypto.randomUUID(),
-    correo: usuario.correo,
-    testigoHash: hash(testigo),
-    expiraEn: new Date(Date.now() + MINUTOS_ENLACE * 60_000).toISOString(),
-  });
-
-  return { ruta: `/panel/entrar/${testigo}` };
-}
-
-/* --------------------------------------------------------------------------
-   Canjear el enlace por una sesion
-   -------------------------------------------------------------------------- */
-
-export async function canjearEnlace(testigo: string): Promise<Usuario | undefined> {
-  const { almacen } = servicios();
   /*
-    El almacen comprueba caducidad y uso previo, y lo marca usado en el mismo
-    paso. Aqui no se re-comprueba: una sola fuente de verdad para el canje.
+    La clave se comprueba SIEMPRE, exista el usuario o no. Si se saliera antes
+    cuando el correo no existe, la respuesta llegaria mucho mas rapido en ese
+    caso y el tiempo delataria que direcciones tienen cuenta.
   */
-  const enlace = await almacen.consumirEnlaceEntrada(hash(testigo));
-  if (!enlace) return undefined;
-
-  const usuario = await almacen.usuarioPorCorreo(enlace.correo);
-  if (!usuario) return undefined;
+  const valida = claveCorrecta(clave);
+  if (!usuario || !valida) return undefined;
 
   const sesion: Sesion = {
     id: randomBytes(32).toString("base64url"),

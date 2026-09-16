@@ -40,16 +40,6 @@ export interface Sesion {
   expiraEn: Instante;
 }
 
-/** Enlace de un solo uso que sustituye a la contrasena. */
-export interface EnlaceEntrada {
-  id: Id;
-  correo: string;
-  /** Hash del testigo, nunca el testigo en claro. */
-  testigoHash: string;
-  expiraEn: Instante;
-  usadoEn?: Instante;
-}
-
 /* --------------------------------------------------------------------------
    Producto y existencias
    -------------------------------------------------------------------------- */

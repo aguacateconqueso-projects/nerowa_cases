@@ -492,7 +492,7 @@ adjuntos. Eso es lo que se le manda al contador.
 | Aplicación en App Store y Play | §3. Se reconsidera con datos, no ahora |
 | Mapa mundial de ventas | §6.5. Es decoración hasta que haya volumen |
 | Pago con tarjeta para tiendas | §8.2 |
-| Contraseñas | Se entra con un enlace de un solo uso al correo y la sesión dura meses. Alfredo no va a recordar una contraseña y va a terminar anotada en algún sitio, que es peor |
+| ~~Contraseñas~~ | **Revertido el 2026-09-16.** El enlace de un solo uso sigue siendo mejor para Alfredo, pero necesita un proveedor de correo que no existe: sin él había que enseñar el enlace en pantalla, y la pantalla decía "te acaba de llegar un enlace" cuando no salía ningún correo. Adrián se quedó esperándolo y el panel no se pudo abrir. Por ahora, **una clave compartida**; se revisa cuando haya correo. Ver `src/lib/panel/clave.ts` |
 | Varios idiomas en el panel | Es para ustedes dos. En español |
 
 ---

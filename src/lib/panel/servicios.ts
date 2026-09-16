@@ -109,36 +109,3 @@ export function servicios(): Servicios {
 export function enModoDemostracion(): boolean {
   return servicios().almacen.nombre === "memoria";
 }
-
-/**
- * Permite entrar al panel enseñando el enlace en pantalla en vez de mandarlo
- * por correo.
- *
- * Se enciende SOLO cuando se cumplen las dos cosas a la vez:
- *
- *   - el almacen no guarda nada de verdad (datos de ejemplo), y
- *   - no hay proveedor de correo, asi que el enlace no puede llegar a ningun
- *     sitio.
- *
- * En esa situacion no hay nada que proteger — no hay datos reales — y la
- * alternativa es un panel al que no puede entrar nadie. Es el caso del preview
- * de Vercel de hoy: Adrian abre la URL en su telefono y entra; si esto
- * dependiera de configurar una variable a mano, se encontraria con una puerta
- * cerrada y ningun modo de abrirla.
- *
- * En cuanto se conecte una base de datos o un proveedor de correo de verdad,
- * **se apaga solo**. No hace falta acordarse de nada, que es justo lo que no se
- * puede confiar a la memoria de nadie en un panel que maneja dinero.
- *
- * Y se puede forzar en los dos sentidos:
- *   PANEL_MODO_DEMO=1  lo enciende aunque haya proveedores de verdad
- *   PANEL_MODO_DEMO=0  lo apaga siempre, pase lo que pase
- */
-export function entradaSinCorreo(): boolean {
-  const forzado = process.env.PANEL_MODO_DEMO;
-  if (forzado === "1") return true;
-  if (forzado === "0") return false;
-
-  const { almacen, correo } = servicios();
-  return almacen.nombre === "memoria" && correo.nombre === "consola";
-}

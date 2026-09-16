@@ -1,32 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 
-import { pedirEnlace, type ResultadoEntrada } from "./acciones";
+import { entrarAlPanel, type ResultadoEntrada } from "./acciones";
 
-export interface Acceso {
-  nombre: string;
-  rol: string;
-  correo: string;
-}
-
-export function FormularioEntrada({
-  modoDemo,
-  accesos,
-}: {
-  modoDemo: boolean;
-  accesos: Acceso[];
-}) {
-  const [resultado, accion, enCurso] = useActionState<ResultadoEntrada | undefined, FormData>(
-    pedirEnlace,
-    undefined,
-  );
+export function FormularioEntrada({ correos }: { correos: string[] }) {
+  const [resultado, accion, enCurso] = useActionState<
+    ResultadoEntrada | undefined,
+    FormData
+  >(entrarAlPanel, undefined);
 
   return (
-    <div className="grid gap-4">
-      <form action={accion} className="grid gap-3">
-        <label htmlFor="correo" className="t-label">
+    <form action={accion} className="grid gap-3">
+      <div>
+        <label htmlFor="correo" className="t-label mb-2 block">
           Tu correo
         </label>
         <input
@@ -35,69 +22,53 @@ export function FormularioEntrada({
           type="email"
           className="panel-campo"
           inputMode="email"
-          autoComplete="email"
+          autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
+          /*
+            El navegador y el gestor de claves del telefono rellenan los dos
+            campos solos si se los nombra como toca. En un telefono, de pie, eso
+            es la diferencia entre entrar de un toque y escribir veinte letras.
+          */
+          list="correos-panel"
           required
         />
-        <button type="submit" className="panel-boton panel-boton-principal" disabled={enCurso}>
-          {enCurso ? "Enviando…" : "Mandarme el enlace"}
-        </button>
-      </form>
+        {/* Los correos que valen, para elegirlos en vez de escribirlos. */}
+        <datalist id="correos-panel">
+          {correos.map((correo) => (
+            <option key={correo} value={correo} />
+          ))}
+        </datalist>
+      </div>
+
+      <div>
+        <label htmlFor="clave" className="t-label mb-2 block">
+          Clave
+        </label>
+        <input
+          id="clave"
+          name="clave"
+          type="password"
+          className="panel-campo"
+          autoComplete="current-password"
+          required
+        />
+      </div>
+
+      <button type="submit" className="panel-boton panel-boton-principal" disabled={enCurso}>
+        {enCurso ? "Entrando…" : "Entrar"}
+      </button>
 
       {resultado ? (
         <p
           role="status"
           aria-live="polite"
           className="rounded-lg px-3 py-2 text-[0.9375rem]"
-          style={{
-            background: resultado.ok ? "#12301e" : "#3a1512",
-            color: resultado.ok ? "#9fe0b8" : "#f6b3ad",
-          }}
+          style={{ background: "#3a1512", color: "#f6b3ad" }}
         >
-          {resultado.mensaje}
+          ✕ {resultado.mensaje}
         </p>
       ) : null}
-
-      {modoDemo && resultado?.ruta ? (
-        <Link href={resultado.ruta} className="panel-boton panel-boton-suave">
-          Entrar (modo demostracion)
-        </Link>
-      ) : null}
-
-      {modoDemo ? (
-        <div className="text-[0.8125rem]" style={{ color: "var(--panel-aviso)" }}>
-          <p>
-            Modo demostracion: todavia no hay proveedor de correo, asi que el
-            enlace se enseña aqui en vez de mandarse. Correos que entran:
-          </p>
-          <ul className="mt-2 grid gap-2">
-            {accesos.map((a) => (
-              <li key={a.correo}>
-                <span className="t-label" style={{ color: "var(--panel-tenue)" }}>
-                  {a.nombre} · {a.rol}
-                </span>
-                {/* Se toca y rellena el campo: escribir un correo en un
-                    telefono, de pie, es lo contrario de a prueba de tontos. */}
-                <button
-                  type="button"
-                  className="mt-1 block w-full rounded-lg px-2 py-2 text-start"
-                  style={{ background: "var(--panel-tarjeta-alta)", color: "var(--gold-bright)" }}
-                  onClick={() => {
-                    const campo = document.getElementById("correo");
-                    if (campo instanceof HTMLInputElement) {
-                      campo.value = a.correo;
-                      campo.focus();
-                    }
-                  }}
-                >
-                  {a.correo}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </div>
+    </form>
   );
 }
