@@ -17,7 +17,7 @@ import "server-only";
   deshacer lo que alguien haya editado.
 */
 
-import { CONTACT_EMAIL } from "@/lib/brand";
+import { personasDelPanel } from "../../personas";
 
 import type { Conexion } from "./conexion";
 import { migrar, type Migracion } from "./migrar";
@@ -44,16 +44,14 @@ const COLORES: [string, string, string][] = [
 ];
 
 async function sembrar(cx: Conexion) {
-  await cx.consultar(
-    `insert into usuarios (id, nombre, correo, rol) values ($1, $2, $3, $4)
-     on conflict (id) do nothing`,
-    ["u-alfredo", "Alfredo", process.env.PANEL_CORREO_OPERACION ?? CONTACT_EMAIL, "operacion"],
-  );
-  await cx.consultar(
-    `insert into usuarios (id, nombre, correo, rol) values ($1, $2, $3, $4)
-     on conflict (id) do nothing`,
-    ["u-adrian", "Adrian", process.env.PANEL_CORREO_DUENO ?? "hello@arcmediahouse.com", "dueno"],
-  );
+  /* Las dos personas salen de `personas.ts`, que es donde estan definidas. */
+  for (const persona of personasDelPanel()) {
+    await cx.consultar(
+      `insert into usuarios (id, nombre, correo, rol) values ($1, $2, $3, $4)
+       on conflict (id) do nothing`,
+      [persona.id, persona.nombre, persona.correo, persona.rol],
+    );
+  }
 
   for (const [id, nombre, hex] of COLORES) {
     await cx.consultar(

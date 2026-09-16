@@ -127,6 +127,13 @@ resuelta por `palette.ts`; lo que falta son los valores.
    uno por sesion: es uno **por cada cosa que Alfredo pide**, aunque sean tres el
    mismo dia.
 
+   **Desde el 2026-09-16 hay un guardia mecanico**, porque esta regla se
+   incumplio cuatro veces en la sesion 10 y escribirla aqui no basto:
+   `.githooks/pre-push` corta el empujon si el pull request de la rama actual ya
+   se mezclo, y dice los cuatro comandos que hay que correr en su lugar. Se
+   configura solo con `npm install` (script `prepare`), asi que **lo primero de
+   cada sesion sigue siendo instalar las dependencias**.
+
    **El motivo es como los revisa, y por eso no se negocia:** cada PR trae su
    propio despliegue de preview en Vercel, con URL propia. **Sin PR nuevo no hay
    URL nueva que abrir.** Apilar commits sobre un PR ya mezclado deja a Alfredo
@@ -1452,3 +1459,86 @@ Existe porque la alternativa era mirar variables de entorno en el panel de
 Vercel, y eso es justo lo que este proyecto no le puede pedir a nadie.
 Comprobada en los dos escenarios —con Postgres y sin el—, sin filtrar secretos y
 con el rol operacion rebotado.
+
+---
+
+### Sesion 10, novena vuelta — el panel se caia entero por la base de datos
+
+Adrian conecto Supabase, abrio el preview y se encontro con **"This page
+couldn't load. A server error occurred."** El muro de Next, sin decir que pasa
+ni que hacer.
+
+**Lo reproduje con el build de produccion y una base inalcanzable**, que es lo
+que no habia hecho: hasta ahora solo habia probado `next dev`. `/panel/entrar`
+devolvia **500**.
+
+**La causa no es la base: es como estaba montado el panel.** Cualquier fallo de
+conexion tumbaba TODAS las pantallas, porque las dos primeras cosas que hace
+cada una —saber quien eres y listar los correos— iban a la base. Y con ellas se
+caia tambien `/panel/estado`, **la pantalla que existe justo para decir que le
+pasa a la base de datos.**
+
+Una herramienta de diagnostico que se cae por lo mismo que tiene que
+diagnosticar no sirve de nada. Eso es un fallo de diseno mio, no de Supabase.
+
+**Los tres arreglos:**
+
+1. **La sesion ya no consulta la base.** La cookie firmada lleva tambien el rol
+   y el nombre, asi que `usuarioActual()` funciona con la base caida. El precio,
+   dicho en el codigo: si a alguien se le cambia el rol, su sesion abierta
+   conserva el viejo hasta que caduque. Con dos personas vale la pena.
+2. **Entrar tiene respaldo.** Si la base no responde, se identifica a quien entra
+   con la lista configurada. **La clave sigue siendo obligatoria** y los correos
+   son los mismos, asi que no se permite nada nuevo — pero se puede entrar y
+   llegar al diagnostico.
+3. **`error.tsx`**: en vez del muro de Next, una pantalla en castellano que dice
+   que probablemente sea la base, que no se perdio nada, y con botones para
+   reintentar o ir a ver el estado. Y el identificador del error, para buscarlo
+   en el registro de Vercel.
+
+**De paso se quito una duplicacion de verdad:** las dos personas del panel
+estaban definidas en dos sitios con los valores copiados. Ahora salen de
+`personas.ts`, que alimenta los tres usos: datos de ejemplo, semilla de la base
+y respaldo de entrada.
+
+**Comprobado en el build de produccion, los dos escenarios:**
+
+| Con la base caida | |
+|---|---|
+| La pantalla de entrada | aparece (antes: 500) |
+| Entrar | funciona |
+| `/panel/estado` | **se llega, y dice "La base de datos no responde"** |
+| El mensaje exacto de la base | se ve: `connect ECONNREFUSED ...` |
+| La cadena de conexion | no se filtra |
+| Una pantalla que si necesita la base | "Esta pantalla no cargó", no el muro |
+
+| Con la base buena | |
+|---|---|
+| Entrar, ver pedidos | bien |
+| Estado | "✓ Guardando en la base de datos" |
+| Crear una tienda | se guarda, y el contador del estado sube a 1 |
+| Errores de consola | 0 |
+
+**La leccion, que es la misma de siempre con otra cara:** probar en `next dev`
+no es probar. El fallo estaba a un `npm run build && npx next start` de
+distancia, con una variable de entorno mal puesta a proposito.
+
+**La condicion 1, incumplida por cuarta vez, y lo que se hizo al respecto.** El
+arreglo del panel se empujo a `claude/base-de-datos`, cuyo PR #20 ya estaba
+mezclado. Adrian lo corto: *"no puedo mezclar de nuevo, tienes que hacer PR
+nuevo, es una regla del proyecto, siguela porfa"*.
+
+Cuatro veces el mismo fallo, y siempre por lo mismo: **dar por hecho el estado
+del PR en vez de mirarlo**. Escribirlo en la bitacora no funciono, asi que ahora
+hay un **guardia de `pre-push`** que corta el empujon a una rama cuyo PR ya se
+mezclo, y dice exactamente que comandos correr en su lugar. Se instala solo con
+`npm install`.
+
+**La primera version del guardia no detectaba mi propio caso**, y eso tambien
+vale la pena anotarlo: comprobaba si la rama estaba contenida en `main`, y
+cuando el commit que se queda colgando es POSTERIOR al merge, la rama tiene
+trabajo que main no tiene — asi que la comprobacion daba "no mezclada" justo
+cuando mas falta hacia el aviso. Se descubrio **probando el hook contra el error
+de verdad**, no leyendolo. Ahora busca el commit de mezcla en el historial de
+`main`, y esta comprobado en los tres casos: bloquea la rama mezclada, deja
+pasar una rama nueva, y deja pasar el segundo empujon a una rama abierta.
