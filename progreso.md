@@ -1247,3 +1247,16 @@ entran; **a los tres fallos les contesta exactamente el mismo mensaje**, que es
 lo que evita averiguar quien tiene acceso probando direcciones; `hello@` entra
 como Adrian y ve el margen; `info@` entra como Alfredo y no lo ve; y
 `/panel/entrar/<lo-que-sea>` ya devuelve 404.
+
+**Y la regla de la condicion 1 se incumplio otra vez, por tercera sesion
+seguida.** Este cambio se empujo a `claude/correos-panel`, cuyo PR #16 ya estaba
+mezclado, asi que el commit quedo colgando sobre una rama cerrada y sin preview
+que Adrian pudiera abrir. Lo corto el en el acto. Se saco a `claude/clave-panel`
+desde `main` y salio por el PR #17.
+
+**Lo que hay que hacer para no repetirlo, y es una comprobacion de dos
+segundos:** antes de empujar, mirar si el PR de la rama actual sigue abierto. No
+basta con recordar si se mezclo — en la sesion 10 dos PR se mezclaron entre una
+vuelta y la siguiente sin que quedara constancia en la conversacion. **Si esta
+mezclado: `git fetch origin main && git checkout -B <rama-nueva> origin/main`, y
+PR nuevo.**
