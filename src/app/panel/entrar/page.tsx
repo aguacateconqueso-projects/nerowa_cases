@@ -1,14 +1,19 @@
 /*
-  Entrar al panel. Sin contrasena: un enlace de un solo uso al correo.
+  Entrar al panel: correo y clave.
 
-  El razonamiento esta en `docs/panel-nerowa.md` §10: Alfredo no va a recordar
-  una contrasena, va a terminar anotada en algun sitio, y eso es peor que no
-  tenerla. La sesion dura tres meses, asi que en la practica entra una vez.
+  Antes esto era un enlace de un solo uso al correo, que es mejor para Alfredo
+  —no hay nada que recordar— pero necesita un proveedor de correo que todavia no
+  existe. Sin el, el enlace habia que enseñarlo en pantalla, y la pantalla decia
+  "le acaba de llegar un enlace" cuando no salia ningun correo: Adrian se quedo
+  esperandolo y el panel no se pudo abrir.
+
+  El porque de la clave, y lo que hay que cambiar antes de que haya datos
+  reales, esta en `src/lib/panel/clave.ts`.
 */
 
 import { redirect } from "next/navigation";
 
-import { entradaSinCorreo, servicios } from "@/lib/panel/servicios";
+import { servicios } from "@/lib/panel/servicios";
 import { usuarioActual } from "@/lib/panel/sesion";
 
 import { FormularioEntrada } from "./formulario";
@@ -19,30 +24,17 @@ export const dynamic = "force-dynamic";
 export default async function PantallaEntrar() {
   if (await usuarioActual()) redirect("/panel");
 
-  /*
-    En modo demostracion se listan los correos que de verdad valen, sacados del
-    almacen y no escritos a mano en el texto. Antes decia "y el de Adrian", que
-    obliga a adivinar cual es — y adivinar es justo lo que este panel no puede
-    pedirle a nadie. Sacarlos del almacen ademas los mantiene ciertos si cambian.
-  */
-  const demo = entradaSinCorreo();
-  const accesos = demo
-    ? (await servicios().almacen.listarUsuarios()).map((u) => ({
-        nombre: u.nombre,
-        rol: u.rol,
-        correo: u.correo,
-      }))
-    : [];
+  /* Se sacan del almacen, no se escriben a mano: asi siguen siendo ciertos. */
+  const correos = (await servicios().almacen.listarUsuarios()).map((u) => u.correo);
 
   return (
     <div className="grid min-h-[70dvh] place-items-center">
       <div className="w-full max-w-sm">
         <h1 className="t-heading text-2xl">Panel de Nerowa</h1>
         <p className="mt-2 mb-6 text-[0.9375rem]" style={{ color: "var(--panel-tenue)" }}>
-          Escribe tu correo y te mandamos un enlace para entrar. No hay contrasena
-          que recordar.
+          Entra con tu correo y la clave del panel.
         </p>
-        <FormularioEntrada modoDemo={demo} accesos={accesos} />
+        <FormularioEntrada correos={correos} />
       </div>
     </div>
   );
