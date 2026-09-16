@@ -1434,3 +1434,21 @@ preview sigue en modo demostracion:
 
 El puerto importa: con la conexion directa, en Vercel se agotan las conexiones
 en cuanto hay trafico.
+
+**Pantalla de estado del sistema, en `/panel/estado`.** Solo para el dueno.
+Contesta de un vistazo la pregunta que siempre es la primera cuando algo no
+funciona: **"¿esto esta guardando de verdad o sigue en modo demostracion?"**.
+
+Dice que adaptador esta activo para cada cosa, si la base de datos responde y en
+cuantos milisegundos, cuantas filas hay de cada tipo, y que variables de entorno
+estan puestas. **Lo que nunca sale de ahi es el valor de ninguna variable**: ni
+la cadena de conexion, ni la clave, ni el secreto de firma. Solo si estan o no.
+
+Se cuentan filas de verdad en vez de hacer un `select 1`: asi la pantalla
+distingue "la base no responde" de "la base responde pero las tablas estan
+vacias", que son dos fallos distintos con dos arreglos distintos.
+
+Existe porque la alternativa era mirar variables de entorno en el panel de
+Vercel, y eso es justo lo que este proyecto no le puede pedir a nadie.
+Comprobada en los dos escenarios —con Postgres y sin el—, sin filtrar secretos y
+con el rol operacion rebotado.
