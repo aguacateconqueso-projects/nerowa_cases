@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 
-import { revisarCadena, traducirError } from "../../diagnostico-conexion";
+import { cadenaALaVista, revisarCadena, traducirError } from "../../diagnostico-conexion";
 
 let hechas = 0;
 function comprueba(que: string, fn: () => void) {
@@ -63,16 +63,23 @@ comprueba("sin cadena puesta no se inventa ninguna queja", () => {
 
 console.log("\nLo que NUNCA puede salir de aqui");
 
-comprueba("NINGUNA pista contiene la contrasena", () => {
-  const todas = [
+comprueba("NADA de lo que sale a pantalla contiene la contrasena", () => {
+  const conArroba = "postgresql://postgres.abc:mi@clave@aws-0.pooler.supabase.com:6543/postgres";
+  const conBarra = "postgresql://postgres.abc:mi/clave@aws-0.pooler.supabase.com:6543/postgres";
+  const todo = JSON.stringify([
     ...revisarCadena(POOLER_BIEN),
     ...revisarCadena(POOLER_USUARIO_CORTO),
     ...revisarCadena(DIRECTA),
-    ...revisarCadena("postgresql://postgres.abc:mi@clave@aws-0.pooler.supabase.com:6543/postgres"),
-  ];
-  const texto = JSON.stringify(todas);
-  assert.ok(!texto.includes(CLAVE), "se filtro la contrasena en una pista");
-  assert.ok(!texto.includes("mi@clave"), "se filtro la contrasena en una pista");
+    ...revisarCadena(conArroba),
+    cadenaALaVista(POOLER_BIEN),
+    cadenaALaVista(POOLER_USUARIO_CORTO),
+    cadenaALaVista(DIRECTA),
+    cadenaALaVista(conArroba),
+    cadenaALaVista(conBarra),
+  ]);
+  for (const secreto of [CLAVE, "mi@clave", "mi/clave"]) {
+    assert.ok(!todo.includes(secreto), `se filtro la contrasena: ${secreto}`);
+  }
 });
 
 comprueba("ninguna pista contiene la cadena de conexion entera", () => {
@@ -82,6 +89,50 @@ comprueba("ninguna pista contiene la cadena de conexion entera", () => {
   ]);
   assert.ok(!texto.includes("postgresql://"));
   assert.ok(!texto.includes("pooler.supabase.com"));
+});
+
+console.log("\nLa cadena a la vista, con la contrasena tapada");
+
+comprueba("enseña usuario, servidor y puerto, y tapa la contrasena", () => {
+  const v = cadenaALaVista(POOLER_BIEN)!;
+  assert.equal(v.usuario, "postgres.abcdefghijklm");
+  assert.equal(v.anfitrion, "aws-0-eu-central-1.pooler.supabase.com");
+  assert.equal(v.puerto, 6543);
+  assert.equal(v.tieneContrasena, true);
+  assert.ok(!v.texto.includes(CLAVE), "la contrasena aparece en el texto");
+  assert.match(v.texto, /postgres\.abcdefghijklm:•+@/);
+});
+
+comprueba("con la contrasena rota, sigue enseñando el usuario DE VERDAD", () => {
+  /*
+    Este es el caso que importa. `new URL()` parte mal una cadena con una
+    contrasena sin codificar y da un usuario que no es el que hay escrito;
+    entonces la pantalla enseñaria algo que no se parece a lo que esta puesto,
+    justo cuando hay que mirarlo.
+  */
+  const conBarra = "postgresql://postgres.abcdefghijklm:mi/clave@aws-0.pooler.supabase.com:6543/postgres";
+  const v = cadenaALaVista(conBarra)!;
+  assert.equal(v.usuario, "postgres.abcdefghijklm");
+  assert.equal(v.puerto, 6543);
+  assert.ok(!v.texto.includes("mi/clave"), "la contrasena aparece en el texto");
+});
+
+comprueba("una contrasena con @ tampoco se escapa", () => {
+  const conArroba = "postgresql://postgres.abc:mi@clave@aws-0.pooler.supabase.com:6543/postgres";
+  const v = cadenaALaVista(conArroba)!;
+  assert.equal(v.usuario, "postgres.abc");
+  assert.ok(!v.texto.includes("mi@clave"));
+  assert.ok(!v.texto.includes("mi@"));
+});
+
+comprueba("sin contrasena lo dice en vez de fingir que hay una", () => {
+  const v = cadenaALaVista("postgresql://postgres.abc:@aws-0.pooler.supabase.com:6543/postgres")!;
+  assert.equal(v.tieneContrasena, false);
+  assert.match(v.texto, /\(vacia\)/);
+});
+
+comprueba("sin cadena puesta no devuelve nada", () => {
+  assert.equal(cadenaALaVista(undefined), undefined);
 });
 
 console.log("\nTraduccion de lo que dice la base");

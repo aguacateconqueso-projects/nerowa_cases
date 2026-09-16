@@ -112,6 +112,54 @@ export default async function PantallaEstado() {
         </section>
       ) : null}
 
+      {/*
+        La cadena con la contrasena tapada. Con solo el error de Postgres hay
+        que adivinar si lo que esta mal es el usuario, el puerto o la
+        contrasena; viendola, el problema salta a la vista.
+      */}
+      {d.cadena ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            La cadena que esta puesta
+          </h2>
+          <p
+            className="t-figures rounded-xl border px-4 py-3 text-[0.8125rem]"
+            style={{
+              borderColor: "var(--panel-borde)",
+              background: "var(--panel-tarjeta)",
+              wordBreak: "break-all",
+              lineHeight: 1.5,
+            }}
+          >
+            {d.cadena.texto}
+          </p>
+          <dl className="mt-2 grid gap-1 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            <Comprobacion
+              termino="Usuario"
+              valor={d.cadena.usuario ?? "(ninguno)"}
+              bien={Boolean(d.cadena.usuario?.includes("."))}
+              nota={
+                d.cadena.usuario?.includes(".")
+                  ? "lleva la referencia del proyecto, como pide el pooler"
+                  : 'al pooler le falta el ".<referencia-del-proyecto>"'
+              }
+            />
+            <Comprobacion
+              termino="Puerto"
+              valor={String(d.cadena.puerto ?? "(ninguno)")}
+              bien={d.cadena.puerto === 6543}
+              nota={d.cadena.puerto === 6543 ? "el del pooler, correcto" : "el del pooler es el 6543"}
+            />
+            <Comprobacion
+              termino="Contrasena"
+              valor={d.cadena.tieneContrasena ? "puesta" : "vacia"}
+              bien={d.cadena.tieneContrasena}
+              nota="su valor no se lee ni se enseña nunca"
+            />
+          </dl>
+        </section>
+      ) : null}
+
       <section className="mt-6">
         <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
           Que hay conectado
@@ -186,6 +234,34 @@ export default async function PantallaEstado() {
           alguien.
         </p>
       </section>
+    </div>
+  );
+}
+
+function Comprobacion({
+  termino,
+  valor,
+  bien,
+  nota,
+}: {
+  termino: string;
+  valor: string;
+  bien: boolean;
+  nota: string;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt>
+        {termino}{" "}
+        <span style={{ color: "var(--panel-tenue)", opacity: 0.8 }}>— {nota}</span>
+      </dt>
+      <dd
+        className="t-figures shrink-0"
+        style={{ color: bien ? "var(--panel-bien)" : "var(--panel-urgente)" }}
+      >
+        {bien ? "✓ " : "✕ "}
+        {valor}
+      </dd>
     </div>
   );
 }

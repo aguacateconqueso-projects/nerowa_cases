@@ -1592,3 +1592,49 @@ de Postgres y 12 de diagnostico.
 
 **Y el guardia de la condicion 1 funciono a la primera:** `npm install` lo dejo
 configurado solo, sin que nadie se acordara de nada.
+
+---
+
+### Sesion 10, vuelta 11 — la cadena a la vista, y una fuga de contrasena
+
+Adrian arreglo lo que le dije y **siguio fallando**. En su pantalla aparecian dos
+pistas: la de "la base rechazo el usuario o la contrasena" y, la que importaba,
+**"la contrasena lleva caracteres que rompen la direccion"**. Y NO aparecia la
+del usuario del pooler — o sea que su usuario estaba bien y el problema era la
+contrasena.
+
+**Se vio que faltaba poder mirar la cadena.** Con solo el error de Postgres hay
+que adivinar si lo que esta mal es el usuario, el puerto o la contrasena, y
+adivinar cuesta una vuelta entera cada vez. Ahora la pantalla enseña la cadena
+**con la contrasena tapada** y marca en verde o en rojo cada parte: si el
+usuario lleva la referencia del proyecto, si el puerto es el del pooler, y si
+hay contrasena. Lo que se tapa es la contrasena y nada mas — el usuario, el
+servidor y el puerto son la mitad publica de una conexion y son justo lo que hay
+que poder comprobar.
+
+**Y probando eso aparecio un fallo mas gordo, de los dos tipos a la vez.** Con
+una contrasena que lleva una barra:
+
+1. **El cliente de Postgres reventaba al construirse**, y como eso pasaba al
+   construir los servicios, se caia hasta la pantalla de entrada. Otra vez el
+   panel mudo.
+2. **El error traia la cadena entera dentro, contrasena incluida**, en su campo
+   `input`. En Vercel eso se escribe tal cual en el registro. **Una contrasena de
+   base de datos en los logs.**
+
+Los dos arreglados: el cliente se crea **perezosamente**, en la primera consulta
+y no al pedir la conexion, dentro de un `try` que **relanza un mensaje limpio sin
+repetir ni un caracter de la cadena**. Comprobado buscando la contrasena en el
+registro del servidor: no aparece.
+
+**Por que `URL` no vale para esto.** Tanto la vista enmascarada como la revision
+de la cadena se parten a mano en vez de usar `new URL()`. Cuando la contrasena
+trae caracteres sin codificar, `URL` parte por donde no debe y devuelve un
+usuario que **no es el que hay escrito** — justo en el caso que hay que
+detectar. Hay una prueba para eso.
+
+**17 comprobaciones de diagnostico** (de 12), y cinco son solo para garantizar
+que la contrasena no sale por ningun sitio: una pantalla que se ensena cuando
+algo falla acaba en una captura, y un error de servidor acaba en un registro.
+
+**79 comprobaciones del dominio en total.**
