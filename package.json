@@ -8,19 +8,22 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "pruebas": "tsc -p tsconfig.pruebas.json && node .pruebas/lib/panel/dominio/__pruebas__/economia.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/mayorista.prueba.js"
+    "pruebas": "tsc -p tsconfig.pruebas.json && node .pruebas/lib/panel/dominio/__pruebas__/economia.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/mayorista.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/postgres.prueba.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@types/three": "^0.186.0",
     "next": "16.3.4",
+    "postgres": "^3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

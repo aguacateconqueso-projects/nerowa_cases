@@ -52,6 +52,15 @@ export default async function PantallaNumeros() {
         <Link href="/panel" className="t-label" style={{ color: "var(--panel-tenue)" }}>
           ◂ Pedidos
         </Link>
+        {usuario.rol === "dueno" ? (
+          <Link
+            href="/panel/estado"
+            className="t-label"
+            style={{ color: "var(--panel-tenue)" }}
+          >
+            Estado del sistema ▸
+          </Link>
+        ) : null}
       </header>
 
       <h1 className="t-heading text-2xl">Numeros</h1>
