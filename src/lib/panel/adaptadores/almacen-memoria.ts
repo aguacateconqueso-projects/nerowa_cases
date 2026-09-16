@@ -24,7 +24,6 @@ import { PRECIO_PUBLICO } from "../dominio/economia";
 import type {
   Apunte,
   Color,
-  EnlaceEntrada,
   Id,
   Lote,
   Pedido,
@@ -170,7 +169,6 @@ export function crearAlmacenMemoria(): Almacen {
       creadoEn: hace(24 * 60),
     },
   ];
-  const enlaces = new Map<string, EnlaceEntrada>();
   const sesiones = new Map<Id, Sesion>();
   const apuntes: Apunte[] = [];
 
@@ -188,19 +186,6 @@ export function crearAlmacenMemoria(): Almacen {
     },
     async listarUsuarios() {
       return clon(usuarios);
-    },
-
-    async crearEnlaceEntrada(enlace) {
-      enlaces.set(enlace.testigoHash, clon(enlace));
-    },
-    async consumirEnlaceEntrada(testigoHash) {
-      const enlace = enlaces.get(testigoHash);
-      if (!enlace) return undefined;
-      /* Un solo uso: se marca antes de devolverlo, pase lo que pase despues. */
-      if (enlace.usadoEn) return undefined;
-      if (new Date(enlace.expiraEn).getTime() < Date.now()) return undefined;
-      enlace.usadoEn = new Date().toISOString();
-      return clon(enlace);
     },
 
     async crearSesion(sesion) {

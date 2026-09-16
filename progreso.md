@@ -1200,3 +1200,63 @@ limpios desde `main`.
 **Comprobado en el navegador, los ocho casos:** los dos correos nuevos entran,
 los dos viejos ya no, tocar un correo rellena el campo, `info@` entra como
 Alfredo y NO ve el margen, y `hello@` entra como Adrian y si lo ve.
+
+---
+
+### Sesion 10, quinta vuelta — la entrada pasa a ser correo y clave
+
+**Se revierte la decision de "sin contrasenas", y el motivo es un fallo mio de
+diseno.** El enlace de un solo uso sigue siendo mejor para Alfredo —no hay nada
+que recordar— pero necesita un proveedor de correo que todavia no existe. Sin
+el, el enlace habia que enseñarlo en pantalla, **debajo de un mensaje verde que
+decia "le acaba de llegar un enlace"**. Adrian se quedo esperando un correo que
+nunca iba a salir, con el boton para entrar justo debajo y sin pinta de ser la
+accion. El panel no se pudo abrir.
+
+**Un acceso que necesita que te expliquen como usarlo no sirve**, y menos el
+acceso de la herramienta con la que se lleva el control de las ventas.
+
+**Lo que hay ahora:**
+
+| Correo | Rol | Clave |
+|---|---|---|
+| info@nerowacases.com | operacion | la misma para los dos |
+| hello@arcmediahouse.com | dueno | la misma para los dos |
+
+**La clave no esta escrita en claro en el repositorio.** Se guarda pasada por
+scrypt con una sal — una funcion pensada para esto, lenta a proposito y cara de
+revertir. Se puede cambiar sin tocar codigo con `PANEL_CLAVE` en Vercel. Y la
+comparacion es en tiempo constante: comparar con `===` se corta en la primera
+letra distinta y el tiempo delata cuantas acerto quien prueba.
+
+**Se borro el enlace magico entero, no se dejo apagado.** Fuera
+`EnlaceEntrada` del dominio, sus dos metodos del puerto `Almacen`, su
+implementacion en el adaptador, la ruta `/panel/entrar/[testigo]` y
+`entradaSinCorreo()` de `servicios.ts`. Dos caminos de entrada conviviendo es
+justo la clase de cosa que despues nadie se atreve a tocar.
+
+**LO QUE HAY QUE CAMBIAR ANTES DE QUE HAYA DATOS REALES, y queda escrito en el
+propio archivo `clave.ts`:** hoy el panel corre con pedidos de ejemplo, asi que
+no hay nada que proteger. El dia que se conecte la base de datos, una clave
+compartida entre dos personas deja de ser suficiente: una por persona, y fuera
+del repositorio.
+
+**Comprobado en el navegador, ocho casos:** los dos correos con la clave buena
+entran; clave mala, correo desconocido y la clave con otra capitalizacion no
+entran; **a los tres fallos les contesta exactamente el mismo mensaje**, que es
+lo que evita averiguar quien tiene acceso probando direcciones; `hello@` entra
+como Adrian y ve el margen; `info@` entra como Alfredo y no lo ve; y
+`/panel/entrar/<lo-que-sea>` ya devuelve 404.
+
+**Y la regla de la condicion 1 se incumplio otra vez, por tercera sesion
+seguida.** Este cambio se empujo a `claude/correos-panel`, cuyo PR #16 ya estaba
+mezclado, asi que el commit quedo colgando sobre una rama cerrada y sin preview
+que Adrian pudiera abrir. Lo corto el en el acto. Se saco a `claude/clave-panel`
+desde `main` y salio por el PR #17.
+
+**Lo que hay que hacer para no repetirlo, y es una comprobacion de dos
+segundos:** antes de empujar, mirar si el PR de la rama actual sigue abierto. No
+basta con recordar si se mezclo — en la sesion 10 dos PR se mezclaron entre una
+vuelta y la siguiente sin que quedara constancia en la conversacion. **Si esta
+mezclado: `git fetch origin main && git checkout -B <rama-nueva> origin/main`, y
+PR nuevo.**

@@ -19,7 +19,6 @@
 import type {
   Apunte,
   Color,
-  EnlaceEntrada,
   EstadoPedido,
   Id,
   Lote,
@@ -57,10 +56,6 @@ export interface Almacen {
   usuarioPorCorreo(correo: string): Promise<Usuario | undefined>;
   usuarioPorId(id: Id): Promise<Usuario | undefined>;
   listarUsuarios(): Promise<Usuario[]>;
-
-  crearEnlaceEntrada(enlace: EnlaceEntrada): Promise<void>;
-  /** Devuelve el enlace SOLO si no caduco y no se uso. Y lo marca usado. */
-  consumirEnlaceEntrada(testigoHash: string): Promise<EnlaceEntrada | undefined>;
 
   crearSesion(sesion: Sesion): Promise<void>;
   sesionPorId(id: Id): Promise<Sesion | undefined>;
