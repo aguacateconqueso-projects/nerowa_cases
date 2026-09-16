@@ -5,7 +5,19 @@ import { useActionState } from "react";
 
 import { pedirEnlace, type ResultadoEntrada } from "./acciones";
 
-export function FormularioEntrada({ modoDemo }: { modoDemo: boolean }) {
+export interface Acceso {
+  nombre: string;
+  rol: string;
+  correo: string;
+}
+
+export function FormularioEntrada({
+  modoDemo,
+  accesos,
+}: {
+  modoDemo: boolean;
+  accesos: Acceso[];
+}) {
   const [resultado, accion, enCurso] = useActionState<ResultadoEntrada | undefined, FormData>(
     pedirEnlace,
     undefined,
@@ -54,11 +66,37 @@ export function FormularioEntrada({ modoDemo }: { modoDemo: boolean }) {
       ) : null}
 
       {modoDemo ? (
-        <p className="text-[0.8125rem]" style={{ color: "var(--panel-aviso)" }}>
-          Modo demostracion: todavia no hay proveedor de correo, asi que el enlace
-          se enseña aqui en vez de mandarse. Correos de prueba:{" "}
-          <strong>alfredo@nerowacases.com</strong> (operacion) y el de Adrian (dueno).
-        </p>
+        <div className="text-[0.8125rem]" style={{ color: "var(--panel-aviso)" }}>
+          <p>
+            Modo demostracion: todavia no hay proveedor de correo, asi que el
+            enlace se enseña aqui en vez de mandarse. Correos que entran:
+          </p>
+          <ul className="mt-2 grid gap-2">
+            {accesos.map((a) => (
+              <li key={a.correo}>
+                <span className="t-label" style={{ color: "var(--panel-tenue)" }}>
+                  {a.nombre} · {a.rol}
+                </span>
+                {/* Se toca y rellena el campo: escribir un correo en un
+                    telefono, de pie, es lo contrario de a prueba de tontos. */}
+                <button
+                  type="button"
+                  className="mt-1 block w-full rounded-lg px-2 py-2 text-start"
+                  style={{ background: "var(--panel-tarjeta-alta)", color: "var(--gold-bright)" }}
+                  onClick={() => {
+                    const campo = document.getElementById("correo");
+                    if (campo instanceof HTMLInputElement) {
+                      campo.value = a.correo;
+                      campo.focus();
+                    }
+                  }}
+                >
+                  {a.correo}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
     </div>
   );
