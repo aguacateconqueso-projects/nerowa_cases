@@ -543,6 +543,7 @@ como todo lo demás en este proyecto.
 |---|---|---|
 | **7.0** ✅ | Armazón de tres pestañas, entrar con enlace sin contraseña, instalable en el iPhone, capa de puertos y adaptadores, y la pantalla de pedidos funcionando con datos de ejemplo | **Hecha.** Se abre el preview, se entra, se despacha un pedido de punta a punta. Falta la base de datos real y el bot de Telegram, que necesitan cuentas |
 | **7.1** | Pestaña 1 con **pedidos cargados a mano** | **Sirve desde ya para lo que venden hoy por mensaje directo.** Registrar la venta, pegar el seguimiento, marcar enviado |
+| **7.1b** ✅ | **Base de datos de verdad** (Postgres en Supabase) | **Hecha.** Lo que se guarda se queda. Adelantada porque el almacén en memoria hacía imposible probar el panel en Vercel |
 | **7.2** | Enganche con Stripe y correos automáticos | Las ventas de la web entran solas y el cliente recibe sus avisos |
 | **7.3** | Escalado de avisos y resumen diario | Ningún pedido se queda parado sin que alguien se entere |
 | **7.4** | Devoluciones completas, con el enlace en los correos | El cliente pide su devolución solo y el circuito se cierra |

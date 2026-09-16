@@ -1361,3 +1361,76 @@ la fase 7.2 y pasa a ser lo siguiente. El panel ya tiene bastante superficie
 —pedidos, tiendas, pedidos mayoristas— como para que probarlo sin guardar nada
 deje de tener sentido. Los puertos estan escritos desde el primer dia justo para
 esto: entra un adaptador nuevo y no se toca ninguna pantalla.
+
+---
+
+### Sesion 10, octava vuelta — la base de datos de verdad
+
+**Se adelanta la base de datos**, que estaba planificada para la fase 7.2. El
+motivo es el de la vuelta anterior: con el almacen en memoria, en Vercel los
+datos se pierden entre instancias y el panel no se puede ni probar.
+
+**Supabase, pero solo como Postgres gestionado.** Sin el SDK de Supabase, sin
+ORM: SQL escrito a mano y migraciones en un archivo de texto. Asi, el dia que
+haya que mudarse a Neon o a cualquier otro Postgres, se cambia la cadena de
+conexion y ya. Atarse al SDK seria lo contrario de lo que pidio Adrian.
+
+**El adaptador se escribio DESPUES de las pantallas, contra la misma interfaz
+`Almacen`, y no hubo que tocar ni una pantalla.** Eso era exactamente la
+promesa de los puertos, y ahora esta comprobada en vez de prometida. Cambiar de
+base de datos son tres pasos: escribir el adaptador, anadir su caso en
+`servicios.ts`, y poner `PANEL_ALMACEN=postgres`.
+
+**Decisiones del esquema, con su motivo:**
+
+| Decision | Por que |
+|---|---|
+| El dinero en `bigint` de centimos | La misma regla que en el codigo. `numeric` seria exacto pero obliga a convertir en los dos sentidos |
+| Las fechas en `timestamptz`, en UTC | Se formatean al mostrar, con la zona de Vilnius, nunca al guardar |
+| Los estados en `text` con `check`, no `enum` | Anadir un valor a un `enum` bloquea la tabla; cambiar un `check` no. Los estados de este panel van a cambiar |
+| Las lineas de un pedido en `jsonb`, no en tabla hija | Se escriben una vez, se leen siempre enteras y nunca se consultan sueltas. Una tabla hija serian dos consultas para no ganar nada |
+| Sin `on delete cascade` hacia los pedidos | Una tienda se desactiva, no se borra: sus pedidos son historia |
+
+**Las migraciones corren solas en la primera peticion de cada proceso**, una
+sola vez cada una, cada una dentro de su transaccion. Y la semilla —las dos
+personas, los colores, el lote— va con `on conflict do nothing`, asi que puede
+correr en cada arranque sin pisar lo que alguien haya editado.
+
+**UN FALLO QUE LAS PRUEBAS DEJARON PASAR, Y LA LECCION QUE DEJA.**
+
+La direccion de una tienda se guardaba con **doble codificacion**: se
+serializaba a JSON y el cliente lo trataba como texto, asi que dentro del
+`jsonb` acababa una cadena en vez de un objeto. Al leerla, `direccion.pais` era
+`undefined` y la ficha de la tienda reventaba.
+
+Las 25 comprobaciones del adaptador estaban en verde. **Pasaban porque hablaban
+con la base por una API distinta a la de produccion**, y esa API lo toleraba.
+El fallo aparecio al abrir el panel de verdad contra Postgres.
+
+El arreglo son dos cosas: casteo explicito a `::jsonb` al escribir, y aceptar
+objeto o cadena al leer. Pero lo que importa es lo otro: **las pruebas ahora
+usan `postgres.js` con las mismas opciones que produccion**, contra un Postgres
+real expuesto por TCP. Una prueba que usa un cliente distinto al que se
+despliega comprueba algo que no es lo que se despliega.
+
+**Comprobado de punta a punta, y esta vez con la prueba que de verdad responde
+a la queja de Adrian:** crear una tienda con sus datos desde el panel, darle un
+pedido de 18 estuches, confirmarlo, facturarlo, **matar el servidor entero**, y
+volver a abrir. Sobreviven la sesion, la tienda, su razon social, su numero de
+IVA, su plazo de 60 dias, el pedido, su estado de cobro y la deuda de
+2.286,90 EUR.
+
+**63 comprobaciones del dominio en total**: 17 de economia, 19 de mayorista y 27
+de Postgres.
+
+**Lo que hace falta de Adrian para que esto funcione en Vercel** — y sin ello el
+preview sigue en modo demostracion:
+
+| Variable | Valor |
+|---|---|
+| `PANEL_ALMACEN` | `postgres` |
+| `DATABASE_URL` | la del pooler de transacciones, puerto **6543** |
+| `PANEL_SECRETO` | cualquier texto largo al azar |
+
+El puerto importa: con la conexion directa, en Vercel se agotan las conexiones
+en cuanto hay trafico.
