@@ -24,12 +24,10 @@ import { PRECIO_PUBLICO } from "../dominio/economia";
 import type {
   Apunte,
   Color,
-  Id,
-  PedidoMayorista,
-  Tienda,
   Lote,
   Pedido,
-  Sesion,
+  PedidoMayorista,
+  Tienda,
   Usuario,
 } from "../dominio/tipos";
 import type { Almacen, CambioPedido, FiltroPedidos } from "../puertos/almacen";
@@ -295,7 +293,6 @@ export function crearAlmacenMemoria(): Almacen {
       creadoEn: hace(24 * 60),
     },
   ];
-  const sesiones = new Map<Id, Sesion>();
   const apuntes: Apunte[] = [];
 
   const clon = <T,>(v: T): T => structuredClone(v);
@@ -312,22 +309,6 @@ export function crearAlmacenMemoria(): Almacen {
     },
     async listarUsuarios() {
       return clon(usuarios);
-    },
-
-    async crearSesion(sesion) {
-      sesiones.set(sesion.id, clon(sesion));
-    },
-    async sesionPorId(id) {
-      const sesion = sesiones.get(id);
-      if (!sesion) return undefined;
-      if (new Date(sesion.expiraEn).getTime() < Date.now()) {
-        sesiones.delete(id);
-        return undefined;
-      }
-      return clon(sesion);
-    },
-    async borrarSesion(id) {
-      sesiones.delete(id);
     },
 
     async listarColores() {

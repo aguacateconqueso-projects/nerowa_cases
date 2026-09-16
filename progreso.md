@@ -1319,3 +1319,45 @@ Y un POST directo del rol operacion pidiendo cancelar **no cancela nada**: el
 filtro por rol vive en el dominio, no en el boton.
 
 **36 comprobaciones del dominio en total**, 17 de economia y 19 de mayorista.
+
+---
+
+### Sesion 10, septima vuelta — la sesion no aguantaba en Vercel
+
+**Adrian no podia probar nada: cada click le volvia a pedir la clave.** Y es un
+fallo mio, de los que solo aparecen en el entorno de verdad.
+
+**La causa.** La sesion se guardaba en un `Map` en la memoria del proceso. En
+local funciona, porque hay un solo proceso. En Vercel no: **cada peticion puede
+caer en una instancia distinta**, y las instancias se reciclan solas. Entras en
+la A, el siguiente toque va a la B, la B no conoce esa sesion y te devuelve a la
+pantalla de entrada.
+
+**El arreglo.** La sesion va ahora **dentro de la propia cookie, firmada** con
+HMAC-SHA256: quien es y hasta cuando, mas una firma que solo puede calcular el
+servidor. Cualquier instancia la verifica sin consultar nada. El secreto sale de
+`PANEL_SECRETO` o, si no esta, se **deriva de la clave del panel** —
+determinista, para que todas las instancias lleguen al mismo valor; generarlo al
+azar al arrancar habria repetido el problema.
+
+Y de paso desaparecen del puerto `Almacen` los tres metodos de sesion: ya no
+hacen falta, y un almacen que no guarda sesiones no puede volver a romperlas.
+
+**Como se comprueba, que es lo unico que vale aqui:** entrar, **matar el
+servidor entero**, levantarlo de nuevo, y navegar con la misma cookie. Es
+exactamente lo que pasa al cambiar de instancia. Cuatro rutas y tres toques
+seguidos: sigue dentro. Y una cookie con el usuario cambiado a mano: rechazada.
+
+**LA OTRA MITAD DEL MISMO PROBLEMA, QUE NO TIENE ARREGLO SIN BASE DE DATOS.**
+Los datos tambien viven en la memoria del proceso. Una tienda dada de alta en
+una instancia puede no estar en la siguiente. **La sesion se arreglo; los datos
+no se pueden arreglar sin conectar Postgres.** Lo que si se hizo es que el panel
+lo diga con todas las letras en la franja de arriba: "lo que guardes puede
+desaparecer al cambiar de pantalla, no solo al recargar. Sirve para probar como
+se usa el panel, no para meter datos de verdad."
+
+**Lo que esto adelanta en el orden de las fases:** la base de datos deja de ser
+la fase 7.2 y pasa a ser lo siguiente. El panel ya tiene bastante superficie
+—pedidos, tiendas, pedidos mayoristas— como para que probarlo sin guardar nada
+deje de tener sentido. Los puertos estan escritos desde el primer dia justo para
+esto: entra un adaptador nuevo y no se toca ninguna pantalla.
