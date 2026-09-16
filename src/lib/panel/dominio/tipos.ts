@@ -33,13 +33,6 @@ export interface Usuario {
   creadoEn: Instante;
 }
 
-export interface Sesion {
-  id: Id;
-  usuarioId: Id;
-  creadaEn: Instante;
-  expiraEn: Instante;
-}
-
 /* --------------------------------------------------------------------------
    Producto y existencias
    -------------------------------------------------------------------------- */

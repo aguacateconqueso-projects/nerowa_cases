@@ -24,7 +24,6 @@ import type {
   Lote,
   Pedido,
   PedidoMayorista,
-  Sesion,
   Tienda,
   Usuario,
 } from "../dominio/tipos";
@@ -62,14 +61,17 @@ export interface Almacen {
   /** Nombre del adaptador, para poder decirlo en pantalla y en los registros. */
   readonly nombre: string;
 
-  /* --- Quien entra --- */
+  /*
+    --- Quien entra ---
+
+    Aqui NO hay nada de sesiones. La sesion va firmada dentro de la cookie y
+    cualquier instancia la verifica sola, sin consultar al almacen: guardarla
+    aqui rompia el panel en Vercel, donde dos peticiones seguidas caen en
+    instancias distintas. El porque esta en `src/lib/panel/sesion.ts`.
+  */
   usuarioPorCorreo(correo: string): Promise<Usuario | undefined>;
   usuarioPorId(id: Id): Promise<Usuario | undefined>;
   listarUsuarios(): Promise<Usuario[]>;
-
-  crearSesion(sesion: Sesion): Promise<void>;
-  sesionPorId(id: Id): Promise<Sesion | undefined>;
-  borrarSesion(id: Id): Promise<void>;
 
   /* --- Producto --- */
   listarColores(): Promise<Color[]>;
