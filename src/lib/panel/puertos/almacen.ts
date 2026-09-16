@@ -23,7 +23,9 @@ import type {
   Id,
   Lote,
   Pedido,
+  PedidoMayorista,
   Sesion,
+  Tienda,
   Usuario,
 } from "../dominio/tipos";
 
@@ -41,6 +43,14 @@ export type CambioPedido = Partial<
     | "stripeTotalCobrado"
     | "stripeComision"
   >
+>;
+
+/** Lo que se puede cambiar de una tienda. El id y el alta no se tocan. */
+export type CambioTienda = Partial<Omit<Tienda, "id" | "creadaEn">>;
+
+/** Lo que se puede cambiar de un pedido mayorista. Las lineas no se editan. */
+export type CambioPedidoMayorista = Partial<
+  Omit<PedidoMayorista, "id" | "numero" | "tiendaId" | "lineas" | "creadoEn">
 >;
 
 export interface FiltroPedidos {
@@ -78,6 +88,23 @@ export interface Almacen {
   actualizarPedido(id: Id, cambio: CambioPedido): Promise<Pedido | undefined>;
   /** El siguiente numero visible de pedido. Empieza en 1001. */
   siguienteNumeroPedido(): Promise<number>;
+
+  /* --- Tiendas mayoristas --- */
+  listarTiendas(): Promise<Tienda[]>;
+  tiendaPorId(id: Id): Promise<Tienda | undefined>;
+  crearTienda(tienda: Tienda): Promise<Tienda>;
+  actualizarTienda(id: Id, cambio: CambioTienda): Promise<Tienda | undefined>;
+
+  /** Todos los pedidos mayoristas, o solo los de una tienda. */
+  listarPedidosMayoristas(tiendaId?: Id): Promise<PedidoMayorista[]>;
+  pedidoMayoristaPorId(id: Id): Promise<PedidoMayorista | undefined>;
+  crearPedidoMayorista(pedido: PedidoMayorista): Promise<PedidoMayorista>;
+  actualizarPedidoMayorista(
+    id: Id,
+    cambio: CambioPedidoMayorista,
+  ): Promise<PedidoMayorista | undefined>;
+  /** El siguiente numero visible de pedido mayorista. Empieza en 501. */
+  siguienteNumeroMayorista(): Promise<number>;
 
   /* --- Rastro --- */
   anotar(apunte: Apunte): Promise<void>;

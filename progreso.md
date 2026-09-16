@@ -1260,3 +1260,62 @@ basta con recordar si se mezclo — en la sesion 10 dos PR se mezclaron entre un
 vuelta y la siguiente sin que quedara constancia en la conversacion. **Si esta
 mezclado: `git fetch origin main && git checkout -B <rama-nueva> origin/main`, y
 PR nuevo.**
+
+---
+
+### Sesion 10, sexta vuelta — la pestana 2 por dentro
+
+Adrian la pidio sin esperar a los datos fiscales: *"no importa que aun no
+tengamos la info fiscal de Nerowa, vayamos armando todo"*. **Y tiene razon: los
+datos fiscales solo hacen falta para EMITIR una factura, no para guardar los
+datos de una tienda ni para llevarle los pedidos.** Asi que la fase 7.6 se parte
+en dos: **7.6a, lo de dentro del panel, hecho**; y 7.6b, el portal con enlace
+propio para que las tiendas pidan solas, que si espera.
+
+**Lo que se puede hacer ya:** dar de alta una tienda con sus datos de
+facturacion y sus condiciones, registrarle pedidos, y ver de un vistazo lo que
+debe y desde cuando.
+
+**La decision de diseno que manda: cobro y envio son DOS PISTAS PARALELAS, no
+un estado lineal.** En mayorista casi nunca pasan a la vez — se envia y se cobra
+a treinta dias, o se cobra por adelantado y se manda cuando hay stock. Un solo
+estado obligaria a elegir un orden que no siempre se cumple, y a mentir el resto
+de las veces. Cada pedido lleva tres: `Pedido` (por confirmar / confirmado /
+cancelado), `Cobro` (sin facturar / facturado / pagado) y `Envio` (sin enviar /
+enviado / entregado). Cerrado es cobrado **Y** entregado, y se calcula, no se
+guarda.
+
+**El IVA se calcula solo y queda escrito en cada pedido.** Del pais de la tienda
+y de su numero salen los cuatro casos — nacional, intracomunitario, sin numero
+validado y exportacion — y el pedido congela cual se aplico. Un numero de IVA
+**sin comprobar no cuenta como valido**: se cobra el IVA, que es el lado seguro,
+porque cobrarlo de mas se devuelve y no cobrarlo lo paga la empresa. Sigue
+pendiente confirmar el procedimiento con el asesor; el panel deja constancia, no
+sustituye a nadie.
+
+**El precio se calcula mientras se escribe el pedido.** El tramo depende del
+total de unidades y nadie tiene por que saberse que pasar de 15 a 16 estuches
+baja el precio de 110 a 100. Si el panel no lo dice, se descubre al facturar.
+Comprobado en el navegador: 4 unidades → 120 EUR, 16 unidades → 100 EUR, en vivo.
+
+**Dar por cobrado es cosa del dueno**, igual que el reembolso: es la otra
+operacion donde se declara que entro dinero.
+
+**Dos fallos que encontraron las pruebas y el mirar, no la lectura:**
+
+1. **La prueba pillo que el rol operacion podia cancelar un pedido mayorista.**
+   En la rama de "por confirmar" las acciones se devolvian sin pasar por el
+   filtro de rol. Cancelar un pedido es dinero y es del dueno.
+2. **Mirando se vio que "Cancelar el pedido" salia en dorado, del mismo tamano
+   que "Confirmar el pedido" y pegado justo debajo.** Un toque mal dado en un
+   telefono cancelaba un pedido de dos mil euros. Ahora lo destructivo va
+   plegado, en peso bajo y con confirmacion.
+
+**Comprobado de punta a punta en un navegador a 390 px:** alta de una tienda
+española, IVA asignado correcto (sin numero validado → se le cobra), pedido de
+16 unidades con el tramo de 100 EUR, confirmar, facturar, y la deuda de la lista
+subiendo de 2.202,20 a 4.235 EUR. Cero errores de consola, sin desbordamiento.
+Y un POST directo del rol operacion pidiendo cancelar **no cancela nada**: el
+filtro por rol vive en el dominio, no en el boton.
+
+**36 comprobaciones del dominio en total**, 17 de economia y 19 de mayorista.

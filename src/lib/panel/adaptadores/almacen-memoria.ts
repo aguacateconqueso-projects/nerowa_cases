@@ -25,6 +25,8 @@ import type {
   Apunte,
   Color,
   Id,
+  PedidoMayorista,
+  Tienda,
   Lote,
   Pedido,
   Sesion,
@@ -127,6 +129,128 @@ const PEDIDOS: Pedido[] = [
   }),
 ];
 
+/*
+  Tres tiendas de ejemplo, elegidas para cubrir los tres casos de IVA que de
+  verdad cambian el total de una factura, mas la deuda vencida que hay que ver
+  de lejos. Ver `docs/economia-nerowa.md` §4.3.
+*/
+const TIENDAS: Tienda[] = [
+  {
+    id: "tienda-vilnius",
+    nombre: "Muzikos Namai",
+    razonSocial: "UAB Muzikos Namai",
+    numeroIva: "LT100001738313",
+    ivaValidado: true,
+    direccion: {
+      nombre: "Muzikos Namai",
+      linea1: "Gedimino pr. 24",
+      ciudad: "Vilnius",
+      codigoPostal: "01103",
+      pais: "LT",
+    },
+    contactoNombre: "Ruta Jankauskiene",
+    contactoCorreo: "ruta@ejemplo.lt",
+    plazoPagoDias: 30,
+    activa: true,
+    creadaEn: hace(24 * 120),
+  },
+  {
+    id: "tienda-berlin",
+    nombre: "Kontrabass Berlin",
+    razonSocial: "Kontrabass Berlin GmbH",
+    numeroIva: "DE811234567",
+    ivaValidado: true,
+    direccion: {
+      nombre: "Kontrabass Berlin",
+      linea1: "Oranienstrasse 12",
+      ciudad: "Berlin",
+      codigoPostal: "10999",
+      pais: "DE",
+    },
+    contactoNombre: "Anna Weber",
+    contactoCorreo: "anna@ejemplo.de",
+    precioPersonalizado: euros(95),
+    plazoPagoDias: 30,
+    notas: "Precio acordado de 95 EUR por compromiso de 40 unidades al anio.",
+    activa: true,
+    creadaEn: hace(24 * 60),
+  },
+  {
+    id: "tienda-paris",
+    nombre: "La Contrebasse",
+    razonSocial: "La Contrebasse SARL",
+    /* A proposito sin validar: asi se le cobra IVA y se ve la diferencia. */
+    numeroIva: "FR40303265045",
+    ivaValidado: false,
+    direccion: {
+      nombre: "La Contrebasse",
+      linea1: "Rue de Rome 40",
+      ciudad: "Paris",
+      codigoPostal: "75008",
+      pais: "FR",
+    },
+    contactoNombre: "Julien Moreau",
+    plazoPagoDias: 15,
+    activa: true,
+    creadaEn: hace(24 * 20),
+  },
+];
+
+const PEDIDOS_MAYORISTAS: PedidoMayorista[] = [
+  {
+    id: "pm-501",
+    numero: 501,
+    tiendaId: "tienda-vilnius",
+    estado: "confirmado",
+    cobro: "facturado",
+    envio: "entregado",
+    lineas: [
+      { colorId: "negro", cantidad: 10, precioUnitario: euros(110), loteId: LOTE_ACTUAL.id },
+      { colorId: "marino", cantidad: 6, precioUnitario: euros(110), loteId: LOTE_ACTUAL.id },
+    ],
+    envioCobrado: euros(60),
+    regimenIva: "nacional",
+    tipoIva: IVA_LITUANIA,
+    creadoEn: hace(24 * 60),
+    confirmadoEn: hace(24 * 58),
+    /* Facturado hace 50 dias con plazo de 30: vencida, y se tiene que ver. */
+    facturadoEn: hace(24 * 50),
+    enviadoEn: hace(24 * 55),
+    entregadoEn: hace(24 * 52),
+    seguimiento: "RA111222333LT",
+    referenciaFactura: "2026-014",
+  },
+  {
+    id: "pm-502",
+    numero: 502,
+    tiendaId: "tienda-berlin",
+    estado: "confirmado",
+    cobro: "sin_facturar",
+    envio: "enviado",
+    lineas: [{ colorId: "vinotinto", cantidad: 20, precioUnitario: euros(95), loteId: LOTE_ACTUAL.id }],
+    envioCobrado: euros(120),
+    regimenIva: "intracomunitario",
+    tipoIva: 0,
+    creadoEn: hace(24 * 8),
+    confirmadoEn: hace(24 * 7),
+    enviadoEn: hace(24 * 5),
+    seguimiento: "CP444555666LT",
+  },
+  {
+    id: "pm-503",
+    numero: 503,
+    tiendaId: "tienda-paris",
+    estado: "por_confirmar",
+    cobro: "sin_facturar",
+    envio: "sin_enviar",
+    lineas: [{ colorId: "crema", cantidad: 4, precioUnitario: euros(120) }],
+    envioCobrado: euros(45),
+    regimenIva: "sin_numero_valido",
+    tipoIva: IVA_LITUANIA,
+    creadoEn: hace(30),
+  },
+];
+
 export function crearAlmacenMemoria(): Almacen {
   /*
     El estado vive en variables del modulo, no en un objeto exportado, para que
@@ -136,6 +260,8 @@ export function crearAlmacenMemoria(): Almacen {
   const colores = [...COLORES];
   const lotes = [LOTE_ACTUAL];
   const pedidos = [...PEDIDOS];
+  const tiendas = [...TIENDAS];
+  const pedidosMayoristas = [...PEDIDOS_MAYORISTAS];
   /*
     Las dos personas del panel, con los correos que existen de verdad. Son dos
     y solo dos; el dia que haga falta otro, se anade aqui.
@@ -242,6 +368,56 @@ export function crearAlmacenMemoria(): Almacen {
     },
     async siguienteNumeroPedido() {
       return pedidos.reduce((max, p) => Math.max(max, p.numero), 1000) + 1;
+    },
+
+    async listarTiendas() {
+      /* Las activas primero, y dentro de cada grupo por nombre. */
+      return clon(
+        [...tiendas].sort(
+          (a, b) =>
+            Number(b.activa) - Number(a.activa) || a.nombre.localeCompare(b.nombre, "es"),
+        ),
+      );
+    },
+    async tiendaPorId(id) {
+      return clon(tiendas.find((t) => t.id === id));
+    },
+    async crearTienda(tienda) {
+      tiendas.push(clon(tienda));
+      return clon(tienda);
+    },
+    async actualizarTienda(id, cambio) {
+      const i = tiendas.findIndex((t) => t.id === id);
+      if (i === -1) return undefined;
+      tiendas[i] = { ...tiendas[i]!, ...cambio };
+      return clon(tiendas[i]!);
+    },
+
+    async listarPedidosMayoristas(tiendaId) {
+      const lista = tiendaId
+        ? pedidosMayoristas.filter((p) => p.tiendaId === tiendaId)
+        : pedidosMayoristas;
+      /* El mas nuevo primero: al reves que los de la web, donde lo viejo es lo
+         urgente. Aqui lo urgente se mide por la deuda, no por la antiguedad. */
+      return clon(
+        [...lista].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)),
+      );
+    },
+    async pedidoMayoristaPorId(id) {
+      return clon(pedidosMayoristas.find((p) => p.id === id));
+    },
+    async crearPedidoMayorista(pedido) {
+      pedidosMayoristas.push(clon(pedido));
+      return clon(pedido);
+    },
+    async actualizarPedidoMayorista(id, cambio) {
+      const i = pedidosMayoristas.findIndex((p) => p.id === id);
+      if (i === -1) return undefined;
+      pedidosMayoristas[i] = { ...pedidosMayoristas[i]!, ...cambio };
+      return clon(pedidosMayoristas[i]!);
+    },
+    async siguienteNumeroMayorista() {
+      return pedidosMayoristas.reduce((max, p) => Math.max(max, p.numero), 500) + 1;
     },
 
     async anotar(apunte) {

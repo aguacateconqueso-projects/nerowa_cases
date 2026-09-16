@@ -14,6 +14,24 @@ const MENSAJES: Record<string, string> = {
   pagado: "Corregido: vuelve a estar por enviar.",
   cancelado: "Pedido cancelado.",
   coste: "Anotado lo que costo el envio. Ya cuenta en la ganancia.",
+
+  /*
+    Tiendas mayoristas, con prefijo `m-`.
+
+    Hace falta porque "pagado" y "enviado" ya existen arriba y significan otra
+    cosa: en un pedido de la web "pagado" es el estado inicial —lo que acaba de
+    entrar— y en uno mayorista es que la tienda por fin te transfirio. Sin
+    prefijo, confirmar un cobro habria dicho "vuelve a estar por enviar".
+  */
+  "m-creada": "Tienda dada de alta.",
+  "m-editada": "Cambios guardados.",
+  "m-creado": "Pedido registrado. Falta confirmarlo.",
+  "m-confirmado": "Pedido confirmado.",
+  "m-cancelado": "Pedido cancelado.",
+  "m-facturado": "Marcado como facturado. Empieza a contar el plazo de pago.",
+  "m-pagado": "Cobrado. La deuda de esta tienda baja.",
+  "m-enviado": "Marcado como enviado. Ya esta fuera.",
+  "m-entregado": "Marcado como entregado.",
 };
 
 export function Confirmacion({ hecho }: { hecho?: string }) {

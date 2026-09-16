@@ -547,7 +547,8 @@ como todo lo demás en este proyecto.
 | **7.3** | Escalado de avisos y resumen diario | Ningún pedido se queda parado sin que alguien se entere |
 | **7.4** | Devoluciones completas, con el enlace en los correos | El cliente pide su devolución solo y el circuito se cierra |
 | **7.5** | Números y gráficos, con costos | Ganancia real por mes, colores que se venden, países |
-| **7.6** | Pestaña 2 y portal de tiendas | Vender a tiendas con control de cobro |
+| **7.6a** ✅ | Pestaña 2 por dentro: fichas de tienda, pedidos, cobro y envío por separado | **Hecha.** Se da de alta una tienda con sus datos y condiciones, se le registran pedidos, y se ve lo que debe y desde cuándo |
+| **7.6b** | El portal con enlace propio para que las tiendas pidan solas | Pendiente. Necesita los datos fiscales de la empresa |
 | **7.7** | Pestaña 3 completa: tareas, notas, documentos | Cierre administrativo del mes en un botón |
 | **7.8** | Existencias y reservas (pantallas D y E de la especificación original) | Avisar a quien espera un color cuando llega el lote |
 
