@@ -30,6 +30,14 @@ El hero entro por el
 **Lo que hay hoy en `main` es el hero que Alfredo dio por bueno a la vista**, con
 un **estuche de relleno**: el modelo real todavia no existe.
 
+**Fase 7 — el panel, disenada y sin codigo.** En la sesion 10 se diseno entero
+en **`docs/panel-nerowa.md`**: tres pestanas (ventas de la web, tiendas
+mayoristas, administracion), entregado como **aplicacion instalable en el
+telefono**, con **Telegram** como canal de los avisos urgentes y **escalado** para
+que ningun pedido se quede parado. Sale en nueve subfases, de la 7.0 a la 7.8, y
+**empieza por pedidos cargados a mano**, para que sirva antes de que la tienda
+venda su primer estuche. Falta que Adrian lo apruebe o lo corrija.
+
 **De aqui en adelante el dominio no se toca.** `nerowacases.com` sirve la pagina
 de espera y nada mas. Todo lo que se construya a partir de ahora se revisa en
 Vercel, no en el dominio. Ver "Entornos y publicacion".
@@ -37,6 +45,17 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 ---
 
 ## Lo primero de la proxima sesion
+
+**Leer `docs/panel-nerowa.md` y ver si Adrian lo aprobo, lo corrigio o dejo
+preguntas.** Es el diseno completo de la fase 7 y **no hay una linea de codigo
+escrita todavia**, a proposito: primero se aprueba. Si esta aprobado, se arranca
+por la **fase 7.0** (base de datos, entrar con enlace al correo, instalable en el
+iPhone, bot de Telegram), que es la unica que no depende de ningun dato que falte.
+
+**Lo que hace falta para poder empezar el panel** esta en el apartado 14 de ese
+documento. Lo mas urgente, porque ya bloqueaba tambien las fases 2 y 3: **los 14
+colores con nombre y valor exacto**, y **cuanto cuesta producir un estuche** —
+sin ese segundo numero, el grafico de ganancia que Adrian pidio no puede existir.
 
 **Preguntarle a Alfredo que quiere cambiar del hero rehecho.** Lo aprobo a la
 vista en la sesion 9 — *"me gusta lo que hiciste, visualmente"* — y los tres PR
@@ -189,6 +208,18 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 | 2026-09-12 | **Sin cortina de entrada.** La entrada es el zoom-out del estuche girando | Decision de Alfredo. Una sola idea en la apertura; la cortina alargaba la espera antes de ver el producto |
 | 2026-09-12 | **Dos vistas: cerrado y abierto.** La de "detalle" queda fuera | Decision de Alfredo. La tercera vista depende de que el modelo real tenga herrajes que aguanten un acercamiento, y todavia no se sabe |
 | 2026-09-12 | El boton principal dice **"Add to cart"** y no "Buy now" | Decision de Alfredo: hoy la gente compra de a varias cajas y mandarlos a pagar despues de la primera rompe esa compra |
+| 2026-09-15 | El panel se entrega como **PWA instalable**, no como app de tienda | Decision de Adrian. Esta en manos de Alfredo el dia que este lista, sin costo fijo ni revision de Apple. Si las notificaciones del iPhone fallan en la practica, se envuelve con Capacitor sin rehacer codigo |
+| 2026-09-15 | **Telegram es el canal principal de los avisos urgentes**; la notificacion web es el extra | Alfredo usa iPhone, y ahi el aviso web solo existe si la app esta instalada en la pantalla de inicio, y se apaga en silencio si la quita. Un panel cuyo unico aviso puede desaparecer sin que nadie se entere no sirve |
+| 2026-09-15 | El panel arranca por la **pestana 1 con pedidos cargados a mano** | Decision de Adrian. Sirve desde el dia uno para lo que Alfredo ya vende por mensaje directo. Cuando llegue Stripe, esos pedidos entran por el mismo sitio sin rehacer nada |
+| 2026-09-15 | **Solo Adrian confirma un reembolso.** Alfredo hace todo lo demas de la devolucion | Decision de Adrian. Es la unica operacion que saca dinero y no tiene vuelta atras. No le quita autonomia a Alfredo en su trabajo |
+| 2026-09-15 | El portal de tiendas es **catalogo y pedido, sin pago en linea** | Decision de Adrian. Las tiendas piden, reciben factura y pagan por transferencia. Un segundo checkout con Stripe seria mucho trabajo para un flujo que no usarian |
+| 2026-09-15 | Los graficos miden **ganancia real**, no ventas | Decision de Adrian. Obliga a cargar los costos de envio y produccion en la pestana 3, y a cambio el numero dice cuanto quedo y no cuanto entro |
+| 2026-09-15 | **Sin chat interno.** Cada nota va pegada a un pedido, una tienda o una tarea | Decision de Adrian. Dos personas que ya tienen WhatsApp no abren un chat aparte, y lo que se escriba ahi queda lejos del pedido del que habla |
+| 2026-09-15 | **Sin contrasenas en el panel.** Se entra con enlace de un solo uso al correo y la sesion dura meses | Alfredo no va a recordar una contrasena: va a terminar anotada en algun sitio, que es peor que no tenerla |
+| 2026-09-15 | **Precios fijados:** 180 EUR sin IVA al publico, y a tiendas 120 EUR de 1 a 5, 110 EUR de 6 a 15, 100 EUR de 16 en adelante. Envio siempre aparte | Datos de Adrian. Con 34 EUR de costo, quedan ~142 EUR por venta web y 66-86 EUR por venta a tienda |
+| 2026-09-15 | **El costo de un estuche es 34 EUR, no 24 EUR**, y el panel lo calcula **por lote de importacion** | Los 24 EUR son precio de fabrica en China; traer el lote a Vilnius costo 1.000 EUR mas por cada 100 unidades. Usar 24 inflaria el margen un 42%. Y como el flete y la aduana cambian con cada lote, un numero fijo ensuciaria todo el historico al cambiar de ruta |
+| 2026-09-15 | **En la tienda se muestra el precio con IVA** (217,80 EUR), no los 180 EUR netos | Vendiendo a consumidores en la Union Europea el precio que se enseña tiene que ser el final con impuestos. El numero de hoy en el hero es un marcador de posicion y hay que cambiarlo |
+| 2026-09-15 | **Los numeros y graficos no van en la pantalla de pedidos**, sino a un toque de distancia | Unica cosa de la lista de Adrian que se movio de sitio. La pestana 1 es la cola de trabajo: si arriba hay un grafico, lo primero que ve Alfredo al abrir ya no es lo que le falta despachar |
 
 ---
 
@@ -202,7 +233,7 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 | 4 | Bloques y pie | Los 6 bloques al bajar, el menu y el pie | Pendiente |
 | 5 | Stripe | Salida al checkout alojado y las dos pantallas de vuelta | Pendiente |
 | 6 | Apoyo y correos | 4 paginas de apoyo y 3 plantillas de correo | Pendiente |
-| 7 | Panel del dueno | Las 6 pantallas (A–F) mas los estados vacios, instalable en el telefono | Pendiente |
+| 7 | Panel del dueno | Tres pestanas (ventas web, mayoristas, administracion) mas los numeros, instalable en el telefono. Disenada en `docs/panel-nerowa.md`, en 9 subfases de la 7.0 a la 7.8 | **Disenada** — sin codigo todavia |
 
 ---
 
@@ -907,3 +938,228 @@ Alfredo.
 **Como arranca la sesion 10:** esta escrito arriba, en "Lo primero de la proxima
 sesion", que es donde se lee primero.
 
+
+---
+
+### Sesion 10 — 2026-09-15
+
+**Punto de partida:** `main` en `3110539`, con el hero rehecho y los tres PR de la
+sesion 9 mezclados. Adrian no pidio tocar el hero: pidio **disenar el panel**.
+
+**No se escribio codigo, a proposito.** El encargo terminaba en *"pregunta y haz
+las recomendaciones que consideres antes de armar algo"*, asi que la sesion fue de
+preguntas y diseno. El resultado esta en **`docs/panel-nerowa.md`**, 16 apartados.
+
+**Las ocho decisiones que tomo Adrian** estan arriba, en la tabla de decisiones,
+con su motivo. En resumen: aplicacion instalable en vez de app de tienda, arranque
+por pedidos cargados a mano, el reembolso solo lo confirma Adrian, portal de
+tiendas sin pago en linea, graficos de ganancia real, notas ancladas sin chat.
+
+**Los dos datos que aparecieron preguntando y que cambiaron el diseno:**
+
+1. **Alfredo usa iPhone.** En iPhone la notificacion web solo existe si la
+   aplicacion esta instalada en la pantalla de inicio, y se apaga en silencio si
+   la quita. Un panel cuyo unico aviso de "vendiste algo" puede desaparecer sin
+   que nadie se entere no sirve para el trabajo que tiene que hacer. De ahi sale
+   **Telegram como canal principal de lo urgente**, con la notificacion web como
+   extra y el panel comprobando solo que su suscripcion sigue viva.
+2. **Envia con la agencia de correos nacional de Lituania.** O sea que la
+   operacion es lituana: euros, IVA lituano, y el IVA intracomunitario de las
+   ventas mayoristas deja de ser un detalle contable y pasa a cambiar el total de
+   la factura. Y marcar "entregado" se automatiza distinto que con un courier
+   privado: queda manual con recordatorio a los 7 dias, y **antes de prometer lo
+   automatico hay que comprobar si el correo lituano da acceso tecnico al
+   seguimiento**. No se dio por hecho.
+
+**Lo unico que se le movio de sitio a lo que pidio Adrian.** El queria los
+graficos en la pestana 1, junto a los pedidos. Van a una seccion propia, a un
+toque del encabezado. El motivo: la pestana 1 es la cola de trabajo, y si arriba
+hay un grafico, **lo primero que ve Alfredo al abrir el panel corriendo ya no es
+lo que le falta despachar**. Queda anotado por si Adrian prefiere lo contrario.
+
+**Tres cosas que se anadieron porque el encargo las pedia sin saberlo:**
+
+1. **Escalado de avisos.** Adrian dijo que Alfredo despacha solo y a veces no
+   tiene tiempo. Avisar una vez no resuelve eso: el pedido sin enviar vuelve a
+   avisar a las 24 h, y a las 48 h le llega tambien a Adrian.
+2. **Costos pegados al envio.** Se pidio "ganancias" y un grafico de ventas no es
+   eso. Para que la palabra sea cierta hay que restar produccion, envio y
+   comision, asi que al marcar un pedido como enviado el panel pregunta ahi mismo
+   cuanto costo el envio, con el importe de la ultima vez ya sugerido.
+3. **Separar desistimiento de producto defectuoso** en el formulario de
+   devolucion. No es lo mismo y **quien paga el envio de vuelta cambia segun cual
+   sea**. Mezclarlos en un solo formulario garantiza discutir con el cliente
+   despues. Queda escrito que esto lo confirmen con su asesor en Lituania antes
+   de publicar los terminos.
+
+**Lo que bloquea arrancar** esta en el apartado 14 del documento. Dos cosas
+nuevas que antes no estaban en la lista: **cuanto cuesta producir un estuche**
+(sin eso no hay grafico de ganancia) y **los datos fiscales de la empresa en
+Lituania** (sin eso no hay factura mayorista).
+
+**Que sale de aqui:** un solo pull request con el documento de diseno y esta
+bitacora. Ninguna pantalla, ninguna tabla de base de datos. La fase 7.0 arranca
+cuando Adrian diga que el diseno esta bien.
+
+---
+
+### Sesion 10, segunda vuelta — el mismo dia
+
+**Llegaron los numeros del negocio, y con ellos el documento
+`docs/economia-nerowa.md`.** Adrian dio precios y costo; de ahi salen el precio
+de la tienda, los tramos del portal de tiendas y el grafico de ganancia del panel.
+
+| Dato | Valor |
+|---|---|
+| Fabrica, en China | 24 EUR por estuche |
+| Ultimo lote | 100 unidades, 2.400 EUR de factura, **~3.400 EUR desembolsados** |
+| **Costo puesto en Vilnius** | **34 EUR** por estuche |
+| Venta al publico | 180 EUR **sin IVA** → 217,80 EUR con el IVA lituano |
+| A tiendas | 120 EUR (1-5), 110 EUR (6-15), 100 EUR (16+), envio aparte |
+| Envio al cliente | Se cobra lo que cuesta o mas: no come margen |
+
+**Lo que dejan:** unos **142 EUR por venta web** (79% del ingreso neto) y entre 66
+y 86 EUR por venta a tienda. **El lote de 3.400 EUR se paga con 24 ventas web**, o
+con 52 en el peor tramo mayorista. Vendido entero por la web serian unos 14.200
+EUR sobre 3.400 invertidos.
+
+**Tres cosas que se corrigieron al hacer las cuentas, y las tres cambian codigo:**
+
+1. **El costo no es 24 EUR, es 34.** Los 24 son precio de fabrica; traer el lote
+   costo 1.000 EUR mas. Usar 24 habria inflado el margen un 42% en cada venta y
+   1.000 EUR por lote a fin de anio. Y como el flete y la aduana cambian en cada
+   pedido, **el panel guarda lotes de importacion y calcula el costo unitario de
+   cada uno**, en vez de un numero fijo: asi un lote mas caro no ensucia hacia
+   atras lo que ya se vendio.
+2. **En la tienda hay que mostrar 217,80 EUR, no 180.** Adrian confirmo que los
+   180 son netos, y a consumidores de la Union Europea el precio que se enseña
+   tiene que llevar el IVA dentro. El precio del hero es un marcador de posicion
+   y hay que cambiarlo.
+3. **Una parte de esos 1.000 EUR probablemente no sea costo.** El IVA de
+   importacion se recupera si la empresa esta registrada, y podrian ser 500-600
+   EUR del total. Si es asi, el costo real baja de 34 a unos 28 EUR. **Mientras no
+   haya desglose, el panel usa 34**: mejor que el grafico se quede corto y luego
+   mejore, a que prometa un margen que no esta.
+
+**Una bandera que hay que pasarle al asesor, y que no es de software.** Si el lote
+actual se importo antes de que exista la empresa, a nombre de Alfredo como
+particular, ese IVA probablemente no se recupere y ademas complica revender la
+mercancia a nombre de una sociedad que aun no existia. No se como se hizo. Alfredo
+define la empresa esta semana o la proxima; es de lo primero que hay que preguntar.
+
+**Un comentario de negocio, no de codigo, que quedo escrito en el documento.** La
+tienda que compra a 120 EUR y revende a 180 se queda con un 33%, por debajo de lo
+que suele pedir una tienda de instrumentos; a 100 EUR se queda con un 44%, que ya
+es lo normal. O sea que **el tramo que una tienda nueva va a querer comprar
+(tres o cinco, para probar) es justo el que peor margen le deja**, y el que le
+resulta atractivo le exige comprometer 1.600 EUR con un producto que nunca ha
+vendido. Los precios de Adrian no estan mal — el margen propio es excelente en los
+tres tramos — pero eso puede costar cerrar la primera tienda, que es la que
+importa. Dos salidas sin tocar la tabla: envio gratis desde 6 unidades, o un
+precio de primera compra por una vez. Decision de Adrian, no bloquea nada.
+
+**Lo que se tacho de la lista de pendientes:** precio de venta, costo de
+produccion y precios mayoristas. **Lo que entro en su lugar:** el desglose de los
+1.000 EUR del lote, y a nombre de quien se importo.
+
+**Sigue sin resolverse, y es de Alfredo:** los datos fiscales de la empresa. Es lo
+unico que bloquea la fase 7.6, el portal de tiendas.
+
+---
+
+### Sesion 10, tercera vuelta — la fase 7.0 construida
+
+Adrian dio luz verde: *"empieza a armar todo, dale play, deja margen para
+cambiar bases a futuro conforme vayamos definiendo todo lo tecnico de la
+empresa"*. Eso ultimo no es un detalle de estilo: es la decision de arquitectura
+de esta tanda.
+
+**El panel vive en `/panel`**, en el mismo repositorio, con `noindex` y detras de
+sesion. La tienda sigue en `/store` y la raiz sigue siendo la pagina de espera.
+
+**La capa que cumple el encargo de Adrian.** Ninguna pantalla, ningun formulario
+y ninguna accion del panel importa un proveedor. Todos piden `servicios()` y
+reciben interfaces:
+
+| Puerto | Que abstrae | Adaptador de hoy |
+|---|---|---|
+| `Almacen` | Todos los datos | memoria, con datos de ejemplo |
+| `Correo` | Enlaces de entrada y avisos al cliente | consola |
+| `Avisos` | Telegram, notificacion web, correo | consola |
+| `Archivos` | Facturas y comprobantes | memoria |
+
+**Cambiar de base de datos son tres pasos:** escribir el adaptador, anadir su
+caso en `src/lib/panel/servicios.ts`, y poner `PANEL_ALMACEN=postgres` en Vercel.
+No hay paso cuatro. Si algun dia hiciera falta tocar una pantalla, el puerto
+estaria mal disenado y lo que habria que arreglar es el puerto.
+
+**Lo que se puede hacer ya, abriendo el preview:** entrar con enlace sin
+contrasena, ver la cola de pedidos ordenada por antiguedad con el atraso a la
+vista, abrir un pedido, copiar la direccion de un toque, pegar el seguimiento y
+marcarlo enviado, anotar lo que costo el envio, y ver el desglose del margen
+—que solo ve el rol dueno—. El panel se instala en la pantalla de inicio del
+telefono.
+
+**El dinero va en centimos enteros, nunca en euros con decimales.** 0,1 + 0,2 no
+da 0,3 en coma flotante, y un panel que suma lineas de pedido termina descuadrado
+por centimos que nadie sabe de donde salieron. Hay **17 comprobaciones** de la
+aritmetica (`npm run pruebas`) atadas a `docs/economia-nerowa.md`: si un calculo
+deja de cuadrar con el documento, una de las dos cosas esta mal.
+
+**Tres fallos que aparecieron MIRANDO, y los tres pasaban typecheck, lint y
+build.** La leccion de la sesion 9 vuelve a valer entera:
+
+1. **El boton "Marcar enviado" quedaba fuera de pantalla.** Medido con el
+   navegador: caia en y=641 de un iPhone de 664 px de alto. Rompia la prueba de
+   los quince segundos, porque el primer gesto dejaba de ser tocar el boton y
+   pasaba a ser buscarlo. Se anclo el boton abajo y se compacto la direccion.
+2. **La muestra del color negro desaparecia** contra la tarjeta oscura: `#111`
+   sobre `#17171a`. No se veia de que color era el pedido. Anillo mas grueso y
+   claro. Es el mismo susto del estuche negro de la sesion 9, pero esta vez si
+   era un fallo.
+3. **La confirmacion de "marcado enviado" no se veia nunca.** La accion ocurria,
+   pero al revalidar el formulario dejaba de dibujarse y se llevaba el mensaje
+   consigo. Era exactamente el "guardar en silencio" que la especificacion
+   prohibe. Ahora la confirmacion viaja en la URL y sobrevive al cambio de
+   estado. **Este no lo habria encontrado nadie leyendo el codigo.**
+
+**Un cuarto arreglo, de disenar mejor:** preguntar el coste del envio DENTRO del
+formulario de envio estaba mal por dos razones. El boton anclado lo tapaba, y el
+orden era el equivocado: el comprobante del correo lo tiene Alfredo DESPUES de
+despachar. Ahora se pregunta al volver, con el importe de la ultima vez ya
+sugerido. Es lo que hace que el grafico diga ganancia y no solo ventas.
+
+**Sobre Next 16.** `experimental.useOffline` da de serie la deteccion de falta de
+conexion y el reintento automatico de las acciones de servidor bloqueadas — justo
+la regla 4 de `docs/panel-nerowa.md` §11.3, sin escribirla a mano. Queda
+encendido y el panel avisa en pantalla cuando no hay senal.
+
+**Comprobado de punta a punta, no de memoria:** `typecheck`, `lint`, `build` y
+las 17 pruebas en verde; el flujo entero de despachar recorrido en un navegador a
+390 px; cero errores de consola; sin desbordamiento horizontal; el rol operacion
+NO ve el margen y el rol dueno si.
+
+**Lo que NO esta y por que:** base de datos de verdad, correos, bot de Telegram,
+notificaciones web y el escalado de avisos. Todos necesitan cuentas de terceros
+que todavia no existen. Los puertos ya estan escritos, asi que entran sin tocar
+pantallas.
+
+**Una incoherencia que esta tanda deja a la vista y hay que arreglar aparte:** la
+pagina de espera publicada dice "180 EUR", que es el precio SIN IVA. Al
+consumidor hay que ensenarle 217,80 EUR. Es texto de cara al publico en el
+dominio, asi que va en su propio PR y lo decide Alfredo.
+
+**Arreglo posterior al PR #15: el preview no dejaba entrar a nadie.** El modo de
+entrada sin correo dependia de poner `PANEL_MODO_DEMO=1` a mano, y en Vercel no
+esta puesta. O sea que Adrian habria abierto el preview en su telefono, pedido el
+enlace, y el enlace se habria escrito en el registro del servidor donde no lo ve
+nadie: puerta cerrada y ningun modo de abrirla.
+
+Ahora **se enciende solo** mientras el almacen sea de memoria Y el correo sea de
+consola — en esa situacion no hay datos reales que proteger y el enlace no puede
+llegar a ningun sitio, asi que la alternativa era un panel al que no entra nadie.
+**En cuanto se conecte una base de datos o un correo de verdad, se apaga solo.**
+No hay que acordarse de nada, que es justo lo que no se le puede confiar a la
+memoria de nadie en un panel que maneja dinero. `PANEL_MODO_DEMO` sigue
+existiendo para forzarlo en los dos sentidos, y los dos estan comprobados en el
+navegador.
