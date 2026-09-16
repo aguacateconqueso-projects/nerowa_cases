@@ -135,22 +135,38 @@ export function crearAlmacenMemoria(): Almacen {
   const colores = [...COLORES];
   const lotes = [LOTE_ACTUAL];
   const pedidos = [...PEDIDOS];
-  const usuarios: Usuario[] = [
-    {
-      id: "u-alfredo",
-      nombre: "Alfredo",
-      correo: process.env.PANEL_CORREO_OPERACION ?? "alfredo@nerowacases.com",
-      rol: "operacion",
-      creadoEn: hace(24 * 60),
-    },
-    {
-      id: "u-adrian",
-      nombre: "Adrian",
-      correo: process.env.PANEL_CORREO_DUENO ?? "adrianmendozam@gmail.com",
-      rol: "dueno",
-      creadoEn: hace(24 * 60),
-    },
-  ];
+  /*
+    Las dos personas del panel. Los correos se pueden cambiar por variable de
+    entorno, y admiten varios separados por coma: el primero es al que se le
+    manda el enlace, y con los demas tambien se puede entrar.
+
+    Estan escritos aqui con un valor por defecto, y no solo en la variable, por
+    lo mismo que la entrada sin correo se enciende sola: si dependieran de
+    configurar algo en Vercel, el preview seria un panel al que no entra nadie.
+    Cuando llegue la base de datos de verdad, las personas viven ahi y esto se
+    borra entero.
+  */
+  const correosDe = (variable: string | undefined, porDefecto: string[]) => {
+    const lista = (variable ?? "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+    return lista.length > 0 ? lista : porDefecto;
+  };
+
+  const usuarios: Usuario[] = (
+    [
+      ["u-alfredo", "Alfredo", "operacion", correosDe(process.env.PANEL_CORREO_OPERACION, ["alfredo@nerowacases.com"])],
+      ["u-adrian", "Adrian", "dueno", correosDe(process.env.PANEL_CORREO_DUENO, ["hello@arcmediahouse.com", "adrianmendozam@gmail.com"])],
+    ] as const
+  ).map(([id, nombre, rol, correos]) => ({
+    id,
+    nombre,
+    correo: correos[0]!,
+    correosAlternos: correos.slice(1),
+    rol,
+    creadoEn: hace(24 * 60),
+  }));
   const enlaces = new Map<string, EnlaceEntrada>();
   const sesiones = new Map<Id, Sesion>();
   const apuntes: Apunte[] = [];
@@ -162,7 +178,14 @@ export function crearAlmacenMemoria(): Almacen {
     nombre: "memoria",
 
     async usuarioPorCorreo(correo) {
-      return clon(usuarios.find((u) => norm(u.correo) === norm(correo)));
+      const buscado = norm(correo);
+      return clon(
+        usuarios.find(
+          (u) =>
+            norm(u.correo) === buscado ||
+            (u.correosAlternos ?? []).some((alterno) => norm(alterno) === buscado),
+        ),
+      );
     },
     async usuarioPorId(id) {
       return clon(usuarios.find((u) => u.id === id));

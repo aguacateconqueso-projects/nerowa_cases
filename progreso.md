@@ -1163,3 +1163,21 @@ No hay que acordarse de nada, que es justo lo que no se le puede confiar a la
 memoria de nadie en un panel que maneja dinero. `PANEL_MODO_DEMO` sigue
 existiendo para forzarlo en los dos sentidos, y los dos estan comprobados en el
 navegador.
+
+**`hello@arcmediahouse.com` habilitado, y un usuario pasa a poder tener varios
+correos.** Adrian lo pidio para poder entrar al preview. En vez de sustituir el
+anterior, `Usuario` gana `correosAlternos`: al primero se le manda el enlace y
+con los demas tambien se entra. El motivo es el de siempre en este panel — la
+gente tiene correo de trabajo y correo personal, y no se acuerda de cual uso la
+vez anterior. Se pueden cambiar por variable de entorno, separados por coma.
+
+**Y la pantalla de entrada ya no dice "el de Adrian".** Lista los correos que de
+verdad valen, sacados del almacen y no escritos a mano en el texto, y cada uno es
+un boton que rellena el campo: escribir un correo en un telefono, de pie, es lo
+contrario de a prueba de tontos.
+
+**Comprobado en el navegador, los cuatro casos:** entra con el correo nuevo y lo
+reconoce como Adrian con rol dueno, el correo anterior sigue entrando, uno
+desconocido no entra, y a ese la pantalla le contesta **lo mismo** que a uno
+valido — si dijera "ese correo no tiene cuenta", cualquiera podria averiguar
+quien trabaja aqui probando direcciones.

@@ -8,7 +8,7 @@
 
 import { redirect } from "next/navigation";
 
-import { entradaSinCorreo } from "@/lib/panel/servicios";
+import { entradaSinCorreo, servicios } from "@/lib/panel/servicios";
 import { usuarioActual } from "@/lib/panel/sesion";
 
 import { FormularioEntrada } from "./formulario";
@@ -19,6 +19,21 @@ export const dynamic = "force-dynamic";
 export default async function PantallaEntrar() {
   if (await usuarioActual()) redirect("/panel");
 
+  /*
+    En modo demostracion se listan los correos que de verdad valen, sacados del
+    almacen y no escritos a mano en el texto. Antes decia "y el de Adrian", que
+    obliga a adivinar cual de los suyos es — y adivinar es exactamente lo que
+    este panel no puede pedirle a nadie.
+  */
+  const demo = entradaSinCorreo();
+  const accesos = demo
+    ? (await servicios().almacen.listarUsuarios()).map((u) => ({
+        nombre: u.nombre,
+        rol: u.rol,
+        correos: [u.correo, ...(u.correosAlternos ?? [])],
+      }))
+    : [];
+
   return (
     <div className="grid min-h-[70dvh] place-items-center">
       <div className="w-full max-w-sm">
@@ -27,7 +42,7 @@ export default async function PantallaEntrar() {
           Escribe tu correo y te mandamos un enlace para entrar. No hay contrasena
           que recordar.
         </p>
-        <FormularioEntrada modoDemo={entradaSinCorreo()} />
+        <FormularioEntrada modoDemo={demo} accesos={accesos} />
       </div>
     </div>
   );

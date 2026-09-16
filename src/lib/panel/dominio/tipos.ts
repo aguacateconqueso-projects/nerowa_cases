@@ -26,7 +26,16 @@ export type Rol = "operacion" | "dueno";
 export interface Usuario {
   id: Id;
   nombre: string;
+  /** El principal: al que se le mandan los enlaces de entrada. */
   correo: string;
+  /**
+   * Otras direcciones con las que tambien puede entrar.
+   *
+   * Existe porque la gente tiene correo de trabajo y correo personal, y no se
+   * acuerda de cual uso para entrar la vez anterior. Cualquiera de los suyos
+   * vale; el enlace siempre sale al principal.
+   */
+  correosAlternos?: string[];
   rol: Rol;
   /** Para avisarle por Telegram. Vacio hasta que el bot lo conozca. */
   telegramChatId?: string;
