@@ -1542,3 +1542,53 @@ cuando mas falta hacia el aviso. Se descubrio **probando el hook contra el error
 de verdad**, no leyendolo. Ahora busca el commit de mezcla en el historial de
 `main`, y esta comprobado en los tres casos: bloquea la rama mezclada, deja
 pasar una rama nueva, y deja pasar el segundo empujon a una rama abierta.
+
+---
+
+### Sesion 10, decima vuelta — el diagnostico que dice que hacer
+
+**La pantalla de estado funciono**: Adrian abrio el preview y en vez del muro
+negro leyo el error exacto — `password authentication failed for user
+"postgres"`. Eso **no es un fallo del panel**: es la cadena de conexion.
+
+**Y el mensaje delata cual es el problema.** Al pooler de transacciones de
+Supabase no se entra como `postgres` a secas, sino como
+`postgres.<referencia-del-proyecto>`. Cuando el usuario llega corto, el sintoma
+es exactamente ese: **parece un problema de contrasena y es de usuario**. Pasa
+cuando se copia la cadena directa y se le cambia el puerto a mano.
+
+**Pero un error exacto en ingles y con vocabulario de base de datos no le sirve
+a quien no programa.** La pantalla decia que paso; no decia donde tocar. Para
+este proyecto eso es media pantalla.
+
+**Ahora traduce.** Encima del mensaje crudo van las **pistas**: que esta mal en
+una frase, y que hacer con el sitio exacto. Dos fuentes:
+
+1. **La forma de la cadena, antes de conectar.** Usuario `postgres` a secas
+   contra el puerto 6543, conexion directa en vez de pooler, contrasena con
+   caracteres que rompen una URL, o una cadena que ni siquiera tiene forma de
+   direccion.
+2. **Lo que contesta la base.** Autenticacion rechazada, no se puede llegar,
+   conexiones agotadas, sentencias preparadas.
+
+**El mensaje crudo sigue estando**, debajo y rotulado "por si hay que buscarlo":
+es lo que permite buscar en internet o en el registro de Vercel. Lo que cambia
+es el orden — primero que hacer, despues el dato tecnico.
+
+**La contrasena no sale de ahi, y hay una prueba que lo comprueba.** La cadena
+se analiza para sacar el puerto y la forma del usuario; la contrasena no se lee,
+no se guarda y no se devuelve ni enmascarada. Dos de las doce comprobaciones
+nuevas existen solo para eso: una pantalla que se ensena cuando algo falla acaba
+en una captura.
+
+**`diagnostico-conexion.ts` NO lleva `server-only`, y es a proposito:** son
+funciones puras que reciben la cadena como argumento en vez de ir a buscarla, y
+eso es lo que permite probarlas aisladas. Se descubrio al intentar correr la
+prueba: un modulo que no se puede probar solo suele estar pidiendo que le quiten
+una dependencia.
+
+**75 comprobaciones del dominio en total**: 17 de economia, 19 de mayorista, 27
+de Postgres y 12 de diagnostico.
+
+**Y el guardia de la condicion 1 funciono a la primera:** `npm install` lo dejo
+configurado solo, sin que nadie se acordara de nada.

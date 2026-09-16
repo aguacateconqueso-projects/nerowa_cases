@@ -57,10 +57,46 @@ export default async function PantallaEstado() {
         </p>
       </section>
 
+      {/*
+        Las pistas van ANTES del mensaje crudo. El mensaje exacto es lo que
+        permite buscar en internet o en el registro; la pista es lo que permite
+        arreglarlo sin saber de bases de datos, y eso es lo que hace falta
+        primero.
+      */}
+      {d.pistas.length > 0 ? (
+        <section className="mt-4 grid gap-3">
+          {d.pistas.map((pista) => (
+            <div
+              key={pista.titulo}
+              className="rounded-xl border p-4"
+              style={{
+                borderColor:
+                  pista.nivel === "error" ? "var(--panel-urgente)" : "var(--panel-aviso)",
+                background: "var(--panel-tarjeta)",
+              }}
+            >
+              <p
+                className="t-heading text-[1.0625rem]"
+                style={{
+                  color:
+                    pista.nivel === "error" ? "var(--panel-urgente)" : "var(--panel-aviso)",
+                }}
+              >
+                {pista.nivel === "error" ? "✕ " : "⚠ "}
+                {pista.titulo}
+              </p>
+              <p className="mt-2 text-[0.9375rem]" style={{ color: "var(--panel-texto)" }}>
+                {pista.queHacer}
+              </p>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
       {d.error ? (
         <section className="mt-4">
           <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
-            Que dijo la base de datos
+            El mensaje exacto de la base, por si hay que buscarlo
           </h2>
           <p
             className="rounded-xl border p-4 text-[0.875rem]"

@@ -12,6 +12,7 @@ import "server-only";
   firma ni ningun otro valor sensible. Solo si estan puestos y si funcionan.
 */
 
+import { revisarCadena, traducirError, type Pista } from "./diagnostico-conexion";
 import { servicios } from "./servicios";
 
 export interface Cuenta {
@@ -29,6 +30,14 @@ export interface Diagnostico {
   /** Si respondio, y en cuanto. `undefined` cuando no aplica. */
   respondeEnMs?: number;
   error?: string;
+  /**
+   * Que hacer, en castellano y con el sitio exacto.
+   *
+   * El mensaje crudo de la base sigue estando —es lo que permite buscarlo— pero
+   * lo que se lee primero es esto: un error exacto que no dice donde tocar no
+   * sirve de mucho mas que la pantalla negra que sustituyo.
+   */
+  pistas: Pista[];
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -45,6 +54,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
     avisos: avisos.nombre,
     archivos: archivos.nombre,
     persistente,
+    pistas: [],
     cuentas: [],
     migraciones: [],
     variables: [
@@ -104,6 +114,17 @@ export async function diagnosticar(): Promise<Diagnostico> {
       cadena de conexion, que iria en la traza y no en el mensaje.
     */
     base.error = error instanceof Error ? error.message : String(error);
+    const traducido = traducirError(base.error);
+    if (traducido) base.pistas.push(traducido);
+  }
+
+  /*
+    La revision de la cadena va DESPUES de intentar conectar, pero se hace
+    siempre: aunque la conexion funcione, puede haber algo que convenga
+    arreglar —como estar usando la conexion directa en vez del pooler—.
+  */
+  if (persistente) {
+    base.pistas.push(...revisarCadena(process.env.DATABASE_URL));
   }
 
   return base;
