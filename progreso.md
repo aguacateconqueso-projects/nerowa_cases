@@ -2284,38 +2284,90 @@ manda a trabajar en el sitio equivocado a quien confia en ella.
 
 2 comprobaciones de salud mas. **126 en total.**
 
+### Sesion 10, vuelta 21 — construir la prueba en vez de seguir adivinando
+
+Adrian: *"lo vas a resolver? en serio? tenemos 2 dias atascados aca"*. Justo.
+Llevaba tres vueltas proponiendo causas y ninguna se podia comprobar desde
+aqui.
+
+**Lo que hay, y es contradictorio a simple vista:** el puerto del pooler acepta
+en **3 ms** y `select 1` no vuelve en 2 segundos. Se llega al servidor en tres
+milisegundos y la consulta mas barata que existe no contesta.
+
+Con lo medido quedaban **tres** causas, que se arreglan en sitios distintos:
+
+| | Causa | Se arregla en |
+|---|---|---|
+| A | El pooler acepta pero no da sesion (proyecto dormido, reiniciando, sin conexiones libres) | Supabase |
+| B | Nuestros ajustes del saludo inicial rompen la sesion (`lock_timeout` y `statement_timeout`, vuelta 16) | el codigo |
+| C | La conexion reutilizada de esa instancia esta ocupada por una consulta abandonada | el codigo |
+
+**Adivinar cual costaba otra vuelta, y ya iban tres.** Asi que esta vez, en vez
+de elegir una, construi la prueba que las separa.
+
+**`sonda-sesion.ts`: dos conexiones NUEVAS y un `select 1` a cada una.** Una con
+los ajustes del panel, otra desnuda. Lo que salga decide, sin interpretacion:
+
+- desnuda contesta y la del panel no → **es B**, y es nuestro
+- no contesta ninguna → **es A**, y esta en Supabase
+- las dos contestan → **es C**: la base esta bien y lo que estaba atascado era
+  la conexion de siempre de esa instancia
+
+Las dos son nuevas a proposito: la del panel tiene `max: 1` y puede estar
+ocupada, que es justo la sospecha C. Medir el atasco con el atasco no mide nada.
+Y **cierra siempre**, en un `finally`, porque la sospecha A es que no quedan
+conexiones libres y una sonda que gasta dos por visita sin devolverlas seria la
+peor herramienta posible — el error de la vuelta 14, que no se va a repetir.
+Hay una prueba que lo cuenta contra `pg_stat_activity` de verdad.
+
+**Lo que NO pude comprobar, y toca decirlo.** Intente medir la sospecha C aqui:
+lanzar una consulta lenta, abandonarla con el tope y ver si la conexion queda
+inservible. El resultado decia que se recuperaba en 4 ms. **Era falso.** PGlite
+corre dentro de este mismo proceso, asi que mientras "duerme" bloquea el
+temporizador del tope: el abandono no salto a los 500 ms sino a los 3006, cuando
+la consulta ya habia terminado sola. Con una base remota de verdad eso no pasa.
+**Mi prueba no podia medir lo que queria medir**, y por eso no ship ningun
+arreglo para C: la sonda lo dira.
+
+**Cuarto instrumento roto en cinco vueltas**: el curl sin seguir redirecciones,
+el `git stash` que fallo en silencio, el `waitUntil: "load"` que no llega nunca
+con el flujo cortado, y ahora una base de mentira que bloquea el reloj que la
+mide. Ninguno dio error; los cuatro dieron numeros creibles.
+
+**La leccion de la vuelta, y es la unica que importa a estas alturas:** cuando
+llevas tres intentos fallidos, el problema ya no es que falte una idea — es que
+falta un aparato. Lo que se me habia acabado no eran las hipotesis, eran las
+formas de comprobarlas. Construir el aparato se sentia como un rodeo y era el
+camino corto.
+
+5 comprobaciones de la sonda de sesion. **131 en total.**
+
 
 ---
 
 ## Lo que queda por confirmar
 
-**Lo que dicen los datos de produccion, en una frase:** se llega al pooler de
-Supabase (6 ms) pero **detras no hay base que conteste ni a un `select 1`**. Eso
-no es un candado, no es la direccion, no es la contrasena y no es el codigo del
-panel: los cuatro estan comprobados en verde en la propia pantalla.
+**Una sola cosa, y la contesta el propio panel en la siguiente carga.** Abrir
+`/panel/estado`: ahora sale una seccion nueva, **"Dos conexiones nuevas, para
+saber de quien es el problema"**. Lo que diga decide sin interpretacion:
 
-**El siguiente paso es de Adrian y es de diez segundos:** abrir el proyecto en
-Supabase y mirar si esta **Active, Paused o Restarting**. El pooler es
-infraestructura compartida y sigue aceptando conexiones aunque el proyecto no
-este; por eso la sonda de puerto sale en verde y la consulta nunca vuelve. Si
-esta pausado, reanudarlo. Si dice Active, mirar el uso de conexiones del pooler.
+| Lo que salga | Que significa | Que hay que hacer |
+|---|---|---|
+| La desnuda contesta, la del panel no | Son nuestros ajustes del saludo inicial | Quitarlos de `conexion.ts` y ponerlos por transaccion |
+| No contesta ninguna | El pooler no esta dando sesion | Mirar el proyecto en Supabase: Paused, Restarting o sin conexiones libres |
+| Las dos contestan | La base esta bien; estaba atascada la conexion reutilizada | Que un tope cierre la conexion que abandona |
 
-**Si el proyecto esta Active y las conexiones libres**, entonces la siguiente
-sospecha por orden:
+Hasta que eso se lea, cualquier arreglo seria otra apuesta, y van tres.
 
-1. **`conTope` sin cerrar la conexion** (vuelta 14, sin resolver). Cada espera
-   agotada deja una consulta viva y ocupa la unica conexion de esa instancia.
-   Acumulado, el pooler acepta y no da sesion. Es la pieza pendiente mas
-   probable y la que hay que hacer a continuacion.
-2. **El tope de tiempo general para las consultas**, que hay que hacer
-   distinguiendo la migracion del resto (ver la cabecera de `loading.tsx`).
+**Lo que sigue apuntado, por orden, para cuando se sepa cual es:**
+
+1. **El tope que no cierra la conexion** (vuelta 14, sin resolver). No se pudo
+   comprobar aqui: PGlite corre en el mismo proceso y bloquea el reloj que
+   mediria el abandono. Hace falta una base remota o un doble que no bloquee.
+2. **El tope de tiempo general para las consultas**, distinguiendo la migracion
+   del resto (ver la cabecera de `loading.tsx`).
 
 **De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono, y
-hasta que la base conteste no se puede:
-
-1. **Si siguen haciendo falta varios toques.** Ya no puede ser por falta de
-   senal. El sospechoso que queda: en Safari **sin instalar**, la franja de
-   abajo es donde vive la barra del navegador, y el primer toque ahi la
-   despliega en vez de llegar a la pagina.
-2. **Si el scroll sigue a tirones.** El desenfoque ya no esta. Si continua, el
-   siguiente sitio es `.panel-accion-anclada`.
+hasta que la base conteste no se puede. El sospechoso que queda es Safari sin
+instalar, donde el primer toque en la franja de abajo despliega la barra del
+navegador en vez de llegar a la pagina.

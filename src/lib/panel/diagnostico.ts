@@ -29,6 +29,7 @@ import {
   tocarPuerto,
   type SondaRed,
 } from "./sonda-red";
+import { probarSesion, type Intento } from "./sonda-sesion";
 import { conTope } from "./tope";
 
 export interface Cuenta {
@@ -64,6 +65,13 @@ export interface Diagnostico {
   salud?: Salud;
   /** Por que no se pudo medir la salud, si no se pudo. */
   saludError?: string;
+  /**
+   * Dos conexiones nuevas, una con los ajustes del panel y otra desnuda.
+   *
+   * Solo se prueba cuando el puerto acepta y aun asi no hay pulso, que es el
+   * unico caso en el que la respuesta no se puede deducir de lo ya medido.
+   */
+  sesiones?: Intento[];
   /** Por que no se pudieron contar las filas, si no se pudo. */
   cuentasError?: string;
   cuentas: Cuenta[];
@@ -209,6 +217,66 @@ export async function diagnosticar(): Promise<Diagnostico> {
   */
   if (persistente && base.saludError) {
     base.error = base.saludError;
+
+    /*
+      AQUI ES DONDE SE DECIDE, y hasta ahora se adivinaba.
+
+      Se llega al puerto y no hay pulso. Con eso solo, no se puede saber si el
+      pooler no da sesion o si son NUESTROS ajustes los que la rompen. Dos
+      conexiones nuevas —una como las del panel, otra desnuda— lo separan en un
+      par de segundos. Ver `sonda-sesion.ts`.
+
+      Solo se prueban en este caso: si hay pulso, no hay nada que separar, y
+      abrir conexiones porque si es lo que no se debe hacer cuando se sospecha
+      que no quedan libres.
+    */
+    const cadena = process.env.DATABASE_URL;
+    if (cadena && base.red?.tcp?.estado === "acepta") {
+      const topePorIntento = Math.min(2500, Math.max(queda() / 2, 1500));
+      base.sesiones = [
+        await probarSesion(cadena, true, topePorIntento),
+        await probarSesion(cadena, false, topePorIntento),
+      ];
+
+      const conAjustes = base.sesiones[0];
+      const desnuda = base.sesiones[1];
+
+      if (conAjustes.error && !desnuda.error) {
+        /* El veredicto que NO se podia dar antes, y que cambia de tejado. */
+        base.pistas.push({
+          nivel: "error",
+          titulo: "La base esta bien: son los ajustes con los que abrimos la sesion",
+          queHacer:
+            "Una conexion desnuda contesta y la del panel no. La diferencia son " +
+            "`lock_timeout` y `statement_timeout`, que el panel manda en el saludo " +
+            "inicial desde la vuelta 16, y que un pooler en modo transaccion puede " +
+            "no admitir. Esto NO se arregla en Supabase: hay que quitarlos del " +
+            "saludo en `conexion.ts` y ponerlos por consulta o por transaccion.",
+        });
+      } else if (conAjustes.error && desnuda.error) {
+        base.pistas.push({
+          nivel: "error",
+          titulo: "No hay sesion posible, ni con ajustes ni sin ellos",
+          queHacer:
+            "Las dos conexiones fallan igual, asi que no son nuestros ajustes ni " +
+            "nuestro codigo: el pooler acepta el puerto pero no esta dando ninguna " +
+            "sesion. Mira el proyecto en Supabase — si esta Paused o Restarting, " +
+            "reanudalo y espera a que quede Active; si ya dice Active, mira el uso " +
+            "de conexiones del pooler.",
+        });
+      } else if (!conAjustes.error) {
+        base.pistas.push({
+          nivel: "aviso",
+          titulo: "Una conexion nueva SI contesta: la que estaba atascada era la de siempre",
+          queHacer:
+            "Abrir una sesion nueva funciona, asi que la base esta bien. Lo que " +
+            "estaba bloqueado era la conexion reutilizada de esta instancia, con " +
+            "una consulta abandonada ocupandola. Recarga: si se arregla solo, es " +
+            "eso, y lo que hay que arreglar es que un tope cierre la conexion.",
+        });
+      }
+    }
+
     const traducido = traducirError(base.saludError, {
       seLlega: base.red?.tcp?.estado === "acepta",
       pulso: false,
