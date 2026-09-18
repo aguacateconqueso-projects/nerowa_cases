@@ -253,6 +253,46 @@ export default async function PantallaEstado({
       ) : null}
 
       {/*
+        Las dos conexiones de prueba.
+
+        Aparece solo cuando hizo falta: se llega al puerto y no hay pulso. Es la
+        seccion que dice DE QUIEN ES EL PROBLEMA — si la desnuda contesta y la
+        del panel no, es nuestro; si no contesta ninguna, es de Supabase. Ver
+        `sonda-sesion.ts`.
+      */}
+      {d.sesiones ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            Dos conexiones nuevas, para saber de quien es el problema
+          </h2>
+          <dl className="grid gap-1 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            {d.sesiones.map((intento) => (
+              <Comprobacion
+                key={intento.como}
+                termino={intento.como}
+                valor={
+                  intento.error
+                    ? intento.error
+                    : `abre en ${intento.saludoMs} ms, viaje de ${intento.viajeMs} ms`
+                }
+                bien={!intento.error}
+                nota={
+                  intento.error
+                    ? "no se pudo abrir una sesion asi"
+                    : "esta forma de conectar SI funciona"
+                }
+              />
+            ))}
+          </dl>
+          <p className="mt-2 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            La unica diferencia entre las dos son los ajustes que el panel manda
+            al abrir la sesion. Si una contesta y la otra no, el problema esta en
+            el codigo; si fallan las dos, esta en la base.
+          </p>
+        </section>
+      ) : null}
+
+      {/*
         Quien mas esta conectado a la base.
 
         Solo aparece cuando la base contesta: si no contesta, esto no se puede
