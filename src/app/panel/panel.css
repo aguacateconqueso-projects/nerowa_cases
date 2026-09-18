@@ -38,8 +38,20 @@
   z-index: 40;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  background: color-mix(in srgb, var(--panel-fondo) 92%, transparent);
-  backdrop-filter: blur(12px);
+  /*
+    Fondo SOLIDO, y no el `backdrop-filter: blur(12px)` que habia aqui.
+
+    El desenfoque iba sobre un elemento `position: fixed`, y eso obliga a
+    Safari de iPhone a recomponer la franja entera en cada fotograma mientras
+    se hace scroll — justo la barra que hay que poder tocar. Lo que compraba a
+    cambio era casi nada: el fondo ya estaba al 92 % de opaco, asi que el
+    desenfoque solo actuaba sobre el 8 % restante y no se distinguia.
+
+    Queda dicho para el dia que alguien lo quiera de vuelta: primero se mide en
+    un telefono de verdad, porque esto se quito por lo que cuesta, no por lo
+    que se ve.
+  */
+  background: var(--panel-fondo);
   border-top: 1px solid var(--panel-borde);
   /* En iPhone, por encima de la barra de gestos del sistema. */
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -58,14 +70,76 @@
   transition: color 0.15s ease;
 }
 
+/*
+  La senal de que el toque entro, en el instante en que entra.
+
+  Las tarjetas y los botones ya tenian su `:active`; las pestanas no tenian
+  NINGUNO, y son lo que mas se toca. El `:active` del navegador no espera a
+  JavaScript ni a la red: pinta al bajar el dedo. Es la primera de las tres
+  senales que ahora da un toque, y la unica que llega en cero milisegundos.
+*/
+.panel-pestana:active {
+  background: var(--panel-tarjeta-alta);
+}
+
 .panel-pestana[aria-current="page"] {
   color: var(--gold-bright);
+}
+
+/*
+  La segunda senal: la pestana tocada se pone en dorado mientras se va a por la
+  pantalla, sin esperar a que llegue. `useLinkStatus` lo cuenta desde el toque
+  hasta que la navegacion entra.
+
+  El retraso de 120 ms es a proposito. Cuando la precarga ya trajo el armazon,
+  la navegacion entra antes de eso y no se enciende nada: sin el retraso, cada
+  toque daria un parpadeo dorado que se lee como un fallo. Solo se ve cuando
+  hay de verdad una espera que avisar.
+*/
+.panel-pestana-marca {
+  display: none;
+}
+
+.panel-pestana:has(.panel-pestana-marca) {
+  animation: panel-pestana-yendo 200ms ease 120ms forwards;
+}
+
+@keyframes panel-pestana-yendo {
+  to {
+    color: var(--gold-bright);
+  }
 }
 
 .panel-pestana-icono {
   display: block;
   width: 1.5rem;
   height: 1.5rem;
+}
+
+/* --- Esqueleto de carga (ver `loading.tsx`) --- */
+
+/*
+  Una barra gris con el latido justo para que se lea como "viene en camino" y
+  no como "esto se quedo asi". El `prefers-reduced-motion` del final del
+  archivo ya la deja quieta para quien lo pida; con eso sigue siendo una barra
+  gris con forma de lo que viene, que es lo que tiene que comunicar.
+*/
+.panel-hueso {
+  border-radius: 0.5rem;
+  background: var(--panel-tarjeta-alta);
+  animation: panel-latido 1.4s ease-in-out infinite;
+}
+
+@keyframes panel-latido {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* La tarjeta del esqueleto no se puede tocar: sin filete de urgencia, que
+   seria inventarse un dato que todavia no ha llegado. */
+.panel-hueso-tarjeta {
+  border-inline-start: 1px solid var(--panel-borde);
 }
 
 /* --- Contenido --- */
