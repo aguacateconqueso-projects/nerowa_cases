@@ -138,19 +138,31 @@ export default function CargandoPanel() {
   lee un lector de pantalla, y cuando aparece esta debajo de lo que la persona
   ya estaba mirando.
 
-  Dice lo mismo que `error.tsx` y manda a los mismos dos sitios. Que la salida
-  sea la misma importa: desde el punto de vista de quien lo sufre, una pantalla
-  que no carga es una pantalla que no carga, y no tiene por que aprenderse dos
-  vocabularios segun como fallo por dentro.
+  Manda a los mismos dos sitios que `error.tsx`. Que la salida sea la misma
+  importa: desde el punto de vista de quien lo sufre, una pantalla que no carga
+  es una pantalla que no carga, y no tiene por que aprenderse dos vocabularios
+  segun como fallo por dentro.
+
+  LO QUE NO DICE, Y ES A PROPOSITO
+
+  No nombra a la base de datos. La primera version decia "lo mas probable es que
+  el panel no este pudiendo hablar con la base de datos", y eso era **adivinar
+  en voz alta**: desde aqui no se sabe por que no llego el contenido. Puede ser
+  la base, puede ser que la funcion se pasara de tiempo, puede ser la red del
+  telefono. Un aviso que nombra un culpable que no ha comprobado manda a buscar
+  donde no es — que es justo lo que hizo perder tres vueltas en la sesion 10.
+
+  Dice lo unico que consta —que no cargo, que no se perdio nada, que recargar es
+  seguro— y manda a la pantalla que SI puede medirlo.
 */
 function Tardanza() {
   return (
     <div className="panel-tardanza" role="status">
       <p className="t-heading text-lg">Esto esta tardando mas de lo normal</p>
       <p className="mt-2 text-[0.9375rem]" style={{ color: "var(--panel-tenue)" }}>
-        Lo mas probable es que el panel no este pudiendo hablar con la base de
-        datos. No se perdio nada: lo que ya estaba guardado sigue ahi. Recargar
-        la pagina es seguro.
+        No se perdio nada: lo que ya estaba guardado sigue ahi, y recargar la
+        pagina es seguro. Si al recargar sigue igual, la pantalla de estado dice
+        que esta fallando.
       </p>
 
       <div className="mt-5 grid gap-2">
