@@ -20,6 +20,7 @@ import {
   type Pista,
 } from "./diagnostico-conexion";
 import { servicios } from "./servicios";
+import { conTope } from "./tope";
 
 export interface Cuenta {
   que: string;
@@ -51,6 +52,18 @@ export interface Diagnostico {
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
   variables: { nombre: string; puesta: boolean; nota?: string }[];
 }
+
+/*
+  Cuanto se espera a la base antes de dar la respuesta por perdida.
+
+  Vercel corta las funciones a los pocos segundos y devuelve un 504 —una pagina
+  de Vercel, no del panel—, asi que si esta pantalla esperara sin tope, la
+  herramienta de diagnostico se caeria por lo mismo que tiene que diagnosticar.
+  Es la segunda vez que ese error aparece, y por eso ahora hay un tope propio,
+  mas corto que el de Vercel: la pantalla responde SIEMPRE, y si la base no
+  contesta a tiempo lo dice en vez de desaparecer.
+*/
+const ESPERA_MAXIMA_MS = 4000;
 
 export async function diagnosticar(): Promise<Diagnostico> {
   const { almacen, correo, avisos, archivos } = servicios();
@@ -89,6 +102,17 @@ export async function diagnosticar(): Promise<Diagnostico> {
     ],
   };
 
+  /*
+    La revision de la cadena va ANTES de intentar conectar. No necesita red, es
+    instantanea, y es justo la que dice que esta mal cuando la conexion cuelga:
+    si se hiciera despues, una base que no responde se llevaria por delante las
+    unicas pistas utiles.
+  */
+  if (persistente) {
+    base.pistas.push(...revisarCadena(process.env.DATABASE_URL));
+    base.cadena = cadenaALaVista(process.env.DATABASE_URL);
+  }
+
   const desde = Date.now();
   try {
     /*
@@ -97,14 +121,17 @@ export async function diagnosticar(): Promise<Diagnostico> {
       que deberian. Una base viva con las tablas vacias es un fallo distinto y
       hay que poder distinguirlo.
     */
-    const [usuarios, colores, lotes, pedidos, tiendas, mayoristas] = await Promise.all([
-      almacen.listarUsuarios(),
-      almacen.listarColores(),
-      almacen.listarLotes(),
-      almacen.listarPedidos(),
-      almacen.listarTiendas(),
-      almacen.listarPedidosMayoristas(),
-    ]);
+    const [usuarios, colores, lotes, pedidos, tiendas, mayoristas] = await conTope(
+      Promise.all([
+        almacen.listarUsuarios(),
+        almacen.listarColores(),
+        almacen.listarLotes(),
+        almacen.listarPedidos(),
+        almacen.listarTiendas(),
+        almacen.listarPedidosMayoristas(),
+      ]),
+      ESPERA_MAXIMA_MS,
+    );
     base.respondeEnMs = Date.now() - desde;
     base.cuentas = [
       { que: "Personas con acceso", cuantos: usuarios.length },
@@ -124,16 +151,6 @@ export async function diagnosticar(): Promise<Diagnostico> {
     base.error = error instanceof Error ? error.message : String(error);
     const traducido = traducirError(base.error);
     if (traducido) base.pistas.push(traducido);
-  }
-
-  /*
-    La revision de la cadena va DESPUES de intentar conectar, pero se hace
-    siempre: aunque la conexion funcione, puede haber algo que convenga
-    arreglar —como estar usando la conexion directa en vez del pooler—.
-  */
-  if (persistente) {
-    base.pistas.push(...revisarCadena(process.env.DATABASE_URL));
-    base.cadena = cadenaALaVista(process.env.DATABASE_URL);
   }
 
   return base;

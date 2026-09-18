@@ -213,13 +213,34 @@ export function revisarCadena(url: string | undefined): Pista[] {
     });
   }
 
-  if (forma.puerto === 5432) {
+  /*
+    La conexion directa de Supabase (`db.<referencia>.supabase.co`) resuelve solo
+    por IPv6, y las funciones de Vercel no salen por IPv6. El resultado no es un
+    error de credenciales: la conexion se queda esperando hasta que Vercel corta
+    la funcion y devuelve un 504. O sea que el sintoma —la pagina que no carga—
+    no se parece en nada a la causa.
+
+    Por eso es un error y no un aviso: desde Vercel, con esa cadena, no hay
+    conexion posible.
+  */
+  const esDirectaDeSupabase = /^db\..+\.supabase\.co$/.test(forma.anfitrion ?? "");
+  if (esDirectaDeSupabase) {
+    pistas.push({
+      nivel: "error",
+      titulo: "Esa es la conexion directa, y desde Vercel no funciona",
+      queHacer:
+        "El servidor que empieza por 'db.' solo se puede alcanzar por IPv6, y las " +
+        "funciones de Vercel no salen por ahi: la conexion se queda colgada hasta " +
+        "que la pagina da tiempo agotado. Usa la cadena de la pestaña Transaction " +
+        "pooler, cuyo servidor termina en 'pooler.supabase.com' y usa el puerto 6543.",
+    });
+  } else if (forma.puerto === 5432) {
     pistas.push({
       nivel: "aviso",
-      titulo: "Estas usando la conexion directa, no el pooler",
+      titulo: "Estas usando el puerto de la conexion directa, no el del pooler",
       queHacer:
-        "Funciona, pero en Vercel se agotan las conexiones en cuanto haya trafico. " +
-        "Cambia a la cadena del Transaction pooler, puerto 6543.",
+        "Puede funcionar, pero en Vercel se agotan las conexiones en cuanto haya " +
+        "trafico. Cambia a la cadena del Transaction pooler, puerto 6543.",
     });
   }
 
@@ -298,6 +319,19 @@ export function traducirError(mensaje: string): Pista | undefined {
     };
   }
 
+  if (m.includes("no contesto en")) {
+    return {
+      nivel: "error",
+      titulo: "La base no contesto a tiempo",
+      queHacer:
+        "Cuando no contesta nadie —en vez de rechazar la contrasena— casi siempre " +
+        "es que la direccion no se puede alcanzar. La causa mas comun desde Vercel " +
+        "es estar usando la conexion directa (el servidor que empieza por 'db.'), " +
+        "que solo funciona por IPv6. Usa la del Transaction pooler. La otra causa " +
+        "es que el proyecto de Supabase este dormido: abrelo y espera a que arranque.",
+    };
+  }
+
   if (m.includes("econnrefused") || m.includes("enotfound") || m.includes("timeout")) {
     return {
       nivel: "error",
@@ -305,7 +339,8 @@ export function traducirError(mensaje: string): Pista | undefined {
       queHacer:
         "Comprueba que el proyecto de Supabase esta encendido —los gratuitos se " +
         "duermen si no se usan— y que la direccion y el puerto de DATABASE_URL son " +
-        "los que da Supabase. El puerto del pooler es el 6543.",
+        "los que da Supabase. El puerto del pooler es el 6543. Y si el servidor " +
+        "empieza por 'db.', esa es la conexion directa y desde Vercel no funciona.",
     };
   }
 

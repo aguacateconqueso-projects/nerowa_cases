@@ -46,16 +46,20 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ## Lo primero de la proxima sesion
 
-**Leer `docs/panel-nerowa.md` y ver si Adrian lo aprobo, lo corrigio o dejo
-preguntas.** Es el diseno completo de la fase 7 y **no hay una linea de codigo
-escrita todavia**, a proposito: primero se aprueba. Si esta aprobado, se arranca
-por la **fase 7.0** (base de datos, entrar con enlace al correo, instalable en el
-iPhone, bot de Telegram), que es la unica que no depende de ningun dato que falte.
+**Lo que bloquea ahora mismo: la cadena de conexion de Supabase en Vercel.**
+El panel entero esta escrito y desplegado, pero sin base no guarda nada. Hay que
+entrar en `nerowacases.com/panel/estado` (solo Adrian) y leer el veredicto: la
+pantalla nombra el fallo concreto y que hacer. La cadena buena es la del
+**Transaction pooler** — servidor terminado en `pooler.supabase.com`, puerto
+`6543`, usuario `postgres.<ref>` — **no** la conexion directa
+(`db.<ref>.supabase.co`), que solo tiene IPv6 y desde Vercel no se alcanza.
 
-**Lo que hace falta para poder empezar el panel** esta en el apartado 14 de ese
-documento. Lo mas urgente, porque ya bloqueaba tambien las fases 2 y 3: **los 14
-colores con nombre y valor exacto**, y **cuanto cuesta producir un estuche** —
-sin ese segundo numero, el grafico de ganancia que Adrian pidio no puede existir.
+**Cuando la base responda, seguir por la fase 7.1**: meter pedidos a mano en la
+pestana 1. Es lo unico del panel que no depende de ningun dato que falte.
+
+**Lo que sigue faltando y no lo puedo suplir yo**: **los 14 colores con nombre y
+valor exacto**, el `.glb`, los datos fiscales de la empresa y el desglose de los
+1.000 EUR de importacion. Ver el apartado 14 de `docs/panel-nerowa.md`.
 
 **Preguntarle a Alfredo que quiere cambiar del hero rehecho.** Lo aprobo a la
 vista en la sesion 9 — *"me gusta lo que hiciste, visualmente"* — y los tres PR
@@ -1669,3 +1673,56 @@ problema**. Detectar "hay un caracter raro" y decir "cambia la contrasena" es
 resolver el sintoma con el remedio equivocado.
 
 20 comprobaciones de diagnostico. 83 en total.
+
+### Sesion 10, vuelta 12 — la pantalla de estado se colgaba
+
+Adrian: *"hice todo, ni siquiera carga"*, con una captura de
+`504 FUNCTION_INVOCATION_TIMEOUT` en `nerowacases.com/panel/estado`.
+
+**El cambio de sintoma es el diagnostico.** Antes la base contestaba
+`password authentication failed`; ahora **no contesta nadie**. Eso no es la
+misma averia con otra cara: es que la cadena apunta a otro sitio. Supabase
+ofrece dos, y la que sale primero en su pantalla es la **conexion directa**
+(`db.<ref>.supabase.co`), que **solo tiene IPv6** y desde Vercel no se alcanza.
+No rechaza: se queda esperando hasta que Vercel corta la funcion a los 10
+segundos.
+
+**Lo que estaba mal de mi lado, y es lo importante:** la pantalla que existe
+**para explicar por que la base no va** se colgaba con la base. Preguntaba seis
+cosas a Postgres sin tope de tiempo, y la revision de la cadena — que no
+necesita base ninguna — corria **despues** de intentar conectar. Con la base
+muda, el unico aviso capaz de nombrar el fallo moria esperando a la causa del
+fallo.
+
+**Arreglado por orden de dependencia, no por orden de escritura:**
+
+- La revision de la cadena y la vista enmascarada se calculan **antes** de tocar
+  la base. Son texto; no tienen por que esperar a nadie.
+- Las seis consultas van envueltas en `conTope(...)`, con 4 segundos de techo.
+  Cuatro es menor que los 10 de Vercel a proposito: la pantalla tiene que poder
+  contar que hubo espera, y para contarlo tiene que seguir viva.
+- `connect_timeout` baja de 10 a 5 en `conexion.ts`.
+- `db.<ref>.supabase.co` se detecta y se marca **error, no aviso**: "Esa es la
+  conexion directa, y desde Vercel no funciona". Es la causa mas probable de lo
+  que Adrian esta viendo, y el sitio donde tiene que leerlo es la propia
+  pantalla, no un mensaje mio.
+- El tiempo agotado tiene su traduccion propia, que apunta a IPv6 o a un
+  proyecto dormido.
+
+**`conTope` vive en `src/lib/panel/tope.ts` y no lleva `server-only`.** Mismo
+motivo que `diagnostico-conexion.ts`: lo que no se puede importar desde una
+prueba, no se prueba. Una de las cuatro comprobaciones vigila con
+`process.getActiveResourcesInfo()` que **no queden relojes sueltos**, porque un
+`setTimeout` sin limpiar mantiene viva la funcion en Vercel — arreglar un tiempo
+de espera creando otro habria sido gracioso.
+
+**Comprobado contra un socket que acepta y no contesta nunca** (un agujero
+negro, que es exactamente lo que hace la conexion directa desde Vercel): la
+pantalla responde en **0,7 s** con el motivo escrito, en vez de agotar los 10 y
+devolver 504.
+
+**La leccion, otra vez la misma de la vuelta anterior con otra ropa:** una
+herramienta de diagnostico que depende de lo que diagnostica no es una
+herramienta de diagnostico. Falla justo cuando hace falta.
+
+4 comprobaciones del tope. 22 de diagnostico. **89 en total.**
