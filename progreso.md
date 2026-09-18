@@ -46,16 +46,19 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ## Lo primero de la proxima sesion
 
-**Lo que bloquea ahora mismo: la cadena de conexion de Supabase en Vercel.**
-El panel entero esta escrito y desplegado, pero sin base no guarda nada. Hay que
-entrar en `nerowacases.com/panel/estado` (solo Adrian) y leer el veredicto: la
-pantalla nombra el fallo concreto y que hacer. La cadena buena es la del
-**Transaction pooler** — servidor terminado en `pooler.supabase.com`, puerto
-`6543`, usuario `postgres.<ref>` — **no** la conexion directa
-(`db.<ref>.supabase.co`), que solo tiene IPv6 y desde Vercel no se alcanza.
+**LA BASE YA FUNCIONA.** Costo seis vueltas (13 a 16 de la bitacora) y quedo
+resuelto: cadena del pooler, region de Vercel en Dublin al lado de la base,
+consultas agrupadas y topes en la propia conexion. **No hay que volver a tocar
+nada de eso.**
 
-**Cuando la base responda, seguir por la fase 7.1**: meter pedidos a mano en la
-pestana 1. Es lo unico del panel que no depende de ningun dato que falte.
+**Lo primero es el error abierto de abajo: el panel va lento y las pestanas no
+responden al primer toque.** Adrian: *"funciona, está laggy, tengo que clicar 30
+veces en los iconos abajo para poder ver la pagina"*. Esta sin diagnosticar y es
+lo que impide usar el panel de verdad. Los dos sospechosos y como descartarlos
+estan en el apartado "Error abierto" al final de este archivo.
+
+**Despues, la fase 7.1**: meter pedidos a mano en la pestana 1. Es lo unico del
+panel que no depende de ningun dato que falte.
 
 **Lo que sigue faltando y no lo puedo suplir yo**: **los 14 colores con nombre y
 valor exacto**, el `.glb`, los datos fiscales de la empresa y el desglose de los
@@ -1960,3 +1963,56 @@ mejorar, y una consulta de mas parecia gratis. Las reglas que solo viven en
 comentarios se rompen precisamente cuando uno cree que sabe lo que hace.
 
 14 comprobaciones de salud. **114 en total.**
+
+
+---
+
+## Error abierto: el panel va lento y las pestanas se comen los toques
+
+**Lo que se ve** (Adrian, sesion 10, tras cerrar el lio de la base de datos):
+
+> funciona, está laggy, tengo que clicar 30 veces en los iconos abajo para poder
+> ver la pagina
+
+Son **dos sintomas distintos** y conviene no mezclarlos: que la navegacion tarde
+es una cosa, y que un toque **no haga nada visible** es otra. El segundo es el
+grave: si el toque no da senal, la persona vuelve a tocar, y eso no es impaciencia
+— es que la interfaz no contesto.
+
+**Lo que YA se descarto**, para no repetirlo:
+
+- **No es el area de toque.** `.panel-pestana` mide 4,5 rem de alto y un tercio
+  del ancho (`src/app/panel/panel.css:49`). De sobra: el minimo comodo son 44 px.
+- **No es la base de datos.** El puerto responde en 4 ms y las consultas bajaron
+  de 19 a 6 por pantalla.
+
+**Sospechoso 1 — el toque no da ninguna senal y la pagina tarda en llegar.**
+TODAS las pantallas del panel son `force-dynamic` (diez archivos bajo
+`src/app/panel/`). Con eso Next **no puede precargar** ninguna ruta: cada toque
+es un viaje entero al servidor, y hasta que vuelve **no cambia ni un pixel**. Ni
+el icono se marca, ni hay barra, ni nada. Treinta toques es la consecuencia
+logica de eso, no un capricho.
+
+Por donde mirar: `src/app/panel/_piezas/barra-pestanas.tsx`. Marcar la pestana
+como activa **en cuanto se toca**, sin esperar al servidor (`useTransition`, o
+`useLinkStatus` de Next 16). Y revisar si todas esas pantallas necesitan de
+verdad `force-dynamic`, o si el armazon puede ser estatico y los datos entrar
+por `Suspense`.
+
+**Sospechoso 2 — el desenfoque de la barra.** `.panel-barra` lleva
+`backdrop-filter: blur(12px)` sobre un elemento `position: fixed`
+(`panel.css:34`). En Safari de iPhone eso obliga a recomponer la capa
+continuamente mientras se hace scroll, y es una causa conocida de scroll a
+tirones y de toques que tardan en registrarse. **Es la prueba mas barata de
+todas**: quitar el blur y ver si desaparece. Si es eso, se sustituye por un
+fondo solido.
+
+**Tercera cosa a mirar si las dos anteriores no son:** el trabajador de servicio,
+`public/panel/sw.js:56`, que intercepta y llama a `ventana.navigate?.()`. Esta
+en medio de cada navegacion y nadie lo ha medido.
+
+**Como comprobarlo, y esto importa mas que las hipotesis.** Las tres son
+plausibles y en esta sesion ya paso cuatro veces que una hipotesis plausible
+fuera falsa. **Medir primero**: abrir el panel en el iPhone con el inspector de
+Safari conectado y mirar cuanto pasa entre el toque y el primer cambio en
+pantalla. Ese numero dice cual de los tres es, y sin el se depura a ciegas.
