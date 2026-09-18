@@ -2216,40 +2216,106 @@ porque solo se rompe la segunda vez.
 
 5 comprobaciones del arranque. **124 en total.**
 
+### Sesion 10, vuelta 20 — la pantalla de diagnostico estaba acusando al culpable equivocado
+
+Adrian mando por fin lo de `/panel/estado`, que era el dato que faltaba desde
+hacia tres vueltas. Y lo que dice **contradice lo que la propia pantalla le
+estaba aconsejando**.
+
+**Lo que llego de produccion:**
+
+| Que | Valor |
+|---|---|
+| El nombre resuelve | ✓ IPv4 |
+| El puerto del pooler | ✓ **acepta en 6 ms** |
+| Usuario, puerto, contrasena | ✓ los tres correctos |
+| `medirSalud` (`select 1`) | ✗ **no contesto en 2 segundos** |
+| La consulta del panel | ✗ no contesto en 4,983 segundos |
+| El consejo en pantalla | *"casi siempre es un candado... suelta las atascadas"* |
+
+**El consejo es falso, y se puede demostrar con una linea.** `medirSalud` corre
+`select 1`. Esa consulta **no pide ningun candado** — para eso se escribio en la
+vuelta 14, precisamente para poder distinguir estos dos casos. Si `select 1` se
+queda esperando, un candado no puede ser la causa. Ni puede serlo.
+
+Lo estaba mandando a pulsar un boton que ademas **no podria funcionar**: soltar
+las sesiones atascadas necesita hablar con la misma base que no contesta.
+
+**Es el error de la vuelta 13 otra vez, con otra ropa.** Aquella vez la pantalla
+decia "casi siempre es que la direccion no se puede alcanzar" cuando el puerto
+aceptaba en 77 ms — correcta para el caso de ayer, falsa para el de hoy. El
+arreglo de entonces fue darle a `traducirError` el dato de las sondas de red.
+**Faltaba el otro dato: si hay pulso.** Una funcion que solo sabe la mitad da
+respuestas seguras a medias.
+
+**Arreglado:** `traducirError` recibe ahora tambien si la base contesto al
+`select 1`. Con puerto que acepta y sin pulso, la pista deja de hablar de
+candados y dice lo que corresponde: **el pooler de Supabase es compartido y
+sigue en pie aunque el proyecto que hay detras este dormido, reiniciandose o sin
+conexiones libres.** Por eso acepta en 6 ms y aun asi no contesta nadie. Y manda
+a mirar donde si esta: el estado del proyecto en Supabase.
+
+**Y la pantalla dejaba de contestar por gastar el presupuesto en preguntar dos
+veces lo mismo.** Cuando `medirSalud` fallaba, el codigo se caia al camino de
+los seis listados —seis viajes en fila india, porque `max: 1`— y quemaba el
+resto del tiempo para llegar al mismo sitio, mas tarde y peor. De ahi los dos
+numeros de la foto: "no contesto en 2 segundos" arriba y "no contesto en 4,983"
+abajo, que son **el mismo hecho contado dos veces**. Ahora, si no hay pulso, se
+contesta ya y con el dato bueno.
+
+**Lo que sigue sin estar arreglado, y hay que decirlo con nombre.** `conTope`
+abandona la promesa pero **no cierra la conexion** — apuntado en la vuelta 14 y
+nunca resuelto. Cada espera agotada deja una consulta viva al otro lado y, con
+`max: 1`, la unica conexion de esa instancia ocupada. Es la misma forma que el
+fallo de la vuelta 19: una instancia que tropieza queda inservible. Y si eso se
+acumula contra el pooler, el pooler acaba aceptando conexiones sin poder dar
+ninguna sesion — que es exactamente el sintoma de hoy. **No lo toco en esta
+vuelta** porque cancelar una consulta de verdad no es una linea y no lo puedo
+probar contra el Supabase real desde aqui; queda como la siguiente pieza, con su
+evidencia escrita.
+
+**La leccion, y es sobre las herramientas de diagnostico.** Esta pantalla ya
+habia fallado dos veces del mismo modo: en la vuelta 13 dando por segura una
+causa que no habia medido, y en la vuelta 16 quedandose muda por medir de mas.
+Hoy fallo por tercera vez, y siempre por lo mismo — **afirmar mas de lo que
+sabe**. Una herramienta que dice "casi siempre es X" sin haber comprobado X no
+esta diagnosticando, esta adivinando con autoridad, y eso es peor que callarse:
+manda a trabajar en el sitio equivocado a quien confia en ella.
+
+2 comprobaciones de salud mas. **126 en total.**
+
 
 ---
 
 ## Lo que queda por confirmar
 
-**De la vuelta 19 (la instancia envenenada).** Es el arreglo con mas
-posibilidades de ser LA causa: explica que el panel no cargue nunca en unas
-cargas y si en otras, sin que la base tenga nada. No esta confirmado contra
-produccion — no tengo acceso — pero el fallo esta reproducido, medido y con
-prueba que lo vigila.
+**Lo que dicen los datos de produccion, en una frase:** se llega al pooler de
+Supabase (6 ms) pero **detras no hay base que conteste ni a un `select 1`**. Eso
+no es un candado, no es la direccion, no es la contrasena y no es el codigo del
+panel: los cuatro estan comprobados en verde en la propia pantalla.
 
-**Lo que hace falta para cerrarlo de verdad, y es un dato que solo puede dar
-Adrian:** abrir **`/panel/estado`**. Esa pantalla tiene su propio tope y
-contesta aunque el resto este atascado; dice el pulso de la base, si las tablas
-estan, cuantas sesiones hay a medias y que error concreto sale. **Ese es el
-numero que falta desde hace tres vueltas**, y sin el se sigue depurando a
-ciegas. El aviso de tardanza ya lleva un boton que va justo ahi.
+**El siguiente paso es de Adrian y es de diez segundos:** abrir el proyecto en
+Supabase y mirar si esta **Active, Paused o Restarting**. El pooler es
+infraestructura compartida y sigue aceptando conexiones aunque el proyecto no
+este; por eso la sonda de puerto sale en verde y la consulta nunca vuelve. Si
+esta pausado, reanudarlo. Si dice Active, mirar el uso de conexiones del pooler.
 
-**Si tras este despliegue sigue sin cargar**, lo siguiente a mirar por orden:
+**Si el proyecto esta Active y las conexiones libres**, entonces la siguiente
+sospecha por orden:
 
-1. Lo que diga `/panel/estado`.
-2. El registro de Vercel de esa peticion: si sale un corte por tiempo, el
-   problema es cuanto tarda la pantalla, y la cuenta esta en la vuelta 15.
-3. El tope de tiempo general para las consultas, que sigue pendiente y hay que
-   hacer distinguiendo la migracion del resto (ver la cabecera de
-   `loading.tsx`).
+1. **`conTope` sin cerrar la conexion** (vuelta 14, sin resolver). Cada espera
+   agotada deja una consulta viva y ocupa la unica conexion de esa instancia.
+   Acumulado, el pooler acepta y no da sesion. Es la pieza pendiente mas
+   probable y la que hay que hacer a continuacion.
+2. **El tope de tiempo general para las consultas**, que hay que hacer
+   distinguiendo la migracion del resto (ver la cabecera de `loading.tsx`).
 
-**De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono:
+**De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono, y
+hasta que la base conteste no se puede:
 
 1. **Si siguen haciendo falta varios toques.** Ya no puede ser por falta de
    senal. El sospechoso que queda: en Safari **sin instalar**, la franja de
    abajo es donde vive la barra del navegador, y el primer toque ahi la
-   despliega en vez de llegar a la pagina. Se distingue en un segundo: si
-   instalado en la pantalla de inicio va bien y en la pestana de Safari no, es
-   eso.
+   despliega en vez de llegar a la pagina.
 2. **Si el scroll sigue a tirones.** El desenfoque ya no esta. Si continua, el
-   siguiente sitio donde mirar es `.panel-accion-anclada`.
+   siguiente sitio es `.panel-accion-anclada`.

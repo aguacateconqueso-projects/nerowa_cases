@@ -230,6 +230,36 @@ async function principal() {
     assert.match(pista.queHacer, /candado/i);
   });
 
+  await comprueba("sin pulso NO se acusa a un candado, aunque se llegue", () => {
+    /*
+      EL CASO DE PRODUCCION, tal cual llego: puerto del pooler aceptando en
+      6 ms, `select 1` sin contestar en 2 s, y la consulta agotando el tiempo.
+
+      Antes esta combinacion decia "casi siempre es un candado, suelta las
+      atascadas" — y mandaba a pulsar un boton que ni puede funcionar, porque
+      necesita la misma base que no responde. `select 1` no pide candados: si no
+      vuelve, un candado no es la causa. Ni puede serlo.
+    */
+    const pista = traducirError("La base no contesto en 4.983 segundos", {
+      seLlega: true,
+      pulso: false,
+    });
+    assert.ok(pista);
+    assert.doesNotMatch(pista.queHacer, /suelta las atascadas/i);
+    assert.match(pista.titulo, /pooler/i);
+    /* Y que mande donde si esta el problema. */
+    assert.match(pista.queHacer, /paused|pausa|restarting|conexiones/i);
+  });
+
+  await comprueba("con pulso, un candado SI es explicacion legitima", () => {
+    const pista = traducirError("La base no contesto en 4 segundos", {
+      seLlega: true,
+      pulso: true,
+    });
+    assert.ok(pista);
+    assert.match(pista.queHacer, /candado/i);
+  });
+
   await comprueba("un candado se nombra como candado, no como red", () => {
     const pista = traducirError("canceling statement due to lock timeout");
     assert.ok(pista);
