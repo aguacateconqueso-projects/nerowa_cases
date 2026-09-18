@@ -21,7 +21,7 @@ import type { Conexion } from "../../adaptadores/postgres/conexion";
 import { huecos } from "../../adaptadores/postgres/huecos";
 import { SQL_001_INICIAL } from "../../adaptadores/postgres/migraciones";
 import { migrar } from "../../adaptadores/postgres/migrar";
-import { medirSalud, soltarAtascadas } from "../../adaptadores/postgres/salud";
+import { contarFilas, medirSalud, soltarAtascadas } from "../../adaptadores/postgres/salud";
 import { traducirError } from "../../diagnostico-conexion";
 
 let hechas = 0;
@@ -91,9 +91,8 @@ async function principal() {
   });
 
   await comprueba("los conteos vienen en UNA consulta, no en seis", async () => {
-    const s = await medirSalud(cx);
-    assert.ok(s.conteos, "no trajo los conteos");
-    assert.deepEqual(Object.keys(s.conteos).sort(), [
+    const conteos = await contarFilas(cx);
+    assert.deepEqual(Object.keys(conteos).sort(), [
       "Colores",
       "Lotes de importacion",
       "Pedidos de la web",
@@ -103,8 +102,56 @@ async function principal() {
     ]);
     /* `count(*)` vuelve como cadena de Postgres: si no se convierte, la
        pantalla enseñaria "0" como texto y las sumas fallarian en silencio. */
-    for (const v of Object.values(s.conteos)) {
+    for (const v of Object.values(conteos)) {
       assert.equal(typeof v, "number", "un conteo volvio sin convertir a numero");
+    }
+  });
+
+  await comprueba("medirSalud NO consulta ni una tabla del panel", async () => {
+    /*
+      LA COMPROBACION QUE MAS IMPORTA DE ESTE ARCHIVO.
+
+      Esta regla ya se rompio una vez: se metio aqui la consulta de conteos por
+      ahorrar un viaje, se colgo esperando un candado, y se llevo por delante el
+      pulso, la lista de sesiones y el boton de soltarlas. La pantalla que existe
+      para explicar por que la base no va se quedo muda otra vez.
+
+      Un espia registra cada consulta y falla si alguna nombra una tabla del
+      panel. Asi la regla deja de ser un comentario en la cabecera y pasa a ser
+      algo que no se puede romper sin que las pruebas se pongan rojas.
+    */
+    const vistas: string[] = [];
+    const espia: Conexion = {
+      async consultar<T>(texto: string, params: readonly unknown[] = []) {
+        vistas.push(texto);
+        return cx.consultar<T>(texto, params);
+      },
+      ejecutar: cx.ejecutar,
+    };
+
+    await medirSalud(espia);
+
+    assert.ok(vistas.length > 0, "el espia no vio ninguna consulta");
+    const DEL_PANEL = [
+      "usuarios",
+      "colores",
+      "lotes",
+      "pedidos",
+      "tiendas",
+      "pedidos_mayoristas",
+      "apuntes",
+    ];
+    for (const sql of vistas) {
+      /* `to_regclass('public.migraciones_aplicadas')` nombra una tabla pero no
+         la toca: mira el catalogo. Se compara contra el SQL sin esa linea. */
+      const cuerpo = sql.replace(/to_regclass\([^)]*\)/g, "");
+      for (const tabla of DEL_PANEL) {
+        assert.doesNotMatch(
+          cuerpo,
+          new RegExp(`\\b(from|join|into|update)\\s+${tabla}\\b`, "i"),
+          `medirSalud toca la tabla "${tabla}": puede quedarse esperando un candado`,
+        );
+      }
     }
   });
 

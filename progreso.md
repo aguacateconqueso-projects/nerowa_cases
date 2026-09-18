@@ -1908,3 +1908,55 @@ que tenia que haberme hecho tres vueltas antes no era "¿que esta roto?" sino
 "¿cuanto tarda una consulta, y cuantas estoy haciendo?".
 
 13 comprobaciones de salud. **113 en total.**
+
+### Sesion 10, vuelta 16 — rompi mi propia regla y volvi a cegar la pantalla
+
+**Primero, lo que si funciono:** el puerto pasa de **77 ms a 4 ms**. Fijar la
+region de Vercel en Dublin, al lado de la base, hizo exactamente lo que tenia que
+hacer. Esa parte esta resuelta.
+
+**Y lo que rompi.** La seccion "quien mas esta conectado" desaparecio de la
+pantalla, y la aritmetica dice por que: `medirSalud` tenia un tope de 3 s y se lo
+comio entero, asi que al almacen le quedaron 8000 − 3028 = **4.972 s**,
+exactamente el numero que salia en pantalla.
+
+Se colgo porque en la vuelta anterior **le meti a `medirSalud` la consulta de
+conteos, que toca las seis tablas del panel** — por ahorrar un viaje. La cabecera
+de ese mismo archivo dice, escrito por mi dos vueltas antes:
+
+> LA REGLA DE ESTE ARCHIVO: aqui solo entran consultas que no tocan las tablas
+> del panel. [...] Una sonda que se bloquea por lo mismo que esta midiendo no
+> mide nada.
+
+La rompi yo, tres dias despues de escribirla, optimizando. Y el efecto fue el
+mismo de siempre: un candado en `pedidos` dejaba sin pulso, sin lista de sesiones
+y sin boton de soltarlas a la pantalla entera.
+
+**Arreglado, y esta vez con guardian.** Los conteos viven ahora en `contarFilas`,
+aparte, con su propio tope; que falle es un dato mas y no el final del
+diagnostico. Pero lo que importa no es eso: **un comentario en una cabecera no
+protege nada**. Ahora hay una prueba con un espia que registra cada consulta que
+hace `medirSalud` y falla si alguna nombra una tabla del panel.
+
+**Y comprobe que el guardian de verdad muerde**, porque una prueba que no falla
+cuando debe no es una prueba: rompi la regla a proposito y salio
+`medirSalud toca la tabla "pedidos": puede quedarse esperando un candado`. Al
+primer intento fallo por otro motivo —la tabla aun no existia en esa fase— y
+tuve que inyectar la ruptura donde el espia si llega. Una prueba que falla por la
+razon equivocada da la misma luz roja y no garantiza nada.
+
+**El arreglo de fondo, que faltaba desde el principio.** `lock_timeout` de 2 s y
+`statement_timeout` de 5 s van ahora en el **saludo inicial de la conexion**, asi
+que valen para TODAS las consultas de TODAS las pantallas — no solo para las que
+alguien se acordo de envolver en un tope. Hasta hoy, cada tope era un parche que
+habia que recordar poner; llevamos cuatro vueltas arreglando sintomas de que no
+estaba puesto. `lock_timeout` menor que `statement_timeout` a proposito: un
+candado es un fallo con nombre y solucion conocida, y hay que poder
+distinguirlo de una consulta que simplemente tarda.
+
+**La leccion, y es la mas incomoda de la sesion:** el fallo de esta vuelta no fue
+no saber la regla. **Yo escribi la regla.** Fue que optimizar se siente como
+mejorar, y una consulta de mas parecia gratis. Las reglas que solo viven en
+comentarios se rompen precisamente cuando uno cree que sabe lo que hace.
+
+14 comprobaciones de salud. **114 en total.**

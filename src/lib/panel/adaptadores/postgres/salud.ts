@@ -34,8 +34,6 @@ export interface Salud {
   pulsoMs: number;
   /** Si las tablas del panel ya existen. */
   tablasCreadas: boolean;
-  /** Cuantas filas hay en cada tabla del panel. Vacio si aun no hay tablas. */
-  conteos?: Record<string, number>;
   /** Sesiones abiertas contra esta base, sin contar la nuestra. */
   sesiones: Sesion[];
   /** Las que quedaron a medio hacer y por tanto retienen candados. */
@@ -60,32 +58,6 @@ export async function medirSalud(cx: Conexion): Promise<Salud> {
   const [{ existe }] = await cx.consultar<{ existe: boolean }>(
     "select to_regclass('public.migraciones_aplicadas') is not null as existe",
   );
-
-  /*
-    Los conteos de las seis tablas EN UNA SOLA CONSULTA.
-
-    Antes se pedian llamando a los seis `listar*` del almacen. Eso tiene dos
-    problemas y los dos se pagaban en segundos: iban en seis viajes distintos
-    —`max: 1` hace que un `Promise.all` se ponga en fila india sobre la unica
-    conexion— y ademas traian las filas ENTERAS para acabar mirando `.length`.
-    Contar es trabajo de la base.
-  */
-  let conteos: Record<string, number> | undefined;
-  if (existe) {
-    const [fila] = await cx.consultar<Record<string, string>>(`
-      select
-        (select count(*) from usuarios)          as "Personas con acceso",
-        (select count(*) from colores)           as "Colores",
-        (select count(*) from lotes)             as "Lotes de importacion",
-        (select count(*) from pedidos)           as "Pedidos de la web",
-        (select count(*) from tiendas)           as "Tiendas",
-        (select count(*) from pedidos_mayoristas) as "Pedidos de tiendas"
-    `);
-    /* `count(*)` vuelve como cadena: es bigint y no cabe garantizado en un number. */
-    conteos = Object.fromEntries(
-      Object.entries(fila).map(([k, v]) => [k, Number(v)]),
-    );
-  }
 
   /*
     Quien mas esta conectado y que esta haciendo. Sin `query` completa: puede
@@ -117,7 +89,6 @@ export async function medirSalud(cx: Conexion): Promise<Salud> {
   return {
     pulsoMs,
     tablasCreadas: existe,
-    conteos,
     sesiones,
     atascadas: sesiones.filter(estaAtascada),
   };
@@ -147,4 +118,29 @@ export async function soltarAtascadas(cx: Conexion): Promise<number> {
       and state in ('idle in transaction', 'idle in transaction (aborted)')
   `);
   return filas.length;
+}
+
+/**
+ * Cuantas filas hay en cada tabla del panel, en UNA sola consulta.
+ *
+ * Vive aparte de `medirSalud` y no dentro, aunque compartan viaje, porque esto
+ * SI toca las tablas del panel y por tanto SI se puede quedar esperando un
+ * candado. Mezclarlas hacia que un candado en `pedidos` dejara sin pulso y sin
+ * lista de sesiones a la pantalla entera.
+ *
+ * Quien la llame le pone su propio tope. Que falle es un dato mas, no el final
+ * del diagnostico.
+ */
+export async function contarFilas(cx: Conexion): Promise<Record<string, number>> {
+  const [fila] = await cx.consultar<Record<string, string>>(`
+    select
+      (select count(*) from usuarios)           as "Personas con acceso",
+      (select count(*) from colores)            as "Colores",
+      (select count(*) from lotes)              as "Lotes de importacion",
+      (select count(*) from pedidos)            as "Pedidos de la web",
+      (select count(*) from tiendas)            as "Tiendas",
+      (select count(*) from pedidos_mayoristas) as "Pedidos de tiendas"
+  `);
+  /* `count(*)` vuelve como cadena: es bigint y no cabe garantizado en un number. */
+  return Object.fromEntries(Object.entries(fila).map(([k, v]) => [k, Number(v)]));
 }
