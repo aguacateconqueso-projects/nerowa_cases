@@ -21,6 +21,8 @@ const CLAVE = "MiClaveSuperSecreta123";
 const POOLER_BIEN = `postgresql://postgres.abcdefghijklm:${CLAVE}@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`;
 const POOLER_USUARIO_CORTO = `postgresql://postgres:${CLAVE}@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`;
 const DIRECTA = `postgresql://postgres:${CLAVE}@db.abcdefghijklm.supabase.co:5432/postgres`;
+/* El fallo de verdad de Adrian: dejar los corchetes del hueco de Supabase. */
+const CON_CORCHETES = `postgresql://postgres.abcdefghijklm:[${CLAVE}]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`;
 
 console.log("\nRevision de la cadena antes de conectar");
 
@@ -41,6 +43,20 @@ comprueba("la conexion directa avisa, pero solo avisa", () => {
   assert.equal(pistas.length, 1);
   assert.equal(pistas[0]!.nivel, "aviso");
   assert.match(pistas[0]!.titulo, /conexion directa/);
+});
+
+comprueba("dejar los corchetes de [YOUR-PASSWORD] se detecta, y se nombra", () => {
+  const pistas = revisarCadena(CON_CORCHETES);
+  assert.equal(pistas.length, 1, "deberia salir UNA pista, la concreta");
+  assert.equal(pistas[0]!.nivel, "error");
+  assert.match(pistas[0]!.titulo, /entre corchetes/);
+  assert.match(pistas[0]!.queHacer, /BORRARLOS/);
+  /*
+    Y NO la generica de "caracteres que rompen la direccion": es cierta, pero
+    decirla en vez de la concreta manda a cambiar la contrasena cuando lo que
+    hay que hacer es borrar dos caracteres.
+  */
+  assert.ok(!pistas.some((p) => /caracteres que rompen/.test(p.titulo)));
 });
 
 comprueba("una contrasena con @ sin codificar se detecta", () => {
@@ -67,6 +83,8 @@ comprueba("NADA de lo que sale a pantalla contiene la contrasena", () => {
   const conArroba = "postgresql://postgres.abc:mi@clave@aws-0.pooler.supabase.com:6543/postgres";
   const conBarra = "postgresql://postgres.abc:mi/clave@aws-0.pooler.supabase.com:6543/postgres";
   const todo = JSON.stringify([
+    ...revisarCadena(CON_CORCHETES),
+    cadenaALaVista(CON_CORCHETES),
     ...revisarCadena(POOLER_BIEN),
     ...revisarCadena(POOLER_USUARIO_CORTO),
     ...revisarCadena(DIRECTA),
@@ -125,6 +143,21 @@ comprueba("una contrasena con @ tampoco se escapa", () => {
   assert.ok(!v.texto.includes("mi@"));
 });
 
+comprueba("los corchetes se ven en la cadena tapada, sin enseñar la clave", () => {
+  const v = cadenaALaVista(CON_CORCHETES)!;
+  assert.equal(v.contrasenaEntreCorchetes, true);
+  /* Los corchetes se ven; lo de dentro no. */
+  assert.match(v.texto, /:\[•+\]@/);
+  assert.ok(!v.texto.includes(CLAVE));
+  /* Y el usuario sigue siendo el de verdad. */
+  assert.equal(v.usuario, "postgres.abcdefghijklm");
+});
+
+comprueba("sin corchetes, no se inventa que los hay", () => {
+  assert.equal(cadenaALaVista(POOLER_BIEN)!.contrasenaEntreCorchetes, false);
+  assert.match(cadenaALaVista(POOLER_BIEN)!.texto, /:•+@/);
+});
+
 comprueba("sin contrasena lo dice en vez de fingir que hay una", () => {
   const v = cadenaALaVista("postgresql://postgres.abc:@aws-0.pooler.supabase.com:6543/postgres")!;
   assert.equal(v.tieneContrasena, false);
@@ -137,11 +170,15 @@ comprueba("sin cadena puesta no devuelve nada", () => {
 
 console.log("\nTraduccion de lo que dice la base");
 
-comprueba("el fallo de Adrian apunta al usuario, que es lo que suele ser", () => {
+comprueba("el rechazo nombra las dos causas comunes, corchetes primero", () => {
   const p = traducirError('password authentication failed for user "postgres"');
   assert.equal(p?.nivel, "error");
   assert.match(p!.titulo, /rechazo el usuario o la contrasena/);
-  assert.match(p!.queHacer, /postgres\.<referencia-del-proyecto>/);
+  /* Las dos, y la de los corchetes antes: es la mas comun con diferencia. */
+  const donde = (t: string) => p!.queHacer.indexOf(t);
+  assert.ok(donde("YOUR-PASSWORD") > -1, "no menciona los corchetes");
+  assert.ok(donde("postgres.<referencia-del-proyecto>") > -1, "no menciona el usuario");
+  assert.ok(donde("YOUR-PASSWORD") < donde("postgres.<referencia-del-proyecto>"));
 });
 
 comprueba("no poder llegar se distingue de que te rechacen", () => {

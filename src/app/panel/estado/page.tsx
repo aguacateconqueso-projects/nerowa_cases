@@ -152,9 +152,19 @@ export default async function PantallaEstado() {
             />
             <Comprobacion
               termino="Contrasena"
-              valor={d.cadena.tieneContrasena ? "puesta" : "vacia"}
-              bien={d.cadena.tieneContrasena}
-              nota="su valor no se lee ni se enseña nunca"
+              valor={
+                d.cadena.contrasenaEntreCorchetes
+                  ? "entre corchetes"
+                  : d.cadena.tieneContrasena
+                    ? "puesta"
+                    : "vacia"
+              }
+              bien={d.cadena.tieneContrasena && !d.cadena.contrasenaEntreCorchetes}
+              nota={
+                d.cadena.contrasenaEntreCorchetes
+                  ? "hay que borrar los corchetes de [YOUR-PASSWORD]"
+                  : "su valor no se lee ni se enseña nunca"
+              }
             />
           </dl>
         </section>

@@ -1638,3 +1638,34 @@ que la contrasena no sale por ningun sitio: una pantalla que se ensena cuando
 algo falla acaba en una captura, y un error de servidor acaba en un registro.
 
 **79 comprobaciones del dominio en total.**
+
+**Y el fallo era mucho mas tonto de lo que estabamos persiguiendo: los
+corchetes.** Adrian preguntó *"siempre la coloqué bien solo que dentro de
+corchetes, había que eliminar los corchetes?"*. Si.
+
+Supabase da la cadena con `[YOUR-PASSWORD]` como hueco, y **los corchetes son
+parte del hueco, no de la sintaxis**. Al escribir la contrasena dentro de ellos,
+lo que viaja es `[laclave]` con corchetes incluidos, y Postgres contesta
+"password authentication failed" — que suena a contrasena equivocada cuando la
+contrasena era la correcta desde el principio.
+
+**Lo que hice mal, y es de trato, no de codigo.** La pista decia "la contrasena
+lleva caracteres que rompen la direccion" — cierto, porque los corchetes estan
+en la lista — y mandaba a **cambiar la contrasena en Supabase**. La contrasena
+estaba bien; habia que borrar dos caracteres. Una pista tecnicamente correcta
+que manda a hacer un trabajo innecesario es casi peor que ninguna, porque se
+obedece.
+
+**Ahora se detecta el caso concreto y se nombra:** si la contrasena esta entre
+corchetes sale "La contrasena quedo entre corchetes — hay que BORRARLOS", y **no**
+sale la generica. Ademas los corchetes se ven en la cadena tapada
+(`:[•••••••]@`), porque con la contrasena oculta el fallo era invisible. Y el
+mensaje de "la base rechazo el usuario o la contrasena" nombra ahora las dos
+causas comunes, con los corchetes primero por ser la mas frecuente.
+
+**La leccion:** cuando el diagnostico se cumple pero el usuario sigue atascado,
+lo que suele fallar no es la deteccion sino **el nombre que se le da al
+problema**. Detectar "hay un caracter raro" y decir "cambia la contrasena" es
+resolver el sintoma con el remedio equivocado.
+
+20 comprobaciones de diagnostico. 83 en total.
