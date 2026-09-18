@@ -195,6 +195,28 @@ export async function diagnosticar(): Promise<Diagnostico> {
     }
   }
 
+  /*
+    SI NO HAY PULSO, NO SE SIGUE PREGUNTANDO.
+
+    Cuando `medirSalud` falla, abajo se caia al camino de los seis listados —que
+    con Postgres son seis viajes en fila india, porque `max: 1`— y se gastaba el
+    resto del presupuesto para acabar diciendo lo mismo, pero mas tarde y peor.
+    Eso es lo que le salia a Adrian: "no contesto en 2 segundos" arriba y "no
+    contesto en 4.983 segundos" abajo, dos veces el mismo hecho.
+
+    Si `select 1` no vuelve, nada va a volver. Se contesta ya, con el dato bueno
+    —el del pulso— y con la pista correcta, que NO es la del candado.
+  */
+  if (persistente && base.saludError) {
+    base.error = base.saludError;
+    const traducido = traducirError(base.saludError, {
+      seLlega: base.red?.tcp?.estado === "acepta",
+      pulso: false,
+    });
+    if (traducido) base.pistas.push(traducido);
+    return base;
+  }
+
   if (base.salud && base.salud.atascadas.length > 0) {
     base.pistas.push({
       nivel: "error",
@@ -231,7 +253,9 @@ export async function diagnosticar(): Promise<Diagnostico> {
       base.cuentas = Object.entries(conteos).map(([que, cuantos]) => ({ que, cuantos }));
     } catch (error) {
       base.cuentasError = error instanceof Error ? error.message : String(error);
-      const traducido = traducirError(base.cuentasError, true);
+      /* Aqui el pulso SI contesto: se llego por `base.salud`. Un candado es
+         una explicacion legitima, y los conteos si tocan tablas del panel. */
+      const traducido = traducirError(base.cuentasError, { seLlega: true, pulso: true });
       if (traducido) base.pistas.push(traducido);
     }
     return base;
@@ -271,7 +295,11 @@ export async function diagnosticar(): Promise<Diagnostico> {
       cadena de conexion, que iria en la traza y no en el mensaje.
     */
     base.error = error instanceof Error ? error.message : String(error);
-    const traducido = traducirError(base.error, base.red?.tcp?.estado === "acepta");
+    const traducido = traducirError(base.error, {
+      seLlega: base.red?.tcp?.estado === "acepta",
+      /* `base.salud` puesto = el `select 1` contesto. Sin sonda, sin dato. */
+      pulso: base.salud ? true : base.saludError ? false : undefined,
+    });
     if (traducido) base.pistas.push(traducido);
   }
 

@@ -291,7 +291,26 @@ export function revisarCadena(url: string | undefined): Pista[] {
  * llegan igual por todos los caminos, y el texto de estos fallos concretos es
  * estable desde hace anios.
  */
-export function traducirError(mensaje: string, seLlega = false): Pista | undefined {
+export interface LoQueDijeronLasSondas {
+  /** El puerto del servidor acepta conexiones. */
+  seLlega?: boolean;
+  /**
+   * Si la base contesto a `select 1`, la consulta mas barata que existe.
+   *
+   * `false` significa que **ni eso** contesto, y ese dato lo cambia todo:
+   * `select 1` no pide ningun candado, asi que si se queda esperando, un
+   * candado no puede ser la causa. `undefined` es que no se llego a probar.
+   */
+  pulso?: boolean;
+}
+
+export function traducirError(
+  mensaje: string,
+  sondas: boolean | LoQueDijeronLasSondas = {},
+): Pista | undefined {
+  /* Admite el booleano de siempre para no reescribir cada llamada. */
+  const { seLlega = false, pulso } =
+    typeof sondas === "boolean" ? { seLlega: sondas, pulso: undefined } : sondas;
   const m = mensaje.toLowerCase();
 
   /*
@@ -345,6 +364,40 @@ export function traducirError(mensaje: string, seLlega = false): Pista | undefin
       quema una vuelta entera persiguiendo lo que ya estaba bien. Por eso esta
       pista necesita saber lo que dijeron las sondas.
     */
+    /*
+      EL CASO QUE COSTO UNA SESION ENTERA, Y NO SE PUEDE VOLVER A CONFUNDIR.
+
+      El puerto acepta en 6 ms y la consulta agota el tiempo. Hasta aqui,
+      identico al caso del candado de la vuelta 14. La diferencia esta en un
+      dato que antes esta funcion no recibia: **`select 1` tampoco contesto**.
+
+      Y `select 1` no pide candados. Ninguno. Si se queda esperando, lo que
+      falla no es una consulta bloqueada por otra: es que la sesion no tiene
+      detras una base que conteste. El pooler de Supabase es compartido y sigue
+      en pie —por eso acepta en 6 ms— aunque el proyecto que hay detras este
+      dormido, reiniciandose o sin conexiones libres.
+
+      Decir "es un candado" aqui manda a pulsar un boton que no puede arreglar
+      nada, y ademas ese boton necesita la misma base que no contesta. Es
+      exactamente el error de la vuelta 13: una pista correcta para el caso de
+      ayer, falsa para el de hoy, que manda a rehacer lo que ya estaba bien.
+    */
+    if (seLlega && pulso === false) {
+      return {
+        nivel: "error",
+        titulo: "Se llega al pooler, pero detras no hay base que conteste",
+        queHacer:
+          "Esto NO es un candado: ni siquiera un `select 1` —la consulta mas " +
+          "barata que existe, que no pide ningun candado— contesta. El puerto que " +
+          "responde es el del pooler de Supabase, que es compartido y sigue en pie " +
+          "aunque el proyecto no. Mira el proyecto en Supabase: si esta Paused o " +
+          "Restarting, reanudalo y espera a que quede Active. Si ya dice Active, " +
+          "mira el uso de conexiones del pooler — si estan todas ocupadas, acepta " +
+          "la conexion y nunca te da una sesion. Soltar sesiones atascadas aqui no " +
+          "sirve: haria falta la misma base que no responde.",
+      };
+    }
+
     return seLlega
       ? {
           nivel: "error",
