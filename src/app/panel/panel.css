@@ -127,12 +127,57 @@
 .panel-hueso {
   border-radius: 0.5rem;
   background: var(--panel-tarjeta-alta);
-  animation: panel-latido 1.4s ease-in-out infinite;
+  /*
+    Dos animaciones, y el orden importa. La segunda no hace nada durante sus
+    12 s de retraso; cuando arranca, gana ella sobre `opacity` por ir la ultima
+    de la lista, y las barras se quedan quietas y apagadas.
+
+    Es el momento en que el esqueleto deja de fingir que viene algo. Ver la
+    cabecera de `loading.tsx`: si el flujo se corto, el contenido no va a
+    llegar nunca, y unas barras latiendo para siempre son una mentira.
+  */
+  animation:
+    panel-latido 1.4s ease-in-out infinite,
+    panel-hueso-rendido 400ms ease 12s forwards;
 }
 
 @keyframes panel-latido {
   50% {
     opacity: 0.45;
+  }
+}
+
+@keyframes panel-hueso-rendido {
+  to {
+    opacity: 0.25;
+  }
+}
+
+/*
+  El aviso de que la espera dejo de ser normal.
+
+  TODO ESTO TIENE QUE FUNCIONAR SIN JAVASCRIPT. El fallo que arregla es un flujo
+  de respuesta cortado a medias, y ahi React no termina de montar: un
+  temporizador en un `useEffect` no llega a correr nunca. Una animacion con
+  retraso si, porque la hoja de estilos ya esta cargada y el documento ya esta
+  pintado.
+
+  `visibility` y no `display`: `display` no se puede animar, y hace falta que
+  esto no exista para un lector de pantalla mientras esta oculto.
+*/
+.panel-tardanza {
+  visibility: hidden;
+  opacity: 0;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--panel-borde);
+  animation: panel-tardanza-aparecer 400ms ease 12s forwards;
+}
+
+@keyframes panel-tardanza-aparecer {
+  to {
+    visibility: visible;
+    opacity: 1;
   }
 }
 

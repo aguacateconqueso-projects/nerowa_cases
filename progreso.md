@@ -2065,32 +2065,109 @@ este escrita.
 
 4 comprobaciones de navegacion. **118 en total.**
 
+### Sesion 10, vuelta 18 — mi esqueleto se quedo mintiendo para siempre
+
+Adrian, con una foto de `nerowacases.com/panel/tiendas` en gris: *"ahora todo
+queda asi claude, corrige"*. El esqueleto de la vuelta anterior, puesto, quieto,
+sin contenido y sin error. **Lo rompi yo en la vuelta 17.**
+
+**Reproducido, que es lo unico que vale.** Monte el panel contra un Postgres de
+verdad (PGlite por TCP) y probe los tres fallos por separado:
+
+| Que le pasa a la base | Que ve la persona |
+|---|---|
+| Sana | La pantalla, en 67 ms |
+| **Caida del todo** | La pantalla de error, en 1 s — esto ya funcionaba |
+| **El flujo se corta a medias** | **El esqueleto. Para siempre.** |
+
+El tercero es el de la foto. Un proxy que corta el socket a media emision —lo
+que hace Vercel cuando mata una funcion pasada de tiempo— y el navegador se
+queda con el armazon ya pintado sin recibir nunca ni el contenido ni el error.
+Medido a 1 s, 3 s y 10 s: ocho barras, cero avisos. En la consola solo queda un
+`ERR_INCOMPLETE_CHUNKED_ENCODING` que la persona no ve.
+
+**Y es culpa de lo que arregle la vuelta pasada.** Al transmitir por partes, el
+contenido util viaja DESPUES del armazon, asi que **un corte cuesta mas que
+antes**: antes se perdia una pagina que aun no habia empezado a llegar, ahora se
+pierde el relleno de una pagina que ya parece estar cargando. `error.tsx` no
+salva este caso — solo salta cuando LLEGA un error, y aqui no llega nada.
+
+**El arreglo tiene que ser de CSS, y eso no es una preferencia.** Lo primero que
+se me ocurrio fue un temporizador en un `useEffect`. No funciona: en ese fallo
+`document.readyState` se queda en `loading` **para siempre** —medido— porque
+React nunca termina de montar. El JavaScript de esa pantalla no corre. Lo unico
+vivo es lo que ya esta en el documento y en la hoja de estilos.
+
+Asi que a los **12 segundos** una animacion con retraso hace dos cosas: las
+barras se apagan y se quedan quietas —el esqueleto deja de fingir que viene
+algo— y aparece que pasa, con los mismos dos enlaces que la pantalla de error.
+Son `<a href>` de toda la vida: funcionan sin hidratar. Medido: invisible hasta
+los 10 s, visible a los 12,1 s, y en una carga sana **no llega a existir en el
+documento** porque se va con el resto del esqueleto.
+
+Doce segundos y no tres: una pantalla lenta que SI va a cargar no puede acusar
+de averia tan pronto.
+
+**Lo que NO hice, y es la parte que mas me costo dejar quieta.** Lo obvio era
+ponerle un tope de tiempo a todas las consultas en el envoltorio de
+`servicios.ts` — un solo sitio, cubre todo. Fui a hacerlo y me pare a mirar los
+numeros: la primera peticion tras un despliegue dispara las migraciones, y esas
+tienen `statement_timeout = '15s'` **a proposito**. Un tope general por debajo
+de eso las cortaria a mitad de transaccion, que es **exactamente** como se
+dejaron los candados muertos de la vuelta 14. Habria arreglado una averia
+reintroduciendo otra que ya nos costo tres vueltas. Queda apuntado en el codigo:
+hay que hacerlo, distinguiendo la migracion del resto, y es una vuelta propia.
+
+**Lo que aprendi, y va sobre el oficio, no sobre Next.** Una mejora que solo se
+prueba en el camino feliz no esta probada. La vuelta 17 midio siete veces el
+caso bueno —precargas, milisegundos, colores— y **ni una vez el caso malo**. El
+arreglo era correcto y aun asi empeoro el panel, porque cambio donde duele
+fallar. La pregunta que faltaba no era "¿funciona?" sino **"¿que se ve cuando
+esto no funcione?"**.
+
+Y de paso, mis instrumentos volvieron a mentirme dos veces mas: un `pkill -f`
+que se mato a si mismo, y un `waitUntil: "load"` que no llega nunca cuando el
+flujo esta cortado — justo el caso que estaba midiendo. Van cuatro en dos
+vueltas.
+
+**Un guardian nuevo**, con tres dientes: que el aviso exista, que el retraso no
+baje de 8 s, y —el importante— **que `loading.tsx` no se vuelva de cliente**,
+porque el `useEffect` es exactamente lo que va a intentar el proximo que pase
+por aqui. Comprobado que los tres muerden. Uno fallo al escribirlo, por mirar el
+archivo en bruto y dispararse con la palabra `useEffect` **escrita en mi propio
+comentario** que explica por que no se usa; ahora las comprobaciones miran el
+codigo sin comentarios.
+
+5 comprobaciones de navegacion. **119 en total.**
+
 
 ---
 
-## Lo que queda por confirmar de la vuelta 17
+## Lo que queda por confirmar
 
-El arreglo esta medido **en un navegador de escritorio haciendose pasar por un
-iPhone**, con el servidor retrasado a mano. Eso prueba lo que prueba: que ahora
-la pantalla cambia a los 228 ms de un toque en vez de quedarse quieta 2,5 s. No
-prueba como se siente en el telefono de Adrian, en su red.
+**De la vuelta 18 (el esqueleto que se quedaba en gris).** El arreglo esta
+medido contra un corte de flujo reproducido aqui. Lo que hay que ver en el
+panel de verdad: que al abrir una pantalla o no llega el contenido, o a los
+doce segundos aparece el aviso con la salida. **Lo que ya no puede pasar es
+quedarse en gris sin decir nada.**
 
-**Lo que hay que mirar cuando lo pruebe:**
+**Lo que sigue sin saberse, y es lo de fondo:** POR QUE se corto el flujo en
+produccion. El aviso hace visible el fallo, no lo cura. Cuando salga, el
+enlace "Ver que le pasa al sistema" lleva a `/panel/estado`, que es la pantalla
+hecha para eso — y esa si tiene su propio tope, asi que contesta aunque el
+resto no. Ese numero es el que falta.
 
-1. **Si siguen haciendo falta varios toques.** Si pasa, ya no puede ser por
-   falta de senal —ahora hay tres— y hay que buscar en otro sitio. El
-   sospechoso que queda sin descartar: en Safari **sin instalar**, la franja de
-   abajo de la pantalla es donde vive la barra del navegador, y el primer toque
-   ahi la despliega en vez de llegar a la pagina. Se distingue en un segundo:
-   si instalado en la pantalla de inicio va bien y en la pestana de Safari no,
-   es eso.
+**De la vuelta 17 (los treinta toques).** Sigue pendiente de probar en el
+telefono de Adrian:
+
+1. **Si siguen haciendo falta varios toques.** Ya no puede ser por falta de
+   senal. El sospechoso que queda: en Safari **sin instalar**, la franja de
+   abajo es donde vive la barra del navegador, y el primer toque ahi la
+   despliega en vez de llegar a la pagina. Se distingue en un segundo: si
+   instalado en la pantalla de inicio va bien y en la pestana de Safari no, es
+   eso.
 2. **Si el scroll sigue a tirones.** El desenfoque ya no esta. Si continua, el
-   siguiente sitio donde mirar es `.panel-accion-anclada`, que tambien es una
-   capa pegada con degradado.
+   siguiente sitio donde mirar es `.panel-accion-anclada`.
 
-**Y la regla que dejo escrita, porque me la salte cuatro vueltas seguidas:** el
-numero que hacia falta —cuanto pasa entre el toque y el primer cambio en
-pantalla— se podia medir desde el primer dia. No hizo falta el iPhone de Adrian
-para eso. Cuando un sintoma se describe en tiempos ("tarda", "va lento", "no
-responde"), lo primero es ponerle un numero a ese tiempo, y recien despues
-pensar en causas.
+**La deuda apuntada:** el tope de tiempo general para las consultas, que hay que
+hacer distinguiendo la migracion del resto (ver la cabecera de `loading.tsx`).
