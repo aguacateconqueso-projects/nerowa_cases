@@ -23,6 +23,7 @@ import type { Conexion } from "./conexion";
 import { huecos } from "./huecos";
 import { migrar, type Migracion } from "./migrar";
 import { SQL_001_INICIAL } from "./migraciones";
+import { unaSolaVez } from "./una-sola-vez";
 
 const MIGRACIONES: readonly Migracion[] = [
   { nombre: "001-inicial", sql: SQL_001_INICIAL },
@@ -87,21 +88,27 @@ async function sembrar(cx: Conexion) {
   );
 }
 
-let puesta: Promise<void> | undefined;
+let puesta: (() => Promise<void>) | undefined;
 
 /**
  * Se llama antes de la primera consulta del proceso.
  *
- * La promesa se guarda para que varias peticiones simultaneas no lancen la
- * migracion a la vez: todas esperan a la misma.
+ * Corre una sola vez: varias peticiones simultaneas esperan a la misma promesa,
+ * que es para lo que existe el guardado — diez peticiones a la vez no pueden
+ * lanzar diez migraciones.
+ *
+ * **Lo que NO se guarda es el fallo.** Antes si, y era un agujero serio: una
+ * instancia que pillaba un tropiezo de la base en su primera peticion se
+ * quedaba inservible mientras viviera, aunque la base se recuperara al segundo
+ * siguiente. Esta medido y contado en `una-sola-vez.ts`.
  */
 export function prepararBase(cx: Conexion): Promise<void> {
-  puesta ??= (async () => {
+  puesta ??= unaSolaVez(async () => {
     const nuevas = await migrar(cx, MIGRACIONES);
     if (nuevas.length > 0) {
       console.info(`[panel] migraciones aplicadas: ${nuevas.join(", ")}`);
     }
     await sembrar(cx);
-  })();
-  return puesta;
+  });
+  return puesta();
 }

@@ -2140,25 +2140,110 @@ codigo sin comentarios.
 
 5 comprobaciones de navegacion. **119 en total.**
 
+### Sesion 10, vuelta 19 — una instancia que tropieza queda inservible para siempre
+
+Adrian, con el panel en gris otra vez: *"grave claude, realmente me sorprende que
+no podamos resolver esto, que pasa?"*. Tenia razon en preguntarlo asi.
+
+**Lo primero, lo que si hizo el arreglo anterior:** el aviso salio. La pantalla
+dejo de mentir, y por eso se pudo ver que debajo habia un problema de verdad.
+Pero llevaba dos vueltas arreglando **lo que se ve** y ninguna **por que no
+llegan los datos**.
+
+**Una hipotesis mia, medida y descartada.** Pense que las precargas que introduje
+estaban machacando la base: abrir `/panel` una vez dispara ahora **16 peticiones
+al servidor, 11 de ellas precargas**, y antes esas 11 no existian. Monte un
+contador del protocolo de Postgres para contar consultas de verdad. Resultado:
+**una precarga cuesta 0 consultas**. La hipotesis era falsa y el numero la
+tumbo en un minuto. No multiplique la carga de la base.
+
+**Y entonces, leyendo `arranque.ts`, aparecio esto:**
+
+```ts
+let puesta: Promise<void> | undefined;
+puesta ??= (async () => { await migrar(...); await sembrar(...); })();
+```
+
+Parece correcto. Compila, pasa el lint, y funciona perfectamente **mientras todo
+vaya bien**. El agujero: si ese primer intento falla, **la promesa fallida se
+queda guardada para siempre**. Todas las consultas posteriores de ese proceso
+reciben el error de hace rato, con la base ya sana. No se recupera nunca.
+
+**Medido, que es como se encontro:**
+
+| Paso | Resultado |
+|---|---|
+| Arrancar con la base caida, primera peticion | falla — correcto |
+| Levantar la base, comprobar que responde (`select 1`) | responde |
+| Pedir la misma pantalla, 3 veces, mismo proceso | **sin datos, 3 de 3** |
+| Misma base sana, **proceso nuevo** | **funciona a la primera** |
+
+El codigo estaba bien y la base estaba bien. Lo unico roto era el proceso que
+vivio el tropiezo.
+
+**Por que esto es grave justo en Vercel.** Ahi no hay un servidor, hay muchas
+instancias que nacen y se reciclan solas. Una instancia que pilla un tropiezo en
+su primera peticion —un reinicio de Supabase, un candado, medio segundo de red—
+**queda inservible mientras viva**. Las peticiones que caigan en ella no cargan
+nunca; las que caigan en otra, si. Desde fuera se ve como un panel que "a veces
+no carga" sin que la base tenga nada. Y explica por que reintentar a veces
+funcionaba y a veces no: dependia de en que instancia cayeras.
+
+**Arreglado:** se recuerda el exito, no el fracaso. Un fallo se olvida y la
+siguiente peticion lo reintenta. Vive en `una-sola-vez.ts`, en su propio archivo
+y **sin `server-only` para poder probarlo** — por lo mismo que `huecos.ts` y
+`tope.ts`, y esta vez con el motivo delante de las narices: la garantia anterior
+no se probaba, y por eso el agujero duro tanto.
+
+Comprobado de punta a punta: mismo escenario, con el arreglo, el mismo proceso
+se recupera en la peticion siguiente. **Antes 0, 0, 0. Ahora 1, 1, 1.**
+
+**Y una correccion al aviso de la vuelta pasada.** Decia *"lo mas probable es
+que el panel no este pudiendo hablar con la base de datos"*. Eso era **adivinar
+en voz alta**: desde ahi no se sabe por que no llego el contenido. Ahora dice lo
+unico que consta —que no cargo, que no se perdio nada, que recargar es seguro—
+y manda a la pantalla que si puede medirlo. Un aviso que nombra un culpable sin
+comprobarlo manda a buscar donde no es, que es exactamente lo que costo tres
+vueltas en esta sesion.
+
+**Lo que aprendi, y es lo que responde a la pregunta de Adrian.** Las vueltas
+17 y 18 fueron a por el sintoma porque el sintoma era lo unico que yo podia ver:
+no tengo acceso a produccion —lo comprobe, la salida de este contenedor esta
+cerrada— y estuve teorizando sobre una maquina que nunca mire. La forma de
+salir de ahi no fue pensar mejor, fue **volver a leer el codigo buscando esperas
+sin limite y fallos que se guardan**, y encontrar uno que ninguna prueba tocaba
+porque solo se rompe la segunda vez.
+
+5 comprobaciones del arranque. **124 en total.**
+
 
 ---
 
 ## Lo que queda por confirmar
 
-**De la vuelta 18 (el esqueleto que se quedaba en gris).** El arreglo esta
-medido contra un corte de flujo reproducido aqui. Lo que hay que ver en el
-panel de verdad: que al abrir una pantalla o no llega el contenido, o a los
-doce segundos aparece el aviso con la salida. **Lo que ya no puede pasar es
-quedarse en gris sin decir nada.**
+**De la vuelta 19 (la instancia envenenada).** Es el arreglo con mas
+posibilidades de ser LA causa: explica que el panel no cargue nunca en unas
+cargas y si en otras, sin que la base tenga nada. No esta confirmado contra
+produccion — no tengo acceso — pero el fallo esta reproducido, medido y con
+prueba que lo vigila.
 
-**Lo que sigue sin saberse, y es lo de fondo:** POR QUE se corto el flujo en
-produccion. El aviso hace visible el fallo, no lo cura. Cuando salga, el
-enlace "Ver que le pasa al sistema" lleva a `/panel/estado`, que es la pantalla
-hecha para eso — y esa si tiene su propio tope, asi que contesta aunque el
-resto no. Ese numero es el que falta.
+**Lo que hace falta para cerrarlo de verdad, y es un dato que solo puede dar
+Adrian:** abrir **`/panel/estado`**. Esa pantalla tiene su propio tope y
+contesta aunque el resto este atascado; dice el pulso de la base, si las tablas
+estan, cuantas sesiones hay a medias y que error concreto sale. **Ese es el
+numero que falta desde hace tres vueltas**, y sin el se sigue depurando a
+ciegas. El aviso de tardanza ya lleva un boton que va justo ahi.
 
-**De la vuelta 17 (los treinta toques).** Sigue pendiente de probar en el
-telefono de Adrian:
+**Si tras este despliegue sigue sin cargar**, lo siguiente a mirar por orden:
+
+1. Lo que diga `/panel/estado`.
+2. El registro de Vercel de esa peticion: si sale un corte por tiempo, el
+   problema es cuanto tarda la pantalla, y la cuenta esta en la vuelta 15.
+3. El tope de tiempo general para las consultas, que sigue pendiente y hay que
+   hacer distinguiendo la migracion del resto (ver la cabecera de
+   `loading.tsx`).
+
+**De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono:
 
 1. **Si siguen haciendo falta varios toques.** Ya no puede ser por falta de
    senal. El sospechoso que queda: en Safari **sin instalar**, la franja de
@@ -2168,6 +2253,3 @@ telefono de Adrian:
    eso.
 2. **Si el scroll sigue a tirones.** El desenfoque ya no esta. Si continua, el
    siguiente sitio donde mirar es `.panel-accion-anclada`.
-
-**La deuda apuntada:** el tope de tiempo general para las consultas, que hay que
-hacer distinguiendo la migracion del resto (ver la cabecera de `loading.tsx`).
