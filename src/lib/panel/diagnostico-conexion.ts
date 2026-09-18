@@ -291,8 +291,27 @@ export function revisarCadena(url: string | undefined): Pista[] {
  * llegan igual por todos los caminos, y el texto de estos fallos concretos es
  * estable desde hace anios.
  */
-export function traducirError(mensaje: string): Pista | undefined {
+export function traducirError(mensaje: string, seLlega = false): Pista | undefined {
   const m = mensaje.toLowerCase();
+
+  /*
+    Un candado tiene nombre propio y no se parece a nada mas. Va el primero
+    porque su mensaje contiene "timeout" y si no se adelantaria a el la pista
+    generica de "no se pudo llegar", que manda a mirar la direccion — justo
+    donde no esta el problema.
+  */
+  if (m.includes("lock timeout") || m.includes("statement timeout")) {
+    return {
+      nivel: "error",
+      titulo: "La base responde, pero hay una consulta atascada bloqueandola",
+      queHacer:
+        "Una migracion anterior se quedo a medias —a Vercel se le acabo el tiempo " +
+        "y corto la funcion— y su sesion sigue abierta reteniendo los candados de " +
+        'las tablas. Abajo, en "quien mas esta conectado", salen cuantas hay. El ' +
+        'boton "Soltar las sesiones atascadas" las cierra; despues recarga esta ' +
+        "pantalla.",
+    };
+  }
 
   if (m.includes("password authentication failed")) {
     return {
@@ -320,16 +339,32 @@ export function traducirError(mensaje: string): Pista | undefined {
   }
 
   if (m.includes("no contesto en")) {
-    return {
-      nivel: "error",
-      titulo: "La base no contesto a tiempo",
-      queHacer:
-        "Cuando no contesta nadie —en vez de rechazar la contrasena— casi siempre " +
-        "es que la direccion no se puede alcanzar. La causa mas comun desde Vercel " +
-        "es estar usando la conexion directa (el servidor que empieza por 'db.'), " +
-        "que solo funciona por IPv6. Usa la del Transaction pooler. La otra causa " +
-        "es que el proyecto de Supabase este dormido: abrelo y espera a que arranque.",
-    };
+    /*
+      La misma espera significa cosas opuestas segun si se llega al servidor o
+      no, y mandar a revisar la direccion cuando el puerto acepta en 77 ms
+      quema una vuelta entera persiguiendo lo que ya estaba bien. Por eso esta
+      pista necesita saber lo que dijeron las sondas.
+    */
+    return seLlega
+      ? {
+          nivel: "error",
+          titulo: "Se llega al servidor, pero la consulta se queda esperando",
+          queHacer:
+            "La direccion, el puerto y la contrasena estan bien: la sesion se abre " +
+            "y se autentica. Lo que no termina es la consulta, y eso casi siempre " +
+            "es un candado que retiene una sesion anterior que quedo a medias. " +
+            'Mira abajo "quien mas esta conectado" y suelta las atascadas.',
+        }
+      : {
+          nivel: "error",
+          titulo: "La base no contesto a tiempo",
+          queHacer:
+            "Cuando no contesta nadie —en vez de rechazar la contrasena— casi siempre " +
+            "es que la direccion no se puede alcanzar. La causa mas comun desde Vercel " +
+            "es estar usando la conexion directa (el servidor que empieza por 'db.'), " +
+            "que solo funciona por IPv6. Usa la del Transaction pooler. La otra causa " +
+            "es que el proyecto de Supabase este dormido: abrelo y espera a que arranque.",
+        };
   }
 
   if (m.includes("econnrefused") || m.includes("enotfound") || m.includes("timeout")) {

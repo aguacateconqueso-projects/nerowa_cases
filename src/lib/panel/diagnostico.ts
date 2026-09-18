@@ -19,6 +19,8 @@ import {
   type CadenaALaVista,
   type Pista,
 } from "./diagnostico-conexion";
+import { conexion } from "./adaptadores/postgres/conexion";
+import { medirSalud, type Salud } from "./adaptadores/postgres/salud";
 import { servicios } from "./servicios";
 import {
   describirSonda,
@@ -58,6 +60,10 @@ export interface Diagnostico {
   red?: SondaRed;
   /** La sonda de red en una frase, para la pantalla. */
   redEnUnaFrase?: string;
+  /** Lo que dice la base sobre si misma, con consultas que no se bloquean. */
+  salud?: Salud;
+  /** Por que no se pudo medir la salud, si no se pudo. */
+  saludError?: string;
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -169,6 +175,36 @@ export async function diagnosticar(): Promise<Diagnostico> {
     base.pistas.push(...pistasDeRed(sonda));
   }
 
+  /*
+    Preguntarle a la base por si misma ANTES de tocar las tablas del panel.
+
+    El caso que llevo a esto: red en verde, puerto aceptando en 77 ms, usuario y
+    contrasena correctos —la sesion se autentica, se sabe porque el
+    `connect_timeout` de 3 s no salta— y aun asi la consulta agota el tiempo.
+    Con las tablas de por medio no hay forma de saber si la base esta muda o si
+    es una consulta nuestra la que espera un candado. `select 1` y
+    `pg_stat_activity` no piden candados, asi que contestan igual.
+  */
+  if (persistente && base.red?.tcp?.estado === "acepta") {
+    try {
+      base.salud = await conTope(medirSalud(conexion()), Math.min(3000, queda()));
+    } catch (error) {
+      base.saludError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  if (base.salud && base.salud.atascadas.length > 0) {
+    base.pistas.push({
+      nivel: "error",
+      titulo: `Hay ${base.salud.atascadas.length} sesion(es) atascadas reteniendo candados`,
+      queHacer:
+        "Son migraciones que se quedaron a medias cuando a Vercel se le acabo el " +
+        "tiempo. Siguen abiertas y con los candados puestos, asi que cualquier " +
+        'consulta nueva espera a un cliente que ya no existe. Pulsa "Soltar las ' +
+        'sesiones atascadas" aqui abajo y recarga.',
+    });
+  }
+
   const desde = Date.now();
   try {
     /*
@@ -205,7 +241,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
       cadena de conexion, que iria en la traza y no en el mensaje.
     */
     base.error = error instanceof Error ? error.message : String(error);
-    const traducido = traducirError(base.error);
+    const traducido = traducirError(base.error, base.red?.tcp?.estado === "acepta");
     if (traducido) base.pistas.push(traducido);
   }
 

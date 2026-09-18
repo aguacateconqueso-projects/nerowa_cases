@@ -1787,3 +1787,65 @@ distingue solo lo que le digan que distinga. Una vigila que no quede el socket
 abierto, por lo mismo que la del tope vigila los relojes.
 
 **100 comprobaciones del dominio en total.**
+
+### Sesion 10, vuelta 14 — el panel se habia atascado a si mismo
+
+Las sondas de la vuelta anterior hicieron su trabajo y dieron la vuelta al
+diagnostico entero. Adrian mando la pantalla con **todo en verde**: proyecto
+`Healthy` en Irlanda, el nombre resuelve por IPv4, **el puerto acepta en 77 ms**,
+usuario y puerto los del pooler. Y la consulta agotando los 7,8 segundos.
+
+**La pista definitiva estaba en un tiempo que NO salto.** El `connect_timeout`
+del cliente son 3 segundos y cubre hasta terminar la autenticacion —se
+comprueba en `node_modules/postgres/src/connection.js`, donde el temporizador se
+cancela al recibir `ReadyForQuery`—. Si no salto, es que **la sesion se abrio y
+se autentico bien**. Credenciales correctas, TLS correcto, red correcta. Lo que
+se cuelga es la consulta.
+
+**Y la consulta se cuelga porque el panel se atasco a si mismo.**
+
+La primera llamada al almacen dispara `prepararBase()` → `migrar()` → `create
+table if not exists`, que pide un candado exclusivo. Cuando a Vercel se le acabo
+el tiempo en los intentos anteriores, corto la funcion **a mitad de la
+transaccion**. Postgres no limpia eso solo: la sesion queda `idle in
+transaction` **con los candados puestos**, esperando educadamente a un cliente
+que ya no existe. A partir de ahi, cualquier `create table` espera para siempre.
+
+**Lo peor: mi propio tope lo empeoraba en cada recarga.** `conTope` abandona la
+promesa pero **no cierra la conexion**, asi que la consulta sigue viva al otro
+lado. Cada vez que Adrian recargaba la pantalla de estado para ver que pasaba,
+anadia otra sesion abandonada al monton. De ahi las 7 conexiones abiertas que
+enseñaba Supabase. La herramienta de diagnostico estaba alimentando la averia
+que diagnosticaba.
+
+**Arreglado en tres sitios:**
+
+1. **Que no pueda volver a pasar.** Las migraciones llevan ahora `set local
+   lock_timeout = '3s'` y `statement_timeout = '15s'` **dentro de su propia
+   transaccion** — `set local` y no `set` a secas porque en el pooler de
+   transacciones la siguiente consulta puede caer en otra conexion, y lo unico
+   garantizado es lo que dura la transaccion. El fallo llega en tres segundos y
+   **dice que es un candado**.
+2. **Que se pueda ver.** `salud.ts` le pregunta a la base por si misma con
+   consultas que **no pueden bloquearse**: `select 1`, `to_regclass` y
+   `pg_stat_activity`. Ninguna toca las tablas del panel, asi que contestan
+   aunque todo lo demas este atascado. La pantalla enseña el pulso, si las
+   tablas existen y cuantas sesiones hay a medio hacer.
+3. **Que se pueda arreglar sin saber SQL.** Un boton, solo para el dueno, que
+   cierra las sesiones `idle in transaction`. No corta consultas en curso ni
+   conexiones sanas: una sesion en ese estado, por definicion, no esta haciendo
+   nada — lo unico que aporta es el candado que retiene.
+
+**Ademas, una pista que se habia vuelto falsa.** Con el puerto aceptando en
+77 ms, la pantalla seguia diciendo "casi siempre es que la direccion no se puede
+alcanzar... usa el Transaction pooler". Correcta para el caso de ayer, **falsa
+para el de hoy**, y mandaba a rehacer lo unico que ya estaba bien. `traducirError`
+recibe ahora si se llega o no al servidor, y con el puerto aceptando dice lo
+contrario: la direccion esta bien, lo que espera es un candado.
+
+**La leccion, y es incomoda:** el sistema de diagnostico no era un observador
+neutral. Cada medicion dejaba una sesion muerta, y las mediciones eran la causa
+de que el numero subiera. Un instrumento que altera lo que mide no solo da mal
+el dato — puede ser el problema.
+
+8 comprobaciones de salud. **108 en total.**
