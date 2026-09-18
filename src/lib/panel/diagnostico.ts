@@ -20,6 +20,13 @@ import {
   type Pista,
 } from "./diagnostico-conexion";
 import { servicios } from "./servicios";
+import {
+  describirSonda,
+  pistasDeRed,
+  resolverNombre,
+  tocarPuerto,
+  type SondaRed,
+} from "./sonda-red";
 import { conTope } from "./tope";
 
 export interface Cuenta {
@@ -47,6 +54,10 @@ export interface Diagnostico {
   pistas: Pista[];
   /** La cadena de conexion con la contrasena tapada, para poder mirarla. */
   cadena?: CadenaALaVista;
+  /** Si se puede LLEGAR al servidor, antes de hablar de Postgres. */
+  red?: SondaRed;
+  /** La sonda de red en una frase, para la pantalla. */
+  redEnUnaFrase?: string;
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -63,7 +74,22 @@ export interface Diagnostico {
   mas corto que el de Vercel: la pantalla responde SIEMPRE, y si la base no
   contesta a tiempo lo dice en vez de desaparecer.
 */
-const ESPERA_MAXIMA_MS = 4000;
+const PRESUPUESTO_MS = 8000;
+
+/*
+  Lo que se le da a cada sonda. Son topes, no esperas: cuando el servidor esta
+  bien las tres juntas tardan menos de medio segundo, y lo que sobra se lo queda
+  la consulta.
+
+  El reparto importa. La consulta se lleva lo que quede del presupuesto, y el
+  `connect_timeout` del cliente de Postgres (3 s, en `conexion.ts`) es MENOR que
+  eso a proposito: asi el que se rinde primero es Postgres, y lo que sale en
+  pantalla es su error de verdad —"no llego", "me rechazaron"— en vez del
+  generico "no contesto a tiempo". Cuando el tope de aqui gana al del cliente,
+  esta pantalla se queda ciega justo cuando mas falta hace ver.
+*/
+const ESPERA_DNS_MS = 2000;
+const ESPERA_TCP_MS = 2500;
 
 export async function diagnosticar(): Promise<Diagnostico> {
   const { almacen, correo, avisos, archivos } = servicios();
@@ -108,9 +134,39 @@ export async function diagnosticar(): Promise<Diagnostico> {
     si se hiciera despues, una base que no responde se llevaria por delante las
     unicas pistas utiles.
   */
+  const arranque = Date.now();
+  const queda = () => PRESUPUESTO_MS - (Date.now() - arranque);
+
   if (persistente) {
     base.pistas.push(...revisarCadena(process.env.DATABASE_URL));
     base.cadena = cadenaALaVista(process.env.DATABASE_URL);
+  }
+
+  /*
+    Antes de preguntarle nada a Postgres: ¿se puede llegar?
+
+    Esta pantalla vivio un caso en el que la cadena era correcta —usuario con la
+    referencia, puerto 6543, contrasena puesta, las tres marcadas en verde— y aun
+    asi no contestaba nadie. Con solo el error de la base no habia forma de saber
+    si el fallo era la direccion, el puerto o la base misma. Dos sondas que no
+    necesitan credenciales lo separan en medio segundo.
+  */
+  const anfitrion = base.cadena?.anfitrion;
+  const puerto = base.cadena?.puerto;
+  if (persistente && anfitrion && puerto) {
+    const dns = await resolverNombre(anfitrion, Math.min(ESPERA_DNS_MS, queda()));
+    const sonda: SondaRed = { anfitrion, puerto, dns };
+    /* Tocar el puerto de un nombre que no resuelve no anade informacion. */
+    if (dns.estado === "resuelve") {
+      sonda.tcp = await tocarPuerto(
+        anfitrion,
+        puerto,
+        Math.min(ESPERA_TCP_MS, queda()),
+      );
+    }
+    base.red = sonda;
+    base.redEnUnaFrase = describirSonda(sonda);
+    base.pistas.push(...pistasDeRed(sonda));
   }
 
   const desde = Date.now();
@@ -130,7 +186,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
         almacen.listarTiendas(),
         almacen.listarPedidosMayoristas(),
       ]),
-      ESPERA_MAXIMA_MS,
+      Math.max(queda(), 500),
     );
     base.respondeEnMs = Date.now() - desde;
     base.cuentas = [

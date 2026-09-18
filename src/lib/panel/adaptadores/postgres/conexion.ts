@@ -82,12 +82,17 @@ function clientePostgres() {
       max: 1,
       idle_timeout: 20,
       /*
-        Menos que el tope de la funcion de Vercel. Si la conexion se queda
-        esperando mas que eso, lo que ve la persona es la pagina de error de
-        Vercel —un 504 sin explicacion— en vez de la pantalla del panel
-        diciendo que pasa. Mejor rendirse pronto y poder contarlo.
+        Menos que el tope de la funcion de Vercel, y menos tambien que el tope
+        que le pone la pantalla de estado a la consulta.
+
+        Lo segundo es tan importante como lo primero. Si el que se rinde primero
+        es el tope de fuera, el error que sale es "la base no contesto a tiempo",
+        que es cierto y no dice nada. Rindiendose antes el cliente, lo que sale
+        es SU error —"no llego", "me rechazaron", "nombre desconocido"—, que es
+        el que se puede traducir a una instruccion. Un tope que tapa el
+        diagnostico cuesta una vuelta entera.
       */
-      connect_timeout: 5,
+      connect_timeout: 3,
       /*
         El pooler de transacciones NO admite sentencias preparadas: cada consulta
         puede caer en una conexion distinta del pooler, y la preparacion se
