@@ -25,7 +25,8 @@
 import { crearAlmacenMemoria } from "./adaptadores/almacen-memoria";
 import { crearAlmacenPostgres } from "./adaptadores/almacen-postgres";
 import { prepararBase } from "./adaptadores/postgres/arranque";
-import { conexion } from "./adaptadores/postgres/conexion";
+import { conexion, soltarConexion } from "./adaptadores/postgres/conexion";
+import { envolverAlmacenPostgres } from "./adaptadores/postgres/no-quedarse-colgado";
 import { crearArchivosMemoria } from "./adaptadores/archivos-memoria";
 import { crearAvisosConsola } from "./adaptadores/avisos-consola";
 import { crearCorreoConsola } from "./adaptadores/correo-consola";
@@ -33,32 +34,6 @@ import type { Almacen } from "./puertos/almacen";
 import type { Archivos } from "./puertos/archivos";
 import type { Avisos } from "./puertos/avisos";
 import type { Correo } from "./puertos/correo";
-
-/**
- * Devuelve el mismo almacen, pero esperando a `preparar()` antes de cada
- * metodo.
- *
- * Es una envoltura generada, no una lista de metodos escrita a mano: asi,
- * cuando el puerto `Almacen` gane un metodo nuevo, este archivo no se olvida de
- * el. Un olvido aqui seria una consulta contra una tabla que todavia no existe,
- * y solo en la primera peticion tras un despliegue — el peor fallo posible de
- * encontrar.
- */
-function envolverEsperandoALaBase(
-  almacen: Almacen,
-  preparar: () => Promise<void>,
-): Almacen {
-  return new Proxy(almacen, {
-    get(objetivo, propiedad, receptor) {
-      const valor = Reflect.get(objetivo, propiedad, receptor);
-      if (typeof valor !== "function") return valor;
-      return async (...args: unknown[]) => {
-        await preparar();
-        return (valor as (...a: unknown[]) => unknown).apply(objetivo, args);
-      };
-    },
-  });
-}
 
 export interface Servicios {
   almacen: Almacen;
@@ -89,7 +64,18 @@ function construir(): Servicios {
         */
         const cx = conexion();
         const almacenReal = crearAlmacenPostgres(cx);
-        return envolverEsperandoALaBase(almacenReal, () => prepararBase(cx));
+        /*
+          La envoltura hace dos cosas y las dos hacen falta: esperar al arranque
+          antes de la primera consulta, y no dejar que una consulta se cuelgue
+          detras de una conexion atascada. Lo segundo es lo que arregla que una
+          instancia se quede inservible para siempre — ver
+          `no-quedarse-colgado.ts`, que lleva los numeros de produccion.
+        */
+        return envolverAlmacenPostgres(
+          almacenReal,
+          () => prepararBase(cx),
+          soltarConexion,
+        );
       }
       default:
         throw new Error(

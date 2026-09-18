@@ -143,6 +143,43 @@ function clientePostgres() {
   return sql;
 }
 
+/**
+ * Tira la conexion compartida. La siguiente consulta abrira una nueva.
+ *
+ * POR QUE HACE FALTA, Y ESTA MEDIDO
+ *
+ * Este cliente tiene `max: 1`: una sola conexion por instancia. Si esa conexion
+ * se queda ocupada —una consulta que se abandono por tiempo y sigue viva al
+ * otro lado, o un socket que murio mientras Vercel tenia la instancia
+ * congelada— **todas las consultas siguientes se ponen en fila detras de algo
+ * que no va a terminar nunca**. La instancia queda inservible mientras viva, y
+ * ni `statement_timeout` la salva: esa consulta ni siquiera llega a empezar.
+ *
+ * Lo confirmo la sonda de `/panel/estado` en produccion, y es un dato que no
+ * admite discusion: dos conexiones NUEVAS contra la misma base, en el mismo
+ * momento en que el panel llevaba dos dias sin cargar, **abrian en 22 ms y 13 ms
+ * y viajaban en 3 ms y 2 ms**. La base estaba perfecta. Lo unico roto era la
+ * conexion de siempre.
+ *
+ * Es la misma forma del fallo de `una-sola-vez.ts`: algo que se guarda una vez
+ * y, cuando se estropea, no hay quien lo renueve. La regla que sale de las dos:
+ * **en un entorno sin servidor fijo, todo lo que se guarda por proceso necesita
+ * una forma de tirarse.**
+ *
+ * No espera al cierre a proposito. Cerrar puede tardar lo mismo que la consulta
+ * atascada —o no volver—, y quien llama a esto esta justamente intentando salir
+ * de un atasco. Se suelta la referencia, que es lo que libera a la siguiente
+ * peticion, y el cierre va por su cuenta.
+ */
+export function soltarConexion(): void {
+  const viejo = sql;
+  sql = undefined;
+  cliente = undefined;
+  /* `.end()` sin await y con el fallo tragado: su unico trabajo aqui es no
+     dejar el socket colgando, y si no puede, tampoco pasa nada grave. */
+  void viejo?.end({ timeout: 1 }).catch(() => {});
+}
+
 export function conexion(): Conexion {
   if (cliente) return cliente;
 
