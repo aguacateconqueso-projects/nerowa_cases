@@ -81,7 +81,13 @@ function clientePostgres() {
       */
       max: 1,
       idle_timeout: 20,
-      connect_timeout: 10,
+      /*
+        Menos que el tope de la funcion de Vercel. Si la conexion se queda
+        esperando mas que eso, lo que ve la persona es la pagina de error de
+        Vercel —un 504 sin explicacion— en vez de la pantalla del panel
+        diciendo que pasa. Mejor rendirse pronto y poder contarlo.
+      */
+      connect_timeout: 5,
       /*
         El pooler de transacciones NO admite sentencias preparadas: cada consulta
         puede caer en una conexion distinta del pooler, y la preparacion se

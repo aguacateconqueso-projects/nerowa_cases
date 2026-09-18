@@ -38,11 +38,27 @@ comprueba('el usuario "postgres" a secas contra el pooler se detecta', () => {
   assert.match(pistas[0]!.queHacer, /postgres\.<referencia-del-proyecto>/);
 });
 
-comprueba("la conexion directa avisa, pero solo avisa", () => {
+comprueba("la conexion directa de Supabase es ERROR, no aviso", () => {
+  /*
+    Desde Vercel no hay conexion posible con ella: resuelve solo por IPv6 y las
+    funciones no salen por ahi. El sintoma es una pagina que no carga, que no se
+    parece en nada a la causa, asi que la pista tiene que ser inequivoca.
+  */
   const pistas = revisarCadena(DIRECTA);
   assert.equal(pistas.length, 1);
+  assert.equal(pistas[0]!.nivel, "error");
+  assert.match(pistas[0]!.titulo, /desde Vercel no funciona/);
+  assert.match(pistas[0]!.queHacer, /pooler\.supabase\.com/);
+});
+
+comprueba("el puerto 5432 en otro servidor solo avisa", () => {
+  /* Un Postgres cualquiera en el 5432 puede funcionar; lo que no funciona es
+     el servidor `db.<ref>.supabase.co`. La diferencia importa. */
+  const pistas = revisarCadena(
+    "postgresql://usuario:clave@mi-postgres.ejemplo.com:5432/postgres",
+  );
+  assert.equal(pistas.length, 1);
   assert.equal(pistas[0]!.nivel, "aviso");
-  assert.match(pistas[0]!.titulo, /conexion directa/);
 });
 
 comprueba("dejar los corchetes de [YOUR-PASSWORD] se detecta, y se nombra", () => {
@@ -179,6 +195,14 @@ comprueba("el rechazo nombra las dos causas comunes, corchetes primero", () => {
   assert.ok(donde("YOUR-PASSWORD") > -1, "no menciona los corchetes");
   assert.ok(donde("postgres.<referencia-del-proyecto>") > -1, "no menciona el usuario");
   assert.ok(donde("YOUR-PASSWORD") < donde("postgres.<referencia-del-proyecto>"));
+});
+
+comprueba("que no conteste nadie apunta a la conexion directa", () => {
+  const p = traducirError("La base no contesto en 4 segundos");
+  assert.equal(p?.nivel, "error");
+  assert.match(p!.titulo, /no contesto a tiempo/);
+  assert.match(p!.queHacer, /IPv6/);
+  assert.match(p!.queHacer, /dormido/);
 });
 
 comprueba("no poder llegar se distingue de que te rechacen", () => {
