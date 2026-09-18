@@ -29,6 +29,18 @@ function comprueba(que: string, fn: () => void) {
   console.log(`  ok  ${que}`);
 }
 
+/*
+  Quita comentarios antes de mirar el codigo.
+
+  Hace falta porque en este proyecto los comentarios NOMBRAN a proposito lo que
+  no se debe usar, para explicar por que. Una prueba que mire el archivo en
+  bruto se dispara con la explicacion en vez de con la infraccion — ya paso dos
+  veces mientras se escribia este archivo.
+*/
+function sinComentarios(fuente: string): string {
+  return fuente.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+}
+
 /* Las pruebas se lanzan desde la raiz del proyecto (ver `package.json`). */
 const raiz = process.cwd();
 const PANEL = join(raiz, "src", "app", "panel");
@@ -141,13 +153,67 @@ comprueba("la barra de pestanas no vuelve a llevar desenfoque", () => {
   */
   const css = readFileSync(join(PANEL, "panel.css"), "utf8");
   /* Sin los comentarios, que ahi si se nombra, y a proposito. */
-  const soloReglas = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const soloReglas = sinComentarios(css);
 
   assert.doesNotMatch(
     soloReglas,
     /backdrop-filter/,
     "volvio el desenfoque a la barra: cuesta un recompuesto por fotograma en " +
       "el iPhone y no se distingue sobre un fondo ya opaco al 92 %",
+  );
+});
+
+comprueba("el esqueleto no puede mentir para siempre", () => {
+  /*
+    LA AVERIA QUE ESTO VIGILA, y costo una foto de Adrian con el panel en gris.
+
+    Si el flujo de la respuesta se corta a media emision —lo que hace Vercel al
+    matar una funcion pasada de tiempo— el navegador se queda con el esqueleto
+    pintado y NO recibe ni el contenido ni el error. Medido: ocho barras a 1 s,
+    3 s y 10 s, sin aviso, indefinidamente. `error.tsx` no salva ese caso,
+    porque solo salta cuando llega un error, y ahi no llega nada.
+
+    El aviso de tardanza es la unica salida, y tiene que seguir existiendo.
+  */
+  const cargando = readFileSync(join(PANEL, "loading.tsx"), "utf8");
+  const css = readFileSync(join(PANEL, "panel.css"), "utf8");
+
+  assert.match(
+    cargando,
+    /panel-tardanza/,
+    "el esqueleto se quedo sin aviso de tardanza: si el flujo se corta, la " +
+      "pantalla se queda en gris para siempre y sin salida",
+  );
+
+  /*
+    Y TIENE QUE SER DE CSS. Esta es la parte que alguien va a querer "arreglar"
+    con un temporizador en un `useEffect`, y no funcionaria: en ese fallo
+    `document.readyState` se queda en `loading` para siempre —medido— porque
+    React nunca termina de montar. El JavaScript de esta pantalla no corre.
+  */
+  /*
+    Sin los comentarios: la cabecera de `loading.tsx` NOMBRA `useEffect` para
+    explicar por que no se usa, y la primera version de esta prueba fallo
+    justamente por eso. Es el mismo tropiezo que ya dio la del desenfoque.
+  */
+  assert.doesNotMatch(
+    sinComentarios(cargando),
+    /"use client"|useEffect|useState|setTimeout/,
+    "loading.tsx se volvio de cliente: en el fallo que arregla, JavaScript no " +
+      "llega a correr nunca. El aviso tiene que salir con CSS",
+  );
+
+  /* Con retraso: sin el, el aviso saldria en cada carga normal. */
+  const regla = /\.panel-tardanza\s*\{[^}]*animation:[^;]*?(\d+)s\s+forwards/;
+  const encontrada = regla.exec(sinComentarios(css));
+  assert.ok(
+    encontrada,
+    "el aviso de tardanza ya no aparece con retraso: saldria en cada carga",
+  );
+  assert.ok(
+    Number(encontrada[1]) >= 8,
+    `el retraso del aviso bajo a ${encontrada[1]} s: una pantalla lenta que SI ` +
+      "va a cargar no puede acusar de averia tan pronto",
   );
 });
 

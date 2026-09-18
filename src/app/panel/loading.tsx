@@ -57,6 +57,46 @@
 
   Para quien no ve la pantalla, las barras grises no comunican nada: eso lo
   dicen el `aria-busy` y el texto oculto.
+
+  Y LO QUE SE APRENDIO A GOLPES: UN ESQUELETO PUEDE MENTIR PARA SIEMPRE
+
+  La primera version de este archivo dejaba el panel colgado en gris. Adrian
+  mando la foto: `/panel/tiendas` con las barras puestas y nada mas, sin error,
+  sin salida, indefinidamente.
+
+  Reproducido: si el flujo de la respuesta **se corta a media emision** —que es
+  lo que hace Vercel cuando mata una funcion que se paso de tiempo— el navegador
+  se queda con el esqueleto ya pintado y nunca recibe ni el contenido ni el
+  error. Medido a 1 s, 3 s y 10 s: ocho barras, cero avisos, para siempre. En la
+  consola solo queda un `ERR_INCOMPLETE_CHUNKED_ENCODING` que la persona no ve.
+
+  Es el precio de transmitir por partes: el contenido util viaja DESPUES, asi
+  que un corte cuesta mas que antes. La pantalla de error de `error.tsx` no
+  salva este caso — solo salta cuando llega un error, y aqui no llega nada.
+
+  POR QUE EL AVISO ES DE CSS Y NO DE JAVASCRIPT
+
+  Porque en ese fallo **JavaScript no llega a funcionar**: el flujo esta cortado,
+  React no termina de montar, y un `useEffect` con un temporizador no corre. Lo
+  unico que sigue vivo es lo que ya esta en el documento y en la hoja de
+  estilos. Una animacion con retraso no necesita nada mas, y los enlaces de
+  abajo son `<a href>` de los de toda la vida: funcionan sin hidratar.
+
+  A los 12 segundos, el esqueleto deja de fingir: las barras se quedan quietas y
+  aparece que pasa y a donde ir. Doce y no tres, porque una pantalla lenta que
+  SI va a cargar no puede acusar de averia a los tres segundos; si el contenido
+  llega, este bloque se va con el resto del esqueleto y no se ve nunca.
+
+  LO QUE NO SE HIZO, Y CONVIENE SABERLO ANTES DE INTENTARLO
+
+  Lo obvio seria ponerle un tope de tiempo a todas las consultas en el
+  envoltorio de `servicios.ts`, para que un cuelgue acabe en la pantalla de
+  error en vez de en un corte. **No se puede tal cual**: la primera peticion
+  tras un despliegue dispara las migraciones, y esas tienen permitido
+  `statement_timeout = '15s'` a proposito. Un tope general por debajo de eso las
+  cortaria a mitad de transaccion — que es exactamente como se dejaron los
+  candados muertos de la vuelta 14. El tope general hay que hacerlo, pero
+  distinguiendo la migracion del resto, y eso es una vuelta propia.
 */
 
 export default function CargandoPanel() {
@@ -84,6 +124,43 @@ export default function CargandoPanel() {
           </li>
         ))}
       </ul>
+
+      <Tardanza />
+    </div>
+  );
+}
+
+/*
+  El aviso de que esto ya no es una espera normal.
+
+  Invisible hasta los 12 segundos, y entonces aparece solo, sin JavaScript. Va
+  al final del documento a proposito: mientras esta oculto no ocupa sitio ni lo
+  lee un lector de pantalla, y cuando aparece esta debajo de lo que la persona
+  ya estaba mirando.
+
+  Dice lo mismo que `error.tsx` y manda a los mismos dos sitios. Que la salida
+  sea la misma importa: desde el punto de vista de quien lo sufre, una pantalla
+  que no carga es una pantalla que no carga, y no tiene por que aprenderse dos
+  vocabularios segun como fallo por dentro.
+*/
+function Tardanza() {
+  return (
+    <div className="panel-tardanza" role="status">
+      <p className="t-heading text-lg">Esto esta tardando mas de lo normal</p>
+      <p className="mt-2 text-[0.9375rem]" style={{ color: "var(--panel-tenue)" }}>
+        Lo mas probable es que el panel no este pudiendo hablar con la base de
+        datos. No se perdio nada: lo que ya estaba guardado sigue ahi. Recargar
+        la pagina es seguro.
+      </p>
+
+      <div className="mt-5 grid gap-2">
+        <a href="/panel/estado" className="panel-boton panel-boton-suave">
+          Ver que le pasa al sistema
+        </a>
+        <a href="/panel" className="panel-boton panel-boton-suave">
+          Volver a los pedidos
+        </a>
+      </div>
     </div>
   );
 }
