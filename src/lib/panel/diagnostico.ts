@@ -20,7 +20,7 @@ import {
   type Pista,
 } from "./diagnostico-conexion";
 import { conexion } from "./adaptadores/postgres/conexion";
-import { medirSalud, type Salud } from "./adaptadores/postgres/salud";
+import { contarFilas, medirSalud, type Salud } from "./adaptadores/postgres/salud";
 import { servicios } from "./servicios";
 import {
   describirSonda,
@@ -64,6 +64,8 @@ export interface Diagnostico {
   salud?: Salud;
   /** Por que no se pudo medir la salud, si no se pudo. */
   saludError?: string;
+  /** Por que no se pudieron contar las filas, si no se pudo. */
+  cuentasError?: string;
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -80,7 +82,7 @@ export interface Diagnostico {
   mas corto que el de Vercel: la pantalla responde SIEMPRE, y si la base no
   contesta a tiempo lo dice en vez de desaparecer.
 */
-const PRESUPUESTO_MS = 8000;
+const PRESUPUESTO_MS = 7000;
 
 /*
   Lo que se le da a cada sonda. Son topes, no esperas: cuando el servidor esta
@@ -187,7 +189,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
   */
   if (persistente && base.red?.tcp?.estado === "acepta") {
     try {
-      base.salud = await conTope(medirSalud(conexion()), Math.min(3000, queda()));
+      base.salud = await conTope(medirSalud(conexion()), Math.min(2000, queda()));
     } catch (error) {
       base.saludError = error instanceof Error ? error.message : String(error);
     }
@@ -211,12 +213,27 @@ export async function diagnosticar(): Promise<Diagnostico> {
     lo que parece paralelo— y encima traia las filas enteras para mirar
     `.length`. Contar es trabajo de la base.
   */
-  if (base.salud?.conteos) {
+  if (base.salud?.tablasCreadas) {
+    /*
+      Contar VA APARTE de medir la salud, aunque compartan viaje.
+
+      Se intento juntarlo por ahorrar una consulta y salio caro: contar toca las
+      tablas del panel, o sea que puede esperar un candado, y al estar dentro de
+      `medirSalud` se llevaba por delante el pulso, la lista de sesiones y el
+      boton de soltarlas. La pantalla se quedo muda otra vez.
+
+      Ahora esto puede fallar tranquilamente: se anota y el resto del
+      diagnostico —que es el que dice que hacer— sigue en pie.
+    */
     base.respondeEnMs = base.salud.pulsoMs;
-    base.cuentas = Object.entries(base.salud.conteos).map(([que, cuantos]) => ({
-      que,
-      cuantos,
-    }));
+    try {
+      const conteos = await conTope(contarFilas(conexion()), Math.min(2500, queda()));
+      base.cuentas = Object.entries(conteos).map(([que, cuantos]) => ({ que, cuantos }));
+    } catch (error) {
+      base.cuentasError = error instanceof Error ? error.message : String(error);
+      const traducido = traducirError(base.cuentasError, true);
+      if (traducido) base.pistas.push(traducido);
+    }
     return base;
   }
 

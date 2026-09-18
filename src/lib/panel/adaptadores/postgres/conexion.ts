@@ -94,6 +94,30 @@ function clientePostgres() {
       */
       connect_timeout: 3,
       /*
+        NINGUNA CONSULTA SE CUELGA PARA SIEMPRE. Nunca mas.
+
+        Estos dos limites van en el saludo inicial de la conexion, asi que valen
+        para TODAS las consultas de TODAS las pantallas — no solo para las que
+        alguien se acordo de envolver en un tope.
+
+        Sin ellos, una consulta que espera un candado espera indefinidamente, y
+        lo que ve la persona es la pagina de error de Vercel, sin explicacion.
+        Con ellos, la consulta falla en un par de segundos con un mensaje que
+        NOMBRA el problema ("lock timeout"), que `traducirError` ya sabe
+        convertir en una instruccion.
+
+        `lock_timeout` es menor que `statement_timeout` a proposito: un candado
+        es un fallo con nombre y solucion conocida, y hay que distinguirlo de
+        una consulta que simplemente tarda demasiado.
+
+        Los dos por debajo del corte de Vercel: rendirse a tiempo y poder
+        contarlo es mejor que un 504 mudo.
+      */
+      connection: {
+        lock_timeout: 2000,
+        statement_timeout: 5000,
+      },
+      /*
         El pooler de transacciones NO admite sentencias preparadas: cada consulta
         puede caer en una conexion distinta del pooler, y la preparacion se
         perderia. Sin esto, falla en cuanto se repite una consulta.
