@@ -23,6 +23,36 @@
   entorno.
 */
 
+/**
+ * La cadena de conexion **con la contrasena tapada**, para poder mirarla.
+ *
+ * Hacia falta: con solo el error de Postgres hay que adivinar si lo que esta
+ * mal es el usuario, el puerto o la contrasena, y adivinar cuesta una vuelta
+ * entera cada vez. Enseñando la cadena sin la contrasena, el problema se ve de
+ * un vistazo — "ah, el usuario no tiene el punto", "ah, el puerto es el 5432".
+ *
+ * Lo que se tapa es la contrasena y nada mas. El usuario, el servidor y el
+ * puerto no son secretos: son la mitad publica de una conexion, no abren nada
+ * sin la contrasena, y son justo lo que hay que poder comprobar.
+ */
+export interface CadenaALaVista {
+  /** Ej.: `postgresql://postgres.abc:•••@aws-0.pooler.supabase.com:6543/postgres` */
+  texto: string;
+  usuario?: string;
+  anfitrion?: string;
+  puerto?: number;
+  /** Si hay contrasena, sin decir cual ni de que largo. */
+  tieneContrasena: boolean;
+  /**
+   * Si quedaron los corchetes del hueco `[YOUR-PASSWORD]`.
+   *
+   * Hace falta aqui, ademas de en las pistas, porque con la contrasena tapada
+   * el problema no se veria: los puntitos se ven igual con corchetes que sin
+   * ellos, y este es justo el fallo que hay que poder ver de un vistazo.
+   */
+  contrasenaEntreCorchetes: boolean;
+}
+
 export interface Pista {
   /** Que esta mal, en una frase. */
   titulo: string;
@@ -42,28 +72,100 @@ interface FormaCadena {
   anfitrion?: string;
   /** Si la contrasena trae caracteres que en una URL significan otra cosa. */
   contrasenaSospechosa: boolean;
+  /** Si se dejaron los corchetes del hueco `[YOUR-PASSWORD]` de Supabase. */
+  contrasenaEntreCorchetes: boolean;
 }
 
 function leerForma(url: string): FormaCadena | undefined {
-  try {
-    const u = new URL(url);
-    const usuario = decodeURIComponent(u.username);
-    /*
-      Se mira SOLO si la contrasena trae caracteres que rompen una URL. No se
-      guarda, no se devuelve y no se registra en ningun sitio.
-    */
-    const bruta = url.slice(url.indexOf(":", url.indexOf("//")) + 1, url.lastIndexOf("@"));
-    const contrasenaSospechosa = /[@/#?[\]]/.test(bruta);
+  /*
+    Se parte a mano y NO con `URL`, por la misma razon que `cadenaALaVista`:
+    cuando la contrasena trae caracteres sin codificar, `URL` parte por donde no
+    debe y da un usuario que no es el que hay escrito — justo en el caso que
+    hay que detectar.
+  */
+  const vista = cadenaALaVista(url);
+  if (!vista || !vista.usuario) return undefined;
 
+  const trasEsquema = url.indexOf("//");
+  const resto = url.slice(trasEsquema + 2);
+  const credenciales = resto.slice(0, resto.lastIndexOf("@"));
+  const corteDosPuntos = credenciales.indexOf(":");
+
+  /*
+    Se mira SOLO si la contrasena trae caracteres que rompen una direccion. No
+    se guarda, no se devuelve y no se registra en ningun sitio.
+  */
+  const bruta = corteDosPuntos === -1 ? "" : credenciales.slice(corteDosPuntos + 1);
+
+  return {
+    puerto: vista.puerto,
+    usuario: vista.usuario,
+    anfitrion: vista.anfitrion,
+    contrasenaSospechosa: /[@/#?[\]]/.test(bruta),
+    contrasenaEntreCorchetes: bruta.startsWith("[") && bruta.endsWith("]"),
+  };
+}
+
+/**
+ * La cadena con la contrasena sustituida por puntos.
+ *
+ * Se construye a mano en vez de con `URL`, porque cuando la contrasena trae
+ * caracteres sin codificar —que es justo el caso que hay que poder ver— `URL`
+ * la parte por donde no debe, y entonces lo que se enseñaria seria una cadena
+ * que no se parece a la que hay puesta.
+ */
+export function cadenaALaVista(url: string | undefined): CadenaALaVista | undefined {
+  if (!url) return undefined;
+
+  const trasEsquema = url.indexOf("//");
+  if (trasEsquema === -1) {
     return {
-      puerto: u.port ? Number(u.port) : undefined,
-      usuario,
-      anfitrion: u.hostname,
-      contrasenaSospechosa,
+      texto: "(no tiene forma de direccion)",
+      tieneContrasena: false,
+      contrasenaEntreCorchetes: false,
     };
-  } catch {
-    return undefined;
   }
+
+  const esquema = url.slice(0, trasEsquema + 2);
+  const resto = url.slice(trasEsquema + 2);
+
+  /* El ULTIMO `@` separa las credenciales del servidor: si la contrasena trae
+     alguno, los de antes son suyos. */
+  const corteArroba = resto.lastIndexOf("@");
+  if (corteArroba === -1) {
+    return {
+      texto: `${esquema}(sin usuario ni contrasena)`,
+      tieneContrasena: false,
+      contrasenaEntreCorchetes: false,
+    };
+  }
+
+  const credenciales = resto.slice(0, corteArroba);
+  const servidor = resto.slice(corteArroba + 1);
+
+  const corteDosPuntos = credenciales.indexOf(":");
+  const usuario = corteDosPuntos === -1 ? credenciales : credenciales.slice(0, corteDosPuntos);
+  const contrasenaBruta =
+    corteDosPuntos === -1 ? "" : credenciales.slice(corteDosPuntos + 1);
+  const tieneContrasena = contrasenaBruta.length > 0;
+  const contrasenaEntreCorchetes =
+    contrasenaBruta.startsWith("[") && contrasenaBruta.endsWith("]");
+
+  const puertoTexto = /:(\d+)(\/|$)/.exec(servidor)?.[1];
+  const anfitrion = servidor.split(/[:/]/)[0];
+
+  /* Los corchetes se dejan A LA VISTA alrededor de los puntitos: es la unica
+     forma de que se vea el fallo sin enseñar la contrasena. */
+  const tapada = contrasenaEntreCorchetes ? "[•••••••]" : "•••••••";
+
+  return {
+    texto: `${esquema}${usuario}:${tieneContrasena ? tapada : "(vacia)"}@${servidor}`,
+    usuario,
+    anfitrion,
+    puerto: puertoTexto ? Number(puertoTexto) : undefined,
+    tieneContrasena,
+    contrasenaEntreCorchetes,
+  };
 }
 
 /**
@@ -121,7 +223,29 @@ export function revisarCadena(url: string | undefined): Pista[] {
     });
   }
 
-  if (forma.contrasenaSospechosa) {
+  /*
+    El error mas comun de todos, y el que mas tiempo cuesta porque no se parece
+    a lo que es: Supabase da la cadena con `[YOUR-PASSWORD]` como hueco, y los
+    corchetes son parte del hueco, no de la sintaxis. Al escribir la contrasena
+    dentro de ellos, lo que viaja es `[laclave]` con corchetes y todo, y Postgres
+    contesta "password authentication failed" — que suena a contrasena
+    equivocada cuando la contrasena era la correcta.
+
+    Se comprueba ANTES que lo de los caracteres raros porque es mas concreto: si
+    la contrasena esta entre corchetes, decir "lleva caracteres que rompen la
+    direccion" es cierto y no sirve de nada.
+  */
+  if (forma.contrasenaEntreCorchetes) {
+    pistas.push({
+      nivel: "error",
+      titulo: "La contrasena quedo entre corchetes",
+      queHacer:
+        "Los corchetes de [YOUR-PASSWORD] son el hueco a rellenar, no parte de la " +
+        "direccion: hay que BORRARLOS y dejar solo la contrasena. Si pones " +
+        "[miclave], la contrasena que viaja es [miclave] con corchetes incluidos, " +
+        "y por eso te la rechaza.",
+    });
+  } else if (forma.contrasenaSospechosa) {
     pistas.push({
       nivel: "error",
       titulo: "La contrasena lleva caracteres que rompen la direccion",
@@ -154,12 +278,23 @@ export function traducirError(mensaje: string): Pista | undefined {
       nivel: "error",
       titulo: "La base rechazo el usuario o la contrasena",
       queHacer:
-        "Casi siempre es el usuario, no la contrasena: al pooler de Supabase se " +
-        'entra como "postgres.<referencia-del-proyecto>", no como "postgres". ' +
-        "Copia la cadena entera desde Project Settings → Database → Connection " +
-        "string → Transaction pooler y pegala en DATABASE_URL sin tocar nada. " +
-        "Si aun asi falla, cambia la contrasena de la base en Supabase y vuelve a " +
-        "copiar la cadena.",
+        "Las dos causas mas comunes, por orden. UNA: dejar los corchetes de " +
+        "[YOUR-PASSWORD] al rellenar la cadena — hay que borrarlos y dejar solo " +
+        "la contrasena. DOS: entrar al pooler como \"postgres\" en vez de " +
+        '"postgres.<referencia-del-proyecto>". Mira abajo "la cadena que esta ' +
+        'puesta": ahi se ve cual de las dos es.',
+    };
+  }
+
+  if (m.includes("no tiene forma de direccion valida")) {
+    return {
+      nivel: "error",
+      titulo: "La cadena de conexion esta rota",
+      queHacer:
+        "Casi siempre es la contrasena: si lleva @, /, #, ? o corchetes, parte la " +
+        "direccion por donde no debe. Lo mas rapido es cambiarla en Supabase " +
+        "(Project Settings → Database → Reset database password) por una de solo " +
+        "letras y numeros, y volver a copiar la cadena del Transaction pooler.",
     };
   }
 

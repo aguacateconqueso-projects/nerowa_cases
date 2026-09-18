@@ -12,7 +12,13 @@ import "server-only";
   firma ni ningun otro valor sensible. Solo si estan puestos y si funcionan.
 */
 
-import { revisarCadena, traducirError, type Pista } from "./diagnostico-conexion";
+import {
+  cadenaALaVista,
+  revisarCadena,
+  traducirError,
+  type CadenaALaVista,
+  type Pista,
+} from "./diagnostico-conexion";
 import { servicios } from "./servicios";
 
 export interface Cuenta {
@@ -38,6 +44,8 @@ export interface Diagnostico {
    * sirve de mucho mas que la pantalla negra que sustituyo.
    */
   pistas: Pista[];
+  /** La cadena de conexion con la contrasena tapada, para poder mirarla. */
+  cadena?: CadenaALaVista;
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -125,6 +133,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
   */
   if (persistente) {
     base.pistas.push(...revisarCadena(process.env.DATABASE_URL));
+    base.cadena = cadenaALaVista(process.env.DATABASE_URL);
   }
 
   return base;

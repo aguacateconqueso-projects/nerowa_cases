@@ -1592,3 +1592,80 @@ de Postgres y 12 de diagnostico.
 
 **Y el guardia de la condicion 1 funciono a la primera:** `npm install` lo dejo
 configurado solo, sin que nadie se acordara de nada.
+
+---
+
+### Sesion 10, vuelta 11 — la cadena a la vista, y una fuga de contrasena
+
+Adrian arreglo lo que le dije y **siguio fallando**. En su pantalla aparecian dos
+pistas: la de "la base rechazo el usuario o la contrasena" y, la que importaba,
+**"la contrasena lleva caracteres que rompen la direccion"**. Y NO aparecia la
+del usuario del pooler — o sea que su usuario estaba bien y el problema era la
+contrasena.
+
+**Se vio que faltaba poder mirar la cadena.** Con solo el error de Postgres hay
+que adivinar si lo que esta mal es el usuario, el puerto o la contrasena, y
+adivinar cuesta una vuelta entera cada vez. Ahora la pantalla enseña la cadena
+**con la contrasena tapada** y marca en verde o en rojo cada parte: si el
+usuario lleva la referencia del proyecto, si el puerto es el del pooler, y si
+hay contrasena. Lo que se tapa es la contrasena y nada mas — el usuario, el
+servidor y el puerto son la mitad publica de una conexion y son justo lo que hay
+que poder comprobar.
+
+**Y probando eso aparecio un fallo mas gordo, de los dos tipos a la vez.** Con
+una contrasena que lleva una barra:
+
+1. **El cliente de Postgres reventaba al construirse**, y como eso pasaba al
+   construir los servicios, se caia hasta la pantalla de entrada. Otra vez el
+   panel mudo.
+2. **El error traia la cadena entera dentro, contrasena incluida**, en su campo
+   `input`. En Vercel eso se escribe tal cual en el registro. **Una contrasena de
+   base de datos en los logs.**
+
+Los dos arreglados: el cliente se crea **perezosamente**, en la primera consulta
+y no al pedir la conexion, dentro de un `try` que **relanza un mensaje limpio sin
+repetir ni un caracter de la cadena**. Comprobado buscando la contrasena en el
+registro del servidor: no aparece.
+
+**Por que `URL` no vale para esto.** Tanto la vista enmascarada como la revision
+de la cadena se parten a mano en vez de usar `new URL()`. Cuando la contrasena
+trae caracteres sin codificar, `URL` parte por donde no debe y devuelve un
+usuario que **no es el que hay escrito** — justo en el caso que hay que
+detectar. Hay una prueba para eso.
+
+**17 comprobaciones de diagnostico** (de 12), y cinco son solo para garantizar
+que la contrasena no sale por ningun sitio: una pantalla que se ensena cuando
+algo falla acaba en una captura, y un error de servidor acaba en un registro.
+
+**79 comprobaciones del dominio en total.**
+
+**Y el fallo era mucho mas tonto de lo que estabamos persiguiendo: los
+corchetes.** Adrian preguntó *"siempre la coloqué bien solo que dentro de
+corchetes, había que eliminar los corchetes?"*. Si.
+
+Supabase da la cadena con `[YOUR-PASSWORD]` como hueco, y **los corchetes son
+parte del hueco, no de la sintaxis**. Al escribir la contrasena dentro de ellos,
+lo que viaja es `[laclave]` con corchetes incluidos, y Postgres contesta
+"password authentication failed" — que suena a contrasena equivocada cuando la
+contrasena era la correcta desde el principio.
+
+**Lo que hice mal, y es de trato, no de codigo.** La pista decia "la contrasena
+lleva caracteres que rompen la direccion" — cierto, porque los corchetes estan
+en la lista — y mandaba a **cambiar la contrasena en Supabase**. La contrasena
+estaba bien; habia que borrar dos caracteres. Una pista tecnicamente correcta
+que manda a hacer un trabajo innecesario es casi peor que ninguna, porque se
+obedece.
+
+**Ahora se detecta el caso concreto y se nombra:** si la contrasena esta entre
+corchetes sale "La contrasena quedo entre corchetes — hay que BORRARLOS", y **no**
+sale la generica. Ademas los corchetes se ven en la cadena tapada
+(`:[•••••••]@`), porque con la contrasena oculta el fallo era invisible. Y el
+mensaje de "la base rechazo el usuario o la contrasena" nombra ahora las dos
+causas comunes, con los corchetes primero por ser la mas frecuente.
+
+**La leccion:** cuando el diagnostico se cumple pero el usuario sigue atascado,
+lo que suele fallar no es la deteccion sino **el nombre que se le da al
+problema**. Detectar "hay un caracter raro" y decir "cambia la contrasena" es
+resolver el sintoma con el remedio equivocado.
+
+20 comprobaciones de diagnostico. 83 en total.

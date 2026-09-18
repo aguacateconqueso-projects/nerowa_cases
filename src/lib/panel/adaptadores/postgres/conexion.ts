@@ -38,13 +38,23 @@ export interface Conexion {
 /*
   El cliente real, contra Supabase o cualquier otro Postgres.
 
-  Se crea una vez por proceso. En Vercel cada instancia abre su propio grupo de
-  conexiones, por eso importa mucho a que puerto se conecta — ver abajo.
+  Se crea PEREZOSAMENTE, en la primera consulta, y no al pedir la conexion. Dos
+  razones, las dos aprendidas a golpes:
+
+  1. **Crearlo puede lanzar.** Si la contrasena trae una barra o un caracter sin
+     codificar, el cliente no consigue leer la direccion y revienta. Si eso
+     pasara al construir los servicios, se caeria hasta la pantalla de entrada —
+     y con ella la de estado, que es la que tendria que explicar el problema.
+  2. **El error del cliente trae la cadena entera dentro, contrasena incluida.**
+     En Vercel eso acaba escrito en el registro. Aqui se cambia por un mensaje
+     que dice que pasa sin repetir ni un caracter de la cadena.
 */
+let sql: import("postgres").Sql | undefined;
 let cliente: Conexion | undefined;
 
-export function conexion(): Conexion {
-  if (cliente) return cliente;
+/** Crea el cliente la primera vez. Nunca deja escapar la cadena en el error. */
+function clientePostgres() {
+  if (sql) return sql;
 
   const url = process.env.DATABASE_URL;
   if (!url) {
@@ -61,31 +71,55 @@ export function conexion(): Conexion {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const postgres = require("postgres") as typeof import("postgres");
 
-  const sql = postgres(url, {
+  try {
+    sql = postgres(url, {
+      /*
+        En un entorno sin servidor fijo cada instancia vive poco y puede haber
+        muchas a la vez. Un grupo grande por instancia agota el limite de la
+        base de datos en cuanto hay trafico; uno solo por instancia es lo
+        correcto.
+      */
+      max: 1,
+      idle_timeout: 20,
+      connect_timeout: 10,
+      /*
+        El pooler de transacciones NO admite sentencias preparadas: cada consulta
+        puede caer en una conexion distinta del pooler, y la preparacion se
+        perderia. Sin esto, falla en cuanto se repite una consulta.
+      */
+      prepare: false,
+    });
+  } catch (error) {
     /*
-      En un entorno sin servidor fijo cada instancia vive poco y puede haber
-      muchas a la vez. Un grupo grande por instancia agota el limite de la base
-      de datos en cuanto hay trafico; uno solo por instancia es lo correcto.
+      Se relanza SIN la cadena. El error original la lleva entera en su campo
+      `input`, contrasena incluida, y de ahi iria directa al registro de Vercel.
     */
-    max: 1,
-    idle_timeout: 20,
-    connect_timeout: 10,
-    /*
-      El pooler de transacciones NO admite sentencias preparadas: cada consulta
-      puede caer en una conexion distinta del pooler, y la preparacion se
-      perderia. Sin esto, falla en cuanto se repite una consulta.
-    */
-    prepare: false,
-  });
+    const motivo = error instanceof Error ? error.message : String(error);
+    const invalida = /invalid url/i.test(motivo);
+    throw new Error(
+      invalida
+        ? "DATABASE_URL no tiene forma de direccion valida. Suele ser la contrasena: " +
+          "si lleva @, /, #, ? o corchetes, rompe la direccion. Lo mas facil es " +
+          "cambiarla en Supabase por una de letras y numeros."
+        : "No se pudo preparar la conexion a la base de datos.",
+    );
+  }
+
+  return sql;
+}
+
+export function conexion(): Conexion {
+  if (cliente) return cliente;
 
   cliente = {
     async consultar<T>(texto: string, parametros: readonly unknown[] = []) {
-      return sql.unsafe(texto, parametros as never[]) as unknown as Promise<T[]>;
+      const s = clientePostgres();
+      return s.unsafe(texto, parametros as never[]) as unknown as Promise<T[]>;
     },
     async ejecutar(texto: string) {
       /* `.simple()` cambia al protocolo simple, el unico que acepta varias
          sentencias en un mismo envio. */
-      await sql.unsafe(texto).simple();
+      await clientePostgres().unsafe(texto).simple();
     },
   };
   return cliente;
