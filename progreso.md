@@ -1964,55 +1964,133 @@ comentarios se rompen precisamente cuando uno cree que sabe lo que hace.
 
 14 comprobaciones de salud. **114 en total.**
 
+### Sesion 10, vuelta 17 — el toque no daba senal, y estaba en la documentacion
+
+Adrian: *"funciona, esta laggy, tengo que clicar 30 veces en los iconos abajo
+para poder ver la pagina"*. Eran dos sintomas y el grave era el segundo.
+
+**Lo primero fue medir, que es lo que habia que haber hecho cuatro vueltas
+antes.** Un navegador de verdad, un iPhone de 390x844, el servidor retrasado
+2,5 s a proposito para reproducir la red de Adrian, y un toque en "Tiendas"
+estando en "Pedidos":
+
+| Desde el toque | URL | Color del icono | Pantalla |
+|---|---|---|---|
+| +227 ms | `/panel` | gris | "3 pedidos por enviar" |
+| +1066 ms | `/panel` | gris | "3 pedidos por enviar" |
+| +2530 ms | `/panel` | gris | "3 pedidos por enviar" |
+
+**Durante dos segundos y medio no cambiaba ni un pixel.** Ni la URL, ni el
+color del icono, ni el contenido. Treinta toques no es impaciencia: es la
+respuesta correcta a una interfaz que no contesta. Cualquiera haria lo mismo.
+
+**La causa estaba escrita, con estas palabras, en la documentacion de la
+version de Next que usamos** (`01-getting-started/04-linking-and-navigating.md`):
+
+> **Dynamic Route**: prefetching is skipped, or the route is partially
+> prefetched if `loading.tsx` is present.
+> [...] When navigating to a dynamic route, the client must wait for the server
+> response before showing the result. **This can give the users the impression
+> that the app is not responding.**
+
+Las diez pantallas del panel son dinamicas —leen la cookie de sesion, no hay
+otra— y **no habia ni un solo `loading.tsx` en el proyecto**. Medido contra el
+servidor de produccion, lo que se precargaba de cada pestana eran ~300 bytes:
+el arbol de rutas con `null` en cada hueco. Literalmente nada que pintar.
+
+**Arreglado con tres senales, y las tres hacen falta:**
+
+1. **`:active` en el CSS** — pinta al bajar el dedo, sin JavaScript ni red, en
+   cero milisegundos. Las tarjetas y los botones ya lo tenian; **las pestanas,
+   que son lo que mas se toca, no tenian ninguno**.
+2. **`useLinkStatus`** — el icono se pone dorado mientras se va a por la
+   pantalla. Con 120 ms de retraso a proposito: cuando la precarga ya trajo el
+   armazon la navegacion entra antes, y sin ese retraso cada toque daria un
+   parpadeo que se lee como un fallo.
+3. **`loading.tsx`, uno solo, en `/panel`** — cubre las tres pestanas y todo lo
+   que cuelga debajo. La precarga pasa de 300 bytes a ~8 KB **con el esqueleto
+   dentro y cero datos reales**: se adelanta el armazon, no la consulta a
+   Irlanda.
+
+Mismo guion, mismo retraso, despues: a los **228 ms** la URL ya es
+`/panel/tiendas`, el icono ya esta dorado y hay ocho barras de esqueleto en
+pantalla.
+
+**Y lo que NO toque, que importa igual.** `force-dynamic` estaba en la lista de
+sospechosos y **medi que no era**: con `loading.tsx` puesto, la precarga trae el
+armazon igual. Se queda como estaba. Tambien queda descartado el trabajador de
+servicio: `public/panel/sw.js` **no tiene oyente de `fetch`**, asi que no se
+mete en ninguna navegacion — el `ventana.navigate?.()` solo corre al tocar una
+notificacion. Estaba apuntado como sospechoso y era falso.
+
+**Lo unico que quite sin poder medirlo, y lo digo claro:** el
+`backdrop-filter: blur(12px)` de la barra. Va sobre un elemento `fixed`, lo que
+obliga a Safari de iPhone a recomponer la franja en cada fotograma del scroll.
+No tengo el iPhone de Adrian, asi que **no he comprobado que fuera una causa**;
+lo quito porque el fondo ya estaba opaco al 92 % y el desenfoque no se
+distinguia. Se va por lo que cuesta, no por lo que se ve.
+
+**Dos veces me salve por calibrar, y las dos duelen.**
+
+La primera: mi curl daba 0 bytes en todas las precargas del panel. Iba a
+escribir "no se precarga nada" — y era verdad, pero **no por eso**. Probe una
+ruta estatica con las mismas cabeceras: tambien 0. Era un 307 que curl no
+seguia. La medida que confirmaba mi teoria no medía nada.
+
+La segunda es peor. Para comparar el "antes" hice `git stash` de mis cambios;
+**el stash fallo en silencio** y medi mi propio arreglo creyendo que medía el
+estado original. Salio que el icono se ponia dorado a los 300 ms, me cuadro mal
+con la teoria, y en vez de tirar la teoria fui a mirar. Era mi animacion. Si no
+llego a mirar, habria publicado una tabla comparando el arreglo consigo mismo.
+
+**La leccion, que es la misma de la vuelta 13 con otra ropa:** la calibracion no
+es un paso previo que se hace una vez. Los dos instrumentos de esta vuelta
+—el curl y el "antes"— dieron numeros creibles y los dos estaban rotos. Lo que
+los delato fue un dato que no cuadraba y la decision de mirarlo en vez de
+explicarlo.
+
+**Cuatro guardianes nuevos**, porque estas dos averias **no dan ningun error**:
+no rompen la compilacion, no fallan ninguna prueba, el panel simplemente vuelve
+a quedarse mudo. Vigilan que exista el `loading.tsx`, que la barra siga pintando
+la marca de "voy", que no vuelva el desenfoque — y el peor de todos: **que el
+layout del panel no se vuelva `async` ni pida datos**, porque un `loading.tsx`
+no cubre a su propio layout y la navegacion se bloquearia esperandolo con el
+archivo ahi, intacto, sin decir nada.
+
+Y comprobe que los cuatro muerden, rompiendo cada regla a proposito. Uno **no
+mordio**: quitar `<Yendo />` del render daba verde porque `useLinkStatus` seguia
+escrito mas abajo en una funcion que ya no llamaba nadie. Una senal que no se
+pinta es igual que no tenerla, asi que la prueba ahora mira que se use, no que
+este escrita.
+
+4 comprobaciones de navegacion. **118 en total.**
+
 
 ---
 
-## Error abierto: el panel va lento y las pestanas se comen los toques
+## Lo que queda por confirmar de la vuelta 17
 
-**Lo que se ve** (Adrian, sesion 10, tras cerrar el lio de la base de datos):
+El arreglo esta medido **en un navegador de escritorio haciendose pasar por un
+iPhone**, con el servidor retrasado a mano. Eso prueba lo que prueba: que ahora
+la pantalla cambia a los 228 ms de un toque en vez de quedarse quieta 2,5 s. No
+prueba como se siente en el telefono de Adrian, en su red.
 
-> funciona, está laggy, tengo que clicar 30 veces en los iconos abajo para poder
-> ver la pagina
+**Lo que hay que mirar cuando lo pruebe:**
 
-Son **dos sintomas distintos** y conviene no mezclarlos: que la navegacion tarde
-es una cosa, y que un toque **no haga nada visible** es otra. El segundo es el
-grave: si el toque no da senal, la persona vuelve a tocar, y eso no es impaciencia
-— es que la interfaz no contesto.
+1. **Si siguen haciendo falta varios toques.** Si pasa, ya no puede ser por
+   falta de senal —ahora hay tres— y hay que buscar en otro sitio. El
+   sospechoso que queda sin descartar: en Safari **sin instalar**, la franja de
+   abajo de la pantalla es donde vive la barra del navegador, y el primer toque
+   ahi la despliega en vez de llegar a la pagina. Se distingue en un segundo:
+   si instalado en la pantalla de inicio va bien y en la pestana de Safari no,
+   es eso.
+2. **Si el scroll sigue a tirones.** El desenfoque ya no esta. Si continua, el
+   siguiente sitio donde mirar es `.panel-accion-anclada`, que tambien es una
+   capa pegada con degradado.
 
-**Lo que YA se descarto**, para no repetirlo:
-
-- **No es el area de toque.** `.panel-pestana` mide 4,5 rem de alto y un tercio
-  del ancho (`src/app/panel/panel.css:49`). De sobra: el minimo comodo son 44 px.
-- **No es la base de datos.** El puerto responde en 4 ms y las consultas bajaron
-  de 19 a 6 por pantalla.
-
-**Sospechoso 1 — el toque no da ninguna senal y la pagina tarda en llegar.**
-TODAS las pantallas del panel son `force-dynamic` (diez archivos bajo
-`src/app/panel/`). Con eso Next **no puede precargar** ninguna ruta: cada toque
-es un viaje entero al servidor, y hasta que vuelve **no cambia ni un pixel**. Ni
-el icono se marca, ni hay barra, ni nada. Treinta toques es la consecuencia
-logica de eso, no un capricho.
-
-Por donde mirar: `src/app/panel/_piezas/barra-pestanas.tsx`. Marcar la pestana
-como activa **en cuanto se toca**, sin esperar al servidor (`useTransition`, o
-`useLinkStatus` de Next 16). Y revisar si todas esas pantallas necesitan de
-verdad `force-dynamic`, o si el armazon puede ser estatico y los datos entrar
-por `Suspense`.
-
-**Sospechoso 2 — el desenfoque de la barra.** `.panel-barra` lleva
-`backdrop-filter: blur(12px)` sobre un elemento `position: fixed`
-(`panel.css:34`). En Safari de iPhone eso obliga a recomponer la capa
-continuamente mientras se hace scroll, y es una causa conocida de scroll a
-tirones y de toques que tardan en registrarse. **Es la prueba mas barata de
-todas**: quitar el blur y ver si desaparece. Si es eso, se sustituye por un
-fondo solido.
-
-**Tercera cosa a mirar si las dos anteriores no son:** el trabajador de servicio,
-`public/panel/sw.js:56`, que intercepta y llama a `ventana.navigate?.()`. Esta
-en medio de cada navegacion y nadie lo ha medido.
-
-**Como comprobarlo, y esto importa mas que las hipotesis.** Las tres son
-plausibles y en esta sesion ya paso cuatro veces que una hipotesis plausible
-fuera falsa. **Medir primero**: abrir el panel en el iPhone con el inspector de
-Safari conectado y mirar cuanto pasa entre el toque y el primer cambio en
-pantalla. Ese numero dice cual de los tres es, y sin el se depura a ciegas.
+**Y la regla que dejo escrita, porque me la salte cuatro vueltas seguidas:** el
+numero que hacia falta —cuanto pasa entre el toque y el primer cambio en
+pantalla— se podia medir desde el primer dia. No hizo falta el iPhone de Adrian
+para eso. Cuando un sintoma se describe en tiempos ("tarda", "va lento", "no
+responde"), lo primero es ponerle un numero a ese tiempo, y recien despues
+pensar en causas.
