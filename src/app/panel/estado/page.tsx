@@ -170,6 +170,62 @@ export default async function PantallaEstado() {
         </section>
       ) : null}
 
+      {/*
+        Si se LLEGA al servidor, antes de hablar de Postgres.
+
+        Hubo un caso con las tres comprobaciones de arriba en verde —usuario,
+        puerto y contrasena— y aun asi nadie contestaba. Con solo el error de la
+        base no habia forma de saber si el nombre estaba mal, si el puerto
+        estaba cerrado o si la base rechazaba. Estas dos lineas lo separan.
+      */}
+      {d.red ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            Si se llega a ese servidor
+          </h2>
+          <dl className="grid gap-1 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            <Comprobacion
+              termino="El nombre"
+              valor={
+                d.red.dns.estado === "resuelve"
+                  ? d.red.dns.familias.map((f) => `IPv${f}`).join(" y ")
+                  : d.red.dns.estado === "tardo"
+                    ? "no se pudo consultar"
+                    : "no existe"
+              }
+              bien={d.red.dns.estado === "resuelve" && d.red.dns.familias.includes(4)}
+              nota={
+                d.red.dns.estado !== "resuelve"
+                  ? "sin direccion no hay a quien preguntar"
+                  : d.red.dns.familias.includes(4)
+                    ? "resuelve por IPv4, que es por donde sale Vercel"
+                    : "solo IPv6: es la conexion directa, no el pooler"
+              }
+            />
+            {d.red.tcp ? (
+              <Comprobacion
+                termino="El puerto"
+                valor={
+                  d.red.tcp.estado === "acepta"
+                    ? `acepta en ${d.red.tcp.ms} ms`
+                    : d.red.tcp.estado === "rechaza"
+                      ? `rechaza (${d.red.tcp.codigo})`
+                      : "no contesta"
+                }
+                bien={d.red.tcp.estado === "acepta"}
+                nota={
+                  d.red.tcp.estado === "acepta"
+                    ? "hay alguien escuchando: el fallo esta mas adentro"
+                    : d.red.tcp.estado === "rechaza"
+                      ? "hay maquina, pero ese puerto esta cerrado"
+                      : "nadie responde: proyecto pausado, casi siempre"
+                }
+              />
+            ) : null}
+          </dl>
+        </section>
+      ) : null}
+
       <section className="mt-6">
         <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
           Que hay conectado

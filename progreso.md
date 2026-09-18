@@ -1726,3 +1726,64 @@ herramienta de diagnostico que depende de lo que diagnostica no es una
 herramienta de diagnostico. Falla justo cuando hace falta.
 
 4 comprobaciones del tope. 22 de diagnostico. **89 en total.**
+
+### Sesion 10, vuelta 13 — sondas de red: llegar es un paso antes de preguntar
+
+Adrian mando la pantalla de estado ya con la cadena **correcta**: usuario
+`postgres.<referencia>` ✓, puerto `6543` ✓, contrasena puesta ✓, servidor
+`aws-1-eu-west-1.pooler.supabase.com` — el pooler, no la conexion directa. Las
+tres comprobaciones en verde. Y aun asi: "La base no contesto en 4 segundos".
+
+**Ahi la pantalla se quedo sin nada que decir.** Con las tres comprobaciones de
+forma en verde y un tiempo agotado, no habia forma de saber si el fallo era la
+direccion, el puerto, el proyecto o la base. El diagnostico se acababa justo
+donde empezaba el problema.
+
+**Y habia un fallo mio encima.** El tope de la pantalla eran 4 s y el
+`connect_timeout` del cliente 5 s, asi que **el tope ganaba siempre la carrera**.
+El error que salia era el mio —"no contesto a tiempo"—, generico, en lugar del de
+Postgres, que habria dicho `ENOTFOUND`, `ECONNREFUSED` o `ETIMEDOUT`. Un tope
+puesto para no perder el diagnostico estaba tapandolo. Ahora `connect_timeout`
+son 3 s y el tope de la consulta es lo que quede del presupuesto: **se rinde
+antes el cliente**, y lo que sale es su error de verdad.
+
+**Dos sondas, antes de Postgres** (`src/lib/panel/sonda-red.ts`):
+
+1. **Traducir el nombre** (DNS). No solo si resuelve: **de que familia**. Un
+   nombre que solo da IPv6 es la conexion directa de Supabase, y esa es la
+   diferencia entre "esta mal escrito" y "esta bien escrito pero es la otra".
+2. **Tocar el puerto** (TCP). Abrir un socket y cerrarlo, sin mandar un byte.
+
+Con eso, tres averias que se arreglan en sitios distintos dejan de parecer la
+misma:
+
+| Lo que contestan | Que pasa de verdad |
+|---|---|
+| El nombre no resuelve | La direccion esta mal, o el proyecto se borro |
+| Resuelve, el puerto no contesta | **Proyecto pausado**, casi siempre |
+| Resuelve, el puerto rechaza | Puerto equivocado (`ECONNREFUSED`) o proyecto a medio arrancar (`ECONNRESET`) |
+| Acepta, y falla la consulta | La red esta bien: es credenciales o tablas |
+
+Ninguna de las dos necesita credenciales, y juntas tardan menos de medio segundo
+cuando todo va bien. El presupuesto total es de 8 s repartidos (2 s al nombre,
+2,5 s al puerto, el resto a la consulta), por debajo del corte de Vercel.
+
+**Lo que casi hago mal, y es la parte que vale la pena recordar.** Sonde el
+servidor de Adrian desde este contenedor: DNS resolvia por IPv4 y el puerto 6543
+no contestaba. Estaba a un paso de escribirle "confirmado, tu proyecto esta
+pausado". **Antes calibre**: probe 1.1.1.1:53, github.com:22 y gmail:587. Los
+tres, silencio. Este contenedor **solo deja salir por 80 y 443**, asi que mi
+sonda no media Supabase, medía la jaula. La prueba que habria "confirmado" el
+diagnostico no probaba nada.
+
+La leccion: **una medida sin calibrar no es una medida.** Cuando un instrumento
+nuevo confirma a la primera lo que ya sospechabas, esa es justo la vez que hay
+que comprobar el instrumento — la respuesta comoda es la que menos se audita.
+
+**11 comprobaciones de las sondas**, contra sockets de verdad: un servidor que
+acepta, un puerto cerrado, un nombre inventado. Nada simulado, porque lo que se
+comprueba es precisamente la diferencia entre esos casos, y una sonda de mentira
+distingue solo lo que le digan que distinga. Una vigila que no quede el socket
+abierto, por lo mismo que la del tope vigila los relojes.
+
+**100 comprobaciones del dominio en total.**
