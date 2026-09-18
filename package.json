@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "pruebas": "tsc -p tsconfig.pruebas.json && node .pruebas/lib/panel/dominio/__pruebas__/economia.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/mayorista.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/postgres.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/conexion.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/tope.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/sonda-red.prueba.js"
+    "pruebas": "tsc -p tsconfig.pruebas.json && node .pruebas/lib/panel/dominio/__pruebas__/economia.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/mayorista.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/postgres.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/conexion.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/tope.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/sonda-red.prueba.js && node .pruebas/lib/panel/dominio/__pruebas__/salud.prueba.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

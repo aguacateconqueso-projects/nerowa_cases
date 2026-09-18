@@ -12,15 +12,21 @@ import { redirect } from "next/navigation";
 import { diagnosticar } from "@/lib/panel/diagnostico";
 import { usuarioActual } from "@/lib/panel/sesion";
 
+import { soltarSesiones } from "./acciones";
+
 export const metadata = { title: "Estado" };
 export const dynamic = "force-dynamic";
 
-export default async function PantallaEstado() {
+export default async function PantallaEstado({
+  searchParams,
+}: {
+  searchParams: Promise<{ soltadas?: string; fallo?: string }>;
+}) {
   const usuario = await usuarioActual();
   if (!usuario) redirect("/panel/entrar");
   if (usuario.rol !== "dueno") redirect("/panel");
 
-  const d = await diagnosticar();
+  const [{ soltadas, fallo }, d] = await Promise.all([searchParams, diagnosticar()]);
   const bien = d.persistente && !d.error;
 
   return (
@@ -32,6 +38,26 @@ export default async function PantallaEstado() {
       </header>
 
       <h1 className="t-heading text-2xl">Estado del sistema</h1>
+
+      {soltadas ? (
+        <p
+          className="mt-4 rounded-xl border p-3 text-[0.875rem]"
+          style={{ borderColor: "var(--panel-bien)", color: "var(--panel-bien)" }}
+        >
+          {soltadas === "0"
+            ? "No habia ninguna sesion atascada que soltar."
+            : `Sesiones soltadas: ${soltadas}. Recarga para ver si la base ya responde.`}
+        </p>
+      ) : null}
+
+      {fallo ? (
+        <p
+          className="mt-4 rounded-xl border p-3 text-[0.875rem]"
+          style={{ borderColor: "var(--panel-aviso)", color: "var(--panel-tenue)" }}
+        >
+          No se pudieron soltar: {fallo}
+        </p>
+      ) : null}
 
       {/* El veredicto, primero y grande. */}
       <section
@@ -223,6 +249,103 @@ export default async function PantallaEstado() {
               />
             ) : null}
           </dl>
+        </section>
+      ) : null}
+
+      {/*
+        Quien mas esta conectado a la base.
+
+        Solo aparece cuando la base contesta: si no contesta, esto no se puede
+        saber y una seccion vacia solo estorba. Las sesiones `idle in
+        transaction` son las que importan — son migraciones que se quedaron a
+        medias y retienen los candados que bloquean a todas las demas.
+      */}
+      {d.salud ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            Quien mas esta conectado
+          </h2>
+          <dl className="grid gap-1 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            <Comprobacion
+              termino="El pulso"
+              valor={`${d.salud.pulsoMs} ms`}
+              bien={true}
+              nota="un select que no toca ninguna tabla: la base SI responde"
+            />
+            <Comprobacion
+              termino="Las tablas"
+              valor={d.salud.tablasCreadas ? "creadas" : "sin crear"}
+              bien={d.salud.tablasCreadas}
+              nota={
+                d.salud.tablasCreadas
+                  ? "la migracion ya corrio alguna vez"
+                  : "todavia no se pudo aplicar la migracion"
+              }
+            />
+            <Comprobacion
+              termino="Sesiones abiertas"
+              valor={String(d.salud.sesiones.length)}
+              bien={d.salud.atascadas.length === 0}
+              nota={
+                d.salud.atascadas.length === 0
+                  ? "ninguna atascada"
+                  : `${d.salud.atascadas.length} a medio hacer, reteniendo candados`
+              }
+            />
+          </dl>
+
+          {d.salud.atascadas.length > 0 ? (
+            <form action={soltarSesiones} className="mt-3">
+              <ul className="mb-3 grid gap-1">
+                {d.salud.atascadas.map((s, i) => (
+                  <li
+                    key={i}
+                    className="t-figures rounded-lg border px-3 py-2 text-[0.75rem]"
+                    style={{
+                      borderColor: "var(--panel-borde)",
+                      background: "var(--panel-tarjeta)",
+                      color: "var(--panel-tenue)",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {s.estado} · quieta hace {s.quietaHace}s
+                    {s.ultima ? ` · ${s.ultima}` : ""}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="submit"
+                className="t-label w-full rounded-xl px-4 py-3"
+                style={{ background: "var(--panel-oro)", color: "#17171a" }}
+              >
+                Soltar las sesiones atascadas
+              </button>
+              <p className="mt-2 text-[0.75rem]" style={{ color: "var(--panel-tenue)" }}>
+                Cierra solo las que estan a medio hacer. No corta ninguna consulta
+                en curso ni ninguna conexion sana: una sesion en ese estado no
+                esta haciendo nada, solo reteniendo el candado.
+              </p>
+            </form>
+          ) : null}
+        </section>
+      ) : null}
+
+      {d.saludError ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            No se pudo preguntarle a la base por si misma
+          </h2>
+          <p
+            className="t-figures rounded-xl border px-4 py-3 text-[0.8125rem]"
+            style={{
+              borderColor: "var(--panel-aviso)",
+              background: "var(--panel-tarjeta)",
+              color: "var(--panel-tenue)",
+              wordBreak: "break-word",
+            }}
+          >
+            {d.saludError}
+          </p>
         </section>
       ) : null}
 
