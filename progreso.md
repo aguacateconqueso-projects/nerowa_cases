@@ -1849,3 +1849,62 @@ de que el numero subiera. Un instrumento que altera lo que mide no solo da mal
 el dato — puede ser el problema.
 
 8 comprobaciones de salud. **108 en total.**
+
+### Sesion 10, vuelta 15 — no era una averia, era aritmetica
+
+Adrian: *"esto se está extendiendo mucho, no?"*. Si, y tenia razon en decirlo.
+Lo que zanja la vuelta es que la pantalla por fin dio el numero que faltaba.
+
+**Mi hipotesis de la vuelta anterior era incorrecta y los datos la tumbaron:**
+`ninguna atascada`, `tablas ✓ creadas`. No habia ningun candado. La herramienta
+que construi para confirmar la teoria sirvio para descartarla, que es para lo
+que sirve medir.
+
+**El dato nuevo: el pulso, 453 ms.** Un `select 1` —la consulta mas barata que
+existe, sin tablas ni candados— tardando medio segundo. Ahi se acaba el
+misterio y empieza la cuenta:
+
+| Que | Consultas |
+|---|---|
+| `migrar()` | 2 |
+| `sembrar()`: 2 personas + 8 colores + 1 lote, en un bucle con `await` | **11** |
+| Los seis conteos del diagnostico | **6** |
+| | **19** |
+
+**19 × 453 ms ≈ 8,6 segundos**, contra un presupuesto de 8. Por eso se agotaba
+exactamente donde se agotaba. No habia nada roto: habia un viaje transatlantico
+repetido diecinueve veces.
+
+**Y los seis conteos parecian paralelos y no lo eran.** Iban en un `Promise.all`,
+pero `max: 1` deja una sola conexion: se ponen en fila india. Encima traian las
+filas ENTERAS de las seis tablas para acabar mirando `.length`.
+
+**Arreglado en dos planos, y los dos hacian falta.**
+
+*El de fondo — la distancia.* La base esta en Irlanda y las funciones de Vercel
+corrian por defecto en Washington. Cada consulta cruzaba el Atlantico dos veces.
+`vercel.json` fija ahora la region en **Dublin (`dub1`)**, al lado de la base.
+Tres lineas.
+
+*El de la cuenta — los viajes.* De 19 a 6:
+
+- `sembrar()`: 11 consultas → **3**, una por tabla, con `insert ... values` de
+  varias filas.
+- Los conteos: 6 consultas que traian todas las filas → **1** con seis
+  subconsultas `count(*)`. Contar es trabajo de la base.
+
+**`huecos()` vive en su propio archivo y sin `server-only`**, aunque sea una
+linea, porque la numeracion de los `$n` es exactamente donde un desfase de uno
+mete el color de una fila en el nombre de la siguiente — y eso **no da error**:
+guarda mal y ya. Cinco comprobaciones lo vigilan, incluida una que inserta tres
+filas de golpe y las vuelve a leer.
+
+**Lo que aprendi de la vuelta, y es sobre mi forma de depurar.** Pase tres
+vueltas buscando una averia —IPv6, proyecto pausado, candados— cuando el sistema
+funcionaba correctamente y solo era lento. Cada hipotesis era plausible y cada
+una explicaba el sintoma. Ninguna era verdad. Lo que las tumbo a las tres no fue
+pensar mejor: fue **medir una cosa concreta** (453 ms) y multiplicar. La pregunta
+que tenia que haberme hecho tres vueltas antes no era "¿que esta roto?" sino
+"¿cuanto tarda una consulta, y cuantas estoy haciendo?".
+
+13 comprobaciones de salud. **113 en total.**

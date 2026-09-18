@@ -20,6 +20,7 @@ import "server-only";
 import { personasDelPanel } from "../../personas";
 
 import type { Conexion } from "./conexion";
+import { huecos } from "./huecos";
 import { migrar, type Migracion } from "./migrar";
 import { SQL_001_INICIAL } from "./migraciones";
 
@@ -44,21 +45,25 @@ const COLORES: [string, string, string][] = [
 ];
 
 async function sembrar(cx: Conexion) {
-  /* Las dos personas salen de `personas.ts`, que es donde estan definidas. */
-  for (const persona of personasDelPanel()) {
-    await cx.consultar(
-      `insert into usuarios (id, nombre, correo, rol) values ($1, $2, $3, $4)
-       on conflict (id) do nothing`,
-      [persona.id, persona.nombre, persona.correo, persona.rol],
-    );
-  }
+  /*
+    Tres consultas, una por tabla, en vez de once. Las tres son
+    `on conflict do nothing`: pueden correr en cada arranque sin pisar nada de
+    lo que alguien haya editado despues.
+  */
+  const personas = personasDelPanel();
+  await cx.consultar(
+    `insert into usuarios (id, nombre, correo, rol)
+     values ${huecos(personas.length, 4)}
+     on conflict (id) do nothing`,
+    personas.flatMap((p) => [p.id, p.nombre, p.correo, p.rol]),
+  );
 
-  for (const [id, nombre, hex] of COLORES) {
-    await cx.consultar(
-      "insert into colores (id, nombre, hex, activo) values ($1, $2, $3, true) on conflict (id) do nothing",
-      [id, nombre, hex],
-    );
-  }
+  await cx.consultar(
+    `insert into colores (id, nombre, hex, activo)
+     values ${huecos(COLORES.length, 4)}
+     on conflict (id) do nothing`,
+    COLORES.flatMap(([id, nombre, hex]) => [id, nombre, hex, true]),
+  );
 
   /*
     El lote de importacion que Alfredo ya trajo: 100 unidades, 2.400 EUR de

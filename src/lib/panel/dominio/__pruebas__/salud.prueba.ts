@@ -18,6 +18,7 @@ import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import postgres from "postgres";
 
 import type { Conexion } from "../../adaptadores/postgres/conexion";
+import { huecos } from "../../adaptadores/postgres/huecos";
 import { SQL_001_INICIAL } from "../../adaptadores/postgres/migraciones";
 import { migrar } from "../../adaptadores/postgres/migrar";
 import { medirSalud, soltarAtascadas } from "../../adaptadores/postgres/salud";
@@ -87,6 +88,78 @@ async function principal() {
     */
     const nuevas = await migrar(cx, [{ nombre: "001-inicial", sql: SQL_001_INICIAL }]);
     assert.deepEqual(nuevas, [], "volvio a aplicar una migracion ya aplicada");
+  });
+
+  await comprueba("los conteos vienen en UNA consulta, no en seis", async () => {
+    const s = await medirSalud(cx);
+    assert.ok(s.conteos, "no trajo los conteos");
+    assert.deepEqual(Object.keys(s.conteos).sort(), [
+      "Colores",
+      "Lotes de importacion",
+      "Pedidos de la web",
+      "Pedidos de tiendas",
+      "Personas con acceso",
+      "Tiendas",
+    ]);
+    /* `count(*)` vuelve como cadena de Postgres: si no se convierte, la
+       pantalla enseñaria "0" como texto y las sumas fallarian en silencio. */
+    for (const v of Object.values(s.conteos)) {
+      assert.equal(typeof v, "number", "un conteo volvio sin convertir a numero");
+    }
+  });
+
+  console.log("\nHuecos para insertar varias filas de una vez");
+
+  await comprueba("numera los $n sin saltarse ni repetir ninguno", () => {
+    assert.equal(huecos(1, 3), "($1, $2, $3)");
+    assert.equal(huecos(3, 2), "($1, $2), ($3, $4), ($5, $6)");
+  });
+
+  await comprueba("ocho colores por cuatro columnas llegan hasta $32", () => {
+    /*
+      El caso real: si la numeracion se desfasara, el hex de un color acabaria
+      en el nombre del siguiente. Eso no da error — guarda mal y ya.
+    */
+    const s = huecos(8, 4);
+    assert.ok(s.startsWith("($1, $2, $3, $4)"));
+    assert.ok(s.endsWith("($29, $30, $31, $32)"));
+    assert.equal(s.split("(").length - 1, 8, "no salieron ocho filas");
+  });
+
+  await comprueba("pedir cero filas revienta en vez de generar SQL roto", () => {
+    assert.throws(() => huecos(0, 4));
+    assert.throws(() => huecos(4, 0));
+  });
+
+  await comprueba("las filas insertadas de golpe se leen igual que se metieron", async () => {
+    /*
+      La comprobacion que de verdad importa de este cambio: sembrar en una sola
+      consulta tiene que dar EXACTAMENTE las mismas filas que sembrar en once.
+    */
+    const filas = [
+      ["c-uno", "Uno", "#111111", true],
+      ["c-dos", "Dos", "#222222", true],
+      ["c-tres", "Tres", "#333333", false],
+    ];
+    await cx.consultar(
+      `insert into colores (id, nombre, hex, activo)
+       values ${huecos(3, 4)} on conflict (id) do nothing`,
+      filas.flat(),
+    );
+    const leidas = await cx.consultar<{
+      id: string;
+      nombre: string;
+      hex: string;
+      activo: boolean;
+    }>("select id, nombre, hex, activo from colores where id like 'c-%' order by id");
+    assert.deepEqual(
+      leidas.map((f) => [f.id, f.nombre, f.hex, f.activo]),
+      [
+        ["c-dos", "Dos", "#222222", true],
+        ["c-tres", "Tres", "#333333", false],
+        ["c-uno", "Uno", "#111111", true],
+      ],
+    );
   });
 
   console.log("\nQue pista sale segun si se llega o no al servidor");

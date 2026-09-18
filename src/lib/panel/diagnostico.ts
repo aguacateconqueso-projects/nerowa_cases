@@ -205,13 +205,26 @@ export async function diagnosticar(): Promise<Diagnostico> {
     });
   }
 
+  /*
+    Con Postgres, los conteos ya vienen de `medirSalud` en UNA consulta. Pedir
+    aqui los seis listados costaba seis viajes mas —`max: 1` pone en fila india
+    lo que parece paralelo— y encima traia las filas enteras para mirar
+    `.length`. Contar es trabajo de la base.
+  */
+  if (base.salud?.conteos) {
+    base.respondeEnMs = base.salud.pulsoMs;
+    base.cuentas = Object.entries(base.salud.conteos).map(([que, cuantos]) => ({
+      que,
+      cuantos,
+    }));
+    return base;
+  }
+
   const desde = Date.now();
   try {
     /*
-      Se cuentan cosas de verdad en vez de hacer un `select 1`: asi la pantalla
-      no solo dice que la base responde, sino que las tablas existen y tienen lo
-      que deberian. Una base viva con las tablas vacias es un fallo distinto y
-      hay que poder distinguirlo.
+      El camino del almacen en memoria, donde no hay SQL que valga y los seis
+      listados no cuestan nada porque no salen del proceso.
     */
     const [usuarios, colores, lotes, pedidos, tiendas, mayoristas] = await conTope(
       Promise.all([
