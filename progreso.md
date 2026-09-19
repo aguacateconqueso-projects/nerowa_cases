@@ -2471,33 +2471,102 @@ cerro dos dias de hipotesis.
 
 1 comprobacion de salud mas. **137 en total.**
 
+### Sesion 10, vuelta 24 — el arranque de la base tenia al panel de rehen
+
+La sonda de la vuelta anterior contesto, y el mensaje era mio:
+
+    El camino que recorren las pantallas del panel
+    > La base no contesto en 7 segundos
+
+Siete segundos es **mi propio techo**. Y al lado, en la misma pantalla: pulso de
+**29 ms**, puerto que acepta en 4 ms, tablas creadas, ninguna sesion atascada.
+
+Consultas directas: 29 ms. Camino del almacen: colgado. Lo unico que hay en
+medio es el **arranque** —migraciones y semilla— que corre antes de CADA
+consulta en cada instancia nueva. **Mientras el no vuelva, el panel entero esta
+caido.**
+
+**Y lo primero que hacia el arranque era lo peor que se le puede mandar a un
+pooler de transacciones:**
+
+```sql
+begin;
+set local lock_timeout = '3s';
+create table if not exists migraciones_aplicadas (...);
+commit;
+```
+
+Por **protocolo simple**, multisentencia, con `begin`/`commit` dentro — la unica
+cosa de todo el panel que usa ese protocolo — y **en cada instancia nueva,
+aunque la tabla llevara dias creada**.
+
+**Arreglado en dos planos, y los dos hacen falta.**
+
+*El de la causa.* Ahora se PREGUNTA antes de crear: un `select` por el protocolo
+normal, el mismo que contesta en 29 ms. Si la tabla esta —que es siempre, menos
+la primerisima vez— no se manda nada por el protocolo simple. El camino de todos
+los dias deja de tocar la parte fragil.
+
+*El de fondo, que es el que importa de verdad.* **El arranque ya no puede tumbar
+el panel.** Se le espera 4 segundos; si no vuelve, se suelta su conexion y la
+consulta sigue por una nueva. Si falla, tambien sigue: las tablas ya existen y
+el panel puede trabajar; y si de verdad faltara alguna, la consulta dira
+`relation ... does not exist`, que es un error con nombre y con arreglo.
+
+**Lo que se techa es la ESPERA, no el trabajo.** La promesa del arranque sigue
+viva y la migracion termina entera, sin que nadie la corte a mitad de
+transaccion — que es como se dejaron los candados muertos de la vuelta 14. Las
+dos reglas parecian opuestas y se cumplen a la vez.
+
+**Y soltar la conexion ahi no es un detalle**: dejar de esperar al arranque no
+basta, porque si el arranque esta colgado es que tiene la conexion ocupada, y
+con `max: 1` la consulta de detras se pone en la misma fila. Sin soltarla, el
+panel tardaria once segundos en no cargar en vez de siete.
+
+Medido de punta a punta, con el socket muerto: 7 s el primer intento, **0,15 s y
+0,06 s los siguientes, con datos**.
+
+**Lo que aprendi, y es lo que Adrian me estaba preguntando.** Si, iba en
+circulos, y el circulo tenia una forma concreta: **cuatro vueltas seguidas
+arreglando como se VE el fallo** —el esqueleto, el aviso, la sonda, el
+diagnostico— **y ninguna tocando donde estaba**. Cada una estaba justificada por
+si sola, y cada una me dejaba mas cerca de poder mirar y mas lejos de arreglar.
+
+Lo que rompio el circulo no fue una idea mejor: fue que el diagnostico por fin
+recorriera **el mismo** camino que fallaba, y no uno parecido. Cuatro de las
+seis pantallas de diagnostico que construi median cosas que funcionaban.
+
+La pregunta que tenia que haberme hecho en la vuelta 18, y que me ahorraba tres
+dias: *"¿que hay en el camino de las pantallas rotas que NO esta en el de la
+pantalla que funciona?"*. La respuesta —el arranque— estaba a un archivo de
+distancia todo el tiempo.
+
+4 comprobaciones del arranque que no bloquea. **141 en total.**
+
 
 ---
 
 ## Lo que queda por confirmar
 
-**Una sola cosa, y otra vez la contesta el propio panel.** Abrir
-`/panel/estado`: si las pantallas del panel siguen sin cargar, sale una seccion
-nueva, **"El camino que recorren las pantallas del panel"**, con el mensaje
-crudo del error. Ese texto dice donde tocar, y es el que React tapa en
-produccion.
+**Que el panel cargue.** Esta vuelta quita el arranque del camino critico de dos
+formas independientes: ya no manda nada por el protocolo simple cuando la tabla
+existe, y aunque se colgara, se le suelta la conexion a los 4 s y la consulta
+sigue por una nueva. Para que el panel siga sin cargar tendrian que fallar las
+dos a la vez.
 
-Lo que se sabe hasta ahora, y acota mucho:
+**Si aun asi no carga**, `/panel/estado` trae ahora dos secciones que lo dicen:
 
-- La base responde en **25 ms**, las tablas estan, no hay sesiones atascadas.
-- Las consultas **directas** funcionan; las que pasan por el **almacen** no.
-- El mismo digest en dos pantallas distintas ⇒ mismo error y misma traza ⇒ el
-  fallo esta en codigo compartido: el arranque del almacen o el techo de las
-  consultas, no en cada pagina.
+- **"El arranque de la base"** — si las migraciones o la semilla tropezaron.
+- **"El camino que recorren las pantallas del panel"** — el mensaje crudo de lo
+  que revienta, que es el que React tapa en produccion.
 
-**Lo que sigue pendiente, por orden:**
+**Lo que sigue pendiente, ya sin urgencia:**
 
 1. **Que `conTope` cancele la consulta, no solo la abandone.** Hoy se suelta la
-   conexion, que es lo que devuelve el servicio; la consulta sigue viva al otro
-   lado hasta que Postgres la corte.
-2. **Revisar si `max: 1` sigue siendo lo correcto**, ahora que hay rescate.
+   conexion; la consulta sigue viva al otro lado hasta que Postgres la corte.
+2. **Revisar si `max: 1` sigue siendo lo correcto.** Con una sola conexion por
+   instancia, cualquier cosa lenta bloquea todo lo demas de esa instancia.
 
-**De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono, y
-hasta que el panel cargue no se puede. El sospechoso que queda es Safari **sin
-instalar**, donde el primer toque en la franja de abajo despliega la barra del
-navegador en vez de llegar a la pagina.
+**De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono. El
+sospechoso que queda es Safari **sin instalar**, donde el primer toque en la
+franja de abajo despliega la barra del navegador en vez de llegar a la pagina.

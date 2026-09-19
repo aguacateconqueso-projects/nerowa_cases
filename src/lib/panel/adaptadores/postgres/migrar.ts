@@ -19,24 +19,52 @@ export interface Migracion {
 
 export async function migrar(cx: Conexion, migraciones: readonly Migracion[]) {
   /*
-    La tabla de control es la PRIMERA consulta que hace el panel contra la base,
-    y tambien pide un candado exclusivo. Va en su propia transaccion con el
-    mismo limite: si esta es la que esta atascada, hay que enterarse aqui y no
-    veinte segundos despues en una pantalla de Vercel.
-  */
-  await cx.ejecutar(`
-    begin;
-    set local lock_timeout = '3s';
-    create table if not exists migraciones_aplicadas (
-      nombre      text primary key,
-      aplicada_en timestamptz not null default now()
-    );
-    commit;
-  `);
+    PRIMERO SE PREGUNTA, Y SOLO SE CREA SI HACE FALTA.
 
-  const aplicadas = await cx.consultar<{ nombre: string }>(
-    "select nombre from migraciones_aplicadas",
-  );
+    Antes esto empezaba siempre por un `begin; ... create table if not exists
+    ...; commit;` **por el protocolo simple**, aunque la tabla llevara dias
+    creada. Era la primera cosa que el panel le decia a la base en cada
+    instancia nueva, y la unica de todo el panel que usa ese protocolo.
+
+    Y ahi estaba el atasco. Medido en produccion: las consultas directas
+    contestaban en **29 ms** y el camino del almacen agotaba los **7 segundos**
+    del techo. La diferencia entre los dos caminos era este arranque.
+
+    Un `begin ... commit` multisentencia por protocolo simple contra el pooler
+    de transacciones de Supabase es justo lo que no conviene mandarle: el pooler
+    tiene que seguir el estado de la transaccion de algo que le llega como un
+    solo bloque, y ahi es donde la respuesta puede no volver nunca.
+
+    Preguntar es barato y va por el protocolo normal, el mismo que contesta en
+    29 ms. Si la tabla esta —que es el caso siempre, menos la primerisima vez—
+    no se manda nada por el protocolo simple. El camino de todos los dias deja
+    de tocar la parte fragil.
+  */
+  let aplicadas: { nombre: string }[];
+  try {
+    aplicadas = await cx.consultar<{ nombre: string }>(
+      "select nombre from migraciones_aplicadas",
+    );
+  } catch {
+    /*
+      Que falle aqui quiere decir, casi siempre, que la tabla todavia no
+      existe: base nueva, primer arranque. Se crea y se vuelve a preguntar.
+      Si el fallo era otro, la segunda consulta lo lanza igual y se ve.
+    */
+    await cx.ejecutar(`
+      begin;
+      set local lock_timeout = '3s';
+      create table if not exists migraciones_aplicadas (
+        nombre      text primary key,
+        aplicada_en timestamptz not null default now()
+      );
+      commit;
+    `);
+    aplicadas = await cx.consultar<{ nombre: string }>(
+      "select nombre from migraciones_aplicadas",
+    );
+  }
+
   const yaEstan = new Set(aplicadas.map((f) => f.nombre));
 
   const nuevas: string[] = [];

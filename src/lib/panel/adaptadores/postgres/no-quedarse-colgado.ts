@@ -45,6 +45,7 @@
 
 import type { Almacen } from "../../puertos/almacen";
 import { conTope, TiempoAgotado } from "../../tope";
+import { anotarFalloDelArranque } from "./fallo-del-arranque";
 
 /*
   Cuanto se le deja a UNA consulta del panel.
@@ -57,6 +58,16 @@ import { conTope, TiempoAgotado } from "../../tope";
   Y por debajo del corte de Vercel, para que la pantalla pueda contarlo.
 */
 export const TECHO_CONSULTA_MS = 7000;
+
+/*
+  Cuanto se ESPERA al arranque antes de seguir sin el.
+
+  Con la base sana el arranque son cuatro viajes cortos —preguntar por las
+  migraciones y tres `insert ... on conflict do nothing`—, o sea unos pocos
+  cientos de milisegundos. Cuatro segundos es de sobra, y si no llega en ese
+  rato es que hay algo mal y el panel no puede quedarse esperandolo.
+*/
+export const TECHO_ARRANQUE_MS = 4000;
 
 /**
  * Envuelve el almacen para que espere al arranque, y para que ninguna consulta
@@ -84,8 +95,55 @@ export function envolverAlmacenPostgres(
       if (typeof valor !== "function") return valor;
 
       return async (...args: unknown[]) => {
-        /* Sin techo: ver arriba. Las migraciones necesitan su tiempo. */
-        await preparar();
+        /*
+          SE ESPERA AL ARRANQUE, PERO NO PARA SIEMPRE — Y SIN ABANDONARLO.
+
+          Esta es la diferencia que importa, y costo tres dias no verla. El
+          arranque corre antes de CADA consulta de cada instancia nueva, asi
+          que mientras el no vuelva, el panel entero esta caido. Medido en
+          produccion: consultas directas a 29 ms, camino del almacen agotando
+          los 7 segundos del techo. Lo unico que habia en medio era esto.
+
+          Lo que se techa es **la espera**, no el trabajo. La promesa del
+          arranque esta guardada (ver `una-sola-vez.ts`) y sigue viva por su
+          cuenta: la migracion termina igual, sin que nadie la corte a mitad de
+          transaccion — que es como se dejaron los candados muertos de la
+          vuelta 14 y no se va a repetir.
+
+          Y si el arranque falla, la consulta sigue adelante igual. Las tablas
+          ya existen: el panel puede trabajar. Si de verdad faltara alguna, la
+          consulta dira "relation ... does not exist", que es un error con
+          nombre y con arreglo — infinitamente mejor que una pantalla en gris.
+        */
+        try {
+          await conTope(preparar(), TECHO_ARRANQUE_MS);
+        } catch (error) {
+          if (error instanceof TiempoAgotado) {
+            /*
+              Y SE SUELTA LA CONEXION, que es lo que hace que esto sirva de
+              algo.
+
+              Dejar de esperar al arranque no basta: si el arranque esta colgado
+              es porque tiene la conexion ocupada, y con `max: 1` la consulta
+              que viene justo detras se pondria en la misma fila y heredaria el
+              mismo atasco. Se soltaria sola siete segundos despues, y el panel
+              habria tardado once para no cargar.
+
+              Soltandola aqui, la consulta abre una conexion nueva —que en
+              produccion tardan 13 y 22 ms, esta medido— y la pantalla carga.
+            */
+            soltar();
+            anotarFalloDelArranque(
+              `El arranque de la base no termino en ${TECHO_ARRANQUE_MS / 1000} s, ` +
+                "asi que se solto esa conexion y la consulta siguio por una nueva. " +
+                "Si las tablas ya estan, el panel funciona igual.",
+            );
+          } else {
+            anotarFalloDelArranque(
+              error instanceof Error ? error.message : String(error),
+            );
+          }
+        }
 
         try {
           return await conTope(
