@@ -69,6 +69,16 @@ export const TECHO_CONSULTA_MS = 7000;
 */
 export const TECHO_ARRANQUE_MS = 4000;
 
+/*
+  Cuanto se le deja al SEGUNDO intento, ya con conexion nueva.
+
+  Mas corto que el primero porque para entonces ya se sabe dos cosas: que la
+  base responde —el pulso de la pantalla de estado va a 25 ms— y que la
+  conexion anterior estaba inservible. Si con una recien abierta tampoco
+  contesta en cinco segundos, no es la conexion y hay que mirar otra cosa.
+*/
+export const TECHO_REINTENTO_MS = 5000;
+
 /**
  * Envuelve el almacen para que espere al arranque, y para que ninguna consulta
  * pueda colgarse indefinidamente detras de una conexion atascada.
@@ -145,23 +155,44 @@ export function envolverAlmacenPostgres(
           }
         }
 
-        try {
-          return await conTope(
+        const intentar = (techoMs: number) =>
+          conTope(
             Promise.resolve(
               (valor as (...a: unknown[]) => unknown).apply(objetivo, args),
             ),
-            TECHO_CONSULTA_MS,
+            techoMs,
           );
+
+        try {
+          return await intentar(TECHO_CONSULTA_MS);
         } catch (error) {
-          if (error instanceof TiempoAgotado) {
-            /*
-              Aqui esta el rescate. Sin esta linea, esa instancia se queda
-              contestando con el esqueleto para siempre y solo se arregla
-              cuando Vercel la recicla — que fueron dos dias.
-            */
-            soltar();
+          if (!(error instanceof TiempoAgotado)) throw error;
+
+          /*
+            EL RESCATE, Y AHORA CON SEGUNDA OPORTUNIDAD.
+
+            Sin soltar la conexion, esa instancia se quedaba contestando con el
+            esqueleto para siempre y solo se arreglaba cuando Vercel la
+            reciclaba — que fueron dos dias.
+
+            Pero soltarla solo arreglaba la peticion SIGUIENTE, y quien estaba
+            mirando la pantalla ya se habia llevado el error. Ahora se suelta y
+            se vuelve a intentar **en la misma peticion**, con una conexion
+            recien abierta. Esta medido lo que cuesta abrirla en produccion: 13
+            y 22 ms.
+
+            Un solo reintento, no un bucle. Si con conexion nueva tampoco
+            contesta, el problema no era la conexion y repetir solo gastaria el
+            tiempo que le queda a la pagina para poder contarlo.
+          */
+          soltar();
+
+          try {
+            return await intentar(TECHO_REINTENTO_MS);
+          } catch (segundo) {
+            if (segundo instanceof TiempoAgotado) soltar();
+            throw segundo;
           }
-          throw error;
         }
       };
     },

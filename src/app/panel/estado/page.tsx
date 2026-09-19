@@ -259,6 +259,29 @@ export default async function PantallaEstado({
         produccion React tapa el error de servidor y deja solo un numero, asi
         que esta es la unica forma de leerlo.
       */}
+      {/*
+        Cada consulta del almacen por separado. Es la seccion que dice CUAL, y
+        sin ella solo se sabia que "algo tarda".
+      */}
+      {d.llamadas && d.llamadas.length > 0 ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            Cada consulta del panel, una por una
+          </h2>
+          <dl className="grid gap-1 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            {d.llamadas.map((l) => (
+              <Comprobacion
+                key={l.que}
+                termino={l.que}
+                valor={l.error ? `${l.error} (${l.ms} ms)` : `${l.ms} ms`}
+                bien={!l.error}
+                nota={l.error ? "esta es la que revienta" : "contesta bien"}
+              />
+            ))}
+          </dl>
+        </section>
+      ) : null}
+
       {d.arranqueError ? (
         <section className="mt-6">
           <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
