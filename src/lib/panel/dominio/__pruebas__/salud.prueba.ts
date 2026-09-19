@@ -12,6 +12,8 @@
 */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
@@ -265,6 +267,42 @@ async function principal() {
     assert.ok(pista);
     assert.match(pista.titulo, /atascada/i);
     assert.doesNotMatch(pista.queHacer, /IPv6|pooler/i);
+  });
+
+  await comprueba("el diagnostico recorre el camino del ALMACEN, no solo el directo", () => {
+    /*
+      EL AGUJERO QUE ESTO TAPA, y costo una vuelta entera.
+
+      Hubo un dia en que `/panel/estado` salia **entera en verde** —pulso de
+      25 ms, tablas creadas, ninguna sesion atascada, los conteos puestos— y
+      `/panel` y `/panel/tiendas` daban "Esta pantalla no cargo" y un numero.
+
+      La razon: todo lo que probaba esta pantalla iba por `conexion()`
+      directamente, y las pantallas del panel van por `servicios().almacen`,
+      que antes de cada consulta espera al arranque —migraciones y semilla— y
+      lleva su propio techo. **El trozo que fallaba era justo el unico que el
+      diagnostico no tocaba.**
+
+      Una herramienta de diagnostico que prueba un camino parecido al que falla,
+      en vez del mismo, da verde y miente.
+    */
+    const fuente = readFileSync(
+      join(process.cwd(), "src", "lib", "panel", "diagnostico.ts"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+
+    assert.match(
+      fuente,
+      /almacen\.listarPedidos\(\)/,
+      "el diagnostico dejo de recorrer el camino del almacen: puede volver a " +
+        "salir todo en verde con el panel entero sin cargar",
+    );
+    assert.match(
+      fuente,
+      /caminoDelPanelError/,
+      "el diagnostico ya no guarda el error del camino del almacen, que en " +
+        "produccion es el unico sitio donde se puede leer",
+    );
   });
 
   console.log(`\n${hechas} comprobaciones de salud, todas en verde.\n`);

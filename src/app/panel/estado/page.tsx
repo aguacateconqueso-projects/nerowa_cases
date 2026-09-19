@@ -253,6 +253,38 @@ export default async function PantallaEstado({
       ) : null}
 
       {/*
+        El camino de las pantallas rotas, recorrido aqui.
+
+        Solo sale cuando falla, y es el mensaje mas util de la pantalla: en
+        produccion React tapa el error de servidor y deja solo un numero, asi
+        que esta es la unica forma de leerlo.
+      */}
+      {d.caminoDelPanelError ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            El camino que recorren las pantallas del panel
+          </h2>
+          <p
+            className="rounded-lg border p-3 text-[0.8125rem] leading-relaxed"
+            style={{
+              borderColor: "var(--panel-urgente)",
+              background: "#2a1211",
+              color: "#f6b3ad",
+            }}
+          >
+            {d.caminoDelPanelError}
+          </p>
+          <p className="mt-2 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            Esto es lo que revienta en <span className="t-figures">/panel</span> y
+            en <span className="t-figures">/panel/tiendas</span>. Las consultas
+            directas de arriba funcionan, asi que el fallo no esta en la base sino
+            en el camino: el arranque de las tablas, la semilla o el techo de
+            tiempo.
+          </p>
+        </section>
+      ) : null}
+
+      {/*
         Las dos conexiones de prueba.
 
         Aparece solo cuando hizo falta: se llega al puerto y no hay pulso. Es la
