@@ -259,6 +259,25 @@ export default async function PantallaEstado({
         produccion React tapa el error de servidor y deja solo un numero, asi
         que esta es la unica forma de leerlo.
       */}
+      {d.arranqueError ? (
+        <section className="mt-6">
+          <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>
+            El arranque de la base
+          </h2>
+          <p
+            className="rounded-lg border p-3 text-[0.8125rem] leading-relaxed"
+            style={{ borderColor: "var(--panel-aviso)", background: "#2a2107", color: "#f4d78a" }}
+          >
+            {d.arranqueError}
+          </p>
+          <p className="mt-2 text-[0.8125rem]" style={{ color: "var(--panel-tenue)" }}>
+            Las migraciones y la semilla corren una vez por instancia, antes de la
+            primera consulta. Ya NO pueden dejar el panel sin cargar: si tardan de
+            mas, la consulta sigue adelante y el arranque termina por su cuenta.
+          </p>
+        </section>
+      ) : null}
+
       {d.caminoDelPanelError ? (
         <section className="mt-6">
           <h2 className="t-label mb-2" style={{ color: "var(--panel-tenue)" }}>

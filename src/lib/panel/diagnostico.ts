@@ -20,6 +20,7 @@ import {
   type Pista,
 } from "./diagnostico-conexion";
 import { conexion } from "./adaptadores/postgres/conexion";
+import { falloDelArranque } from "./adaptadores/postgres/fallo-del-arranque";
 import { contarFilas, medirSalud, type Salud } from "./adaptadores/postgres/salud";
 import { servicios } from "./servicios";
 import {
@@ -89,6 +90,14 @@ export interface Diagnostico {
    * ensena el error crudo, que es lo unico que permite arreglarlo.
    */
   caminoDelPanelError?: string;
+  /**
+   * Si el arranque de la base (migraciones y semilla) fallo o tardo de mas.
+   *
+   * Ya no tumba el panel —las consultas siguen adelante— pero un fallo que no
+   * bloquea y no se cuenta es un fallo invisible, y de esos ya hubo bastantes
+   * en esta sesion.
+   */
+  arranqueError?: string;
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -353,6 +362,9 @@ export async function diagnosticar(): Promise<Diagnostico> {
       });
     }
   }
+
+  /* Lo sepa o no el camino de arriba, si el arranque tropezo hay que decirlo. */
+  if (persistente) base.arranqueError = falloDelArranque();
 
   if (base.salud?.tablasCreadas) {
     /*

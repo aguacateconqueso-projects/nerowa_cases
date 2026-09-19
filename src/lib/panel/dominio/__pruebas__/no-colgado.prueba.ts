@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import type { Almacen } from "../../puertos/almacen";
 import {
   envolverAlmacenPostgres,
+  TECHO_ARRANQUE_MS,
   TECHO_CONSULTA_MS,
 } from "../../adaptadores/postgres/no-quedarse-colgado";
 import { TiempoAgotado } from "../../tope";
@@ -81,28 +82,50 @@ async function principal() {
     assert.equal(soltada, 0, "no habia nada que soltar");
   });
 
-  await comprueba("el ARRANQUE no lleva techo, que cortaria las migraciones", async () => {
+  await comprueba("el arranque NO se corta a medias, aunque no se le espere", async () => {
     /*
       LA TRAMPA DE ESTE ARREGLO, y la razon de que exista esta prueba.
 
-      Lo obvio seria techar todo. Pero la primera peticion tras un despliegue
-      dispara las migraciones, que tienen `statement_timeout = '15s'` a
-      proposito. Un techo por debajo las cortaria a mitad de transaccion — que
-      es EXACTAMENTE como se dejaron los candados muertos de la vuelta 14.
+      Lo obvio seria techar todo, arranque incluido. **No se puede**: la primera
+      peticion tras un despliegue dispara las migraciones, que tienen
+      `statement_timeout = '15s'` a proposito, y cortarlas a mitad de
+      transaccion es EXACTAMENTE como se dejaron los candados muertos de la
+      vuelta 14.
 
-      Aqui el arranque tarda mas que el techo y aun asi tiene que terminar.
+      Lo que se techa es la ESPERA, no el trabajo: la consulta deja de esperar
+      al arranque, pero el arranque sigue vivo y termina solo. Las dos cosas a
+      la vez, que parecian opuestas.
+
+      Aqui el arranque tarda mas que el techo. La consulta tiene que volver
+      igual, y la migracion tiene que terminar despues, entera.
     */
     let arranco = false;
+    const migracion = (async () => {
+      await new Promise((r) => setTimeout(r, TECHO_ARRANQUE_MS + 1000));
+      arranco = true;
+    })();
+
+    /*
+      Que se suelte la conexion aqui es CORRECTO y deliberado: el arranque
+      lleva mas del techo, o sea que tiene la conexion ocupada, y la consulta
+      que viene detras necesita una nueva. Lo que no puede pasar —y es lo que
+      esta prueba vigila— es que la migracion se corte por eso.
+    */
+    let soltada = 0;
     const a = envolverAlmacenPostgres(
       almacenQue(async () => "listo"),
-      async () => {
-        await new Promise((r) => setTimeout(r, TECHO_CONSULTA_MS + 800));
-        arranco = true;
+      () => migracion,
+      () => {
+        soltada += 1;
       },
-      () => assert.fail("el arranque largo no puede soltar la conexion"),
     );
-    assert.equal(await a.listarPedidos(), "listo");
-    assert.ok(arranco, "la migracion tenia que poder terminar");
+
+    assert.equal(await a.listarPedidos(), "listo", "la consulta no puede quedarse esperando");
+    assert.equal(soltada, 1, "la conexion ocupada por el arranque tenia que soltarse");
+    assert.equal(arranco, false, "todavia no habia terminado, y esta bien");
+
+    await migracion;
+    assert.ok(arranco, "la migracion tenia que terminar entera, por su cuenta");
   });
 
   await comprueba("el techo esta por encima del statement_timeout de 5 s", () => {
