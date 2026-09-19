@@ -2342,32 +2342,110 @@ camino corto.
 
 5 comprobaciones de la sonda de sesion. **131 en total.**
 
+### Sesion 10, vuelta 22 — era la conexion de siempre, y la sonda lo dijo en una linea
+
+La sonda de la vuelta anterior contesto a la primera, y no dejo lugar a dudas:
+
+    con los ajustes del panel .... ✓ abre en 22 ms, viaje de 3 ms
+    sin ajustes, desnuda ......... ✓ abre en 13 ms, viaje de 2 ms
+
+**Las dos conexiones nuevas, perfectas.** En el mismo instante en que el panel
+llevaba dos dias sin cargar. No era Supabase, no eran nuestros ajustes del
+saludo inicial, no era la red, no era la cadena. Era la **hipotesis C**: la
+conexion reutilizada de esa instancia estaba muerta y nada la renovaba nunca.
+
+Construir el aparato en vez de apostar ahorro la cuarta apuesta.
+
+**Como se queda muerta.** El cliente tiene `max: 1`: una conexion por instancia.
+Se queda ocupada para siempre por cualquiera de estas dos, y las dos pasan en
+Vercel:
+
+1. Una consulta abandonada por un tope. `conTope` deja de esperarla, pero la
+   consulta sigue viva al otro lado y la conexion, ocupada. **Apuntado en la
+   vuelta 14 y sin resolver desde entonces.**
+2. Un socket que murio con la instancia congelada. Vercel las congela entre
+   peticiones y el pooler cierra su lado; al despertar, el cliente cree que
+   tiene conexion y no la tiene.
+
+En los dos casos la siguiente consulta se pone en fila detras de algo que no va
+a terminar nunca. **`statement_timeout` no salva esto**: la consulta ni siquiera
+llega a empezar, asi que no hay sentencia que cortar. Por eso hacian falta las
+dos cosas: un techo de tiempo Y tirar la conexion.
+
+**Arreglado, y medido de punta a punta.** Se reprodujo el caso exacto —un proxy
+que mata el socket ya abierto y deja sanos los nuevos, que es literalmente la
+foto de produccion— contra un Postgres de verdad:
+
+| Tras morir el socket | Sin el rescate | Con el rescate |
+|---|---|---|
+| intento 1 | **45 s, colgada** | 7,1 s, se rinde |
+| intento 2 | **45 s, colgada** | **0,07 s, con datos** |
+| intento 3 | **45 s, colgada** | **0,07 s, con datos** |
+
+Los 45 s son el limite del propio `curl`: colgaba indefinidamente. **Eso son los
+dos dias.** Con el rescate, la instancia se recupera sola en la peticion
+siguiente.
+
+**La trampa que casi piso, y que ya habia identificado tres vueltas antes.** Lo
+obvio era techar todas las consultas en un sitio. **No se puede tal cual**: la
+primera peticion tras un despliegue dispara las migraciones, que tienen
+`statement_timeout = '15s'` a proposito, y un techo por debajo las cortaria a
+mitad de transaccion — exactamente como se dejaron los candados muertos de la
+vuelta 14. El techo va sobre la CONSULTA y nunca sobre el arranque, y hay una
+prueba con un arranque deliberadamente mas lento que el techo para que nadie lo
+"simplifique".
+
+El techo son 7 s: por encima del `statement_timeout` de 5 s a proposito —si
+bajara, taparia el error de Postgres, que es el que DICE que paso— y por debajo
+del corte de Vercel. Tambien esta escrito como comprobacion, para que el numero
+no se pueda mover sin enterarse de por que.
+
+**Y mi banco de pruebas volvio a mentirme, van cinco.** El primer intento de
+reproducirlo dio que la instancia NO se recuperaba ni con el arreglo. Era falso:
+`PGLiteSocketServer` acepta **una sola conexion**, asi que el socket viejo
+—abierto pero mudo— bloqueaba a los nuevos. Supabase no hace eso. Corregido el
+proxy para que libere el lado de arriba y deje colgado el de abajo, salio lo que
+tenia que salir. Si me quedo con la primera lectura, habria descartado un
+arreglo correcto.
+
+**La leccion de la vuelta, y cierra las seis.** El fallo de fondo tiene la misma
+forma que el de `una-sola-vez.ts`: algo que se guarda una vez por proceso y,
+cuando se estropea, no hay quien lo renueve. La regla que sale de las dos y que
+queda escrita en el codigo: **en un entorno sin servidor fijo, todo lo que se
+guarda por proceso necesita una forma de tirarse.** Un cache sin invalidacion no
+es un cache, es una averia esperando.
+
+5 comprobaciones del techo. **136 en total.**
+
 
 ---
 
 ## Lo que queda por confirmar
 
-**Una sola cosa, y la contesta el propio panel en la siguiente carga.** Abrir
-`/panel/estado`: ahora sale una seccion nueva, **"Dos conexiones nuevas, para
-saber de quien es el problema"**. Lo que diga decide sin interpretacion:
+**De la vuelta 22 (la conexion muerta).** Es la causa, no una sospecha: la sonda
+la senalo y el arreglo esta medido de punta a punta contra un Postgres de
+verdad. Lo que hay que ver en produccion es sencillo — **el panel carga**. Y si
+alguna vez vuelve a atascarse una conexion, la peticion siguiente tiene que
+funcionar sola, sin esperar a que Vercel recicle la instancia.
 
-| Lo que salga | Que significa | Que hay que hacer |
-|---|---|---|
-| La desnuda contesta, la del panel no | Son nuestros ajustes del saludo inicial | Quitarlos de `conexion.ts` y ponerlos por transaccion |
-| No contesta ninguna | El pooler no esta dando sesion | Mirar el proyecto en Supabase: Paused, Restarting o sin conexiones libres |
-| Las dos contestan | La base esta bien; estaba atascada la conexion reutilizada | Que un tope cierre la conexion que abandona |
+**Lo que sigue pendiente, ya sin urgencia:**
 
-Hasta que eso se lea, cualquier arreglo seria otra apuesta, y van tres.
+1. **Que `conTope` cancele la consulta, no solo la abandone.** Hoy se suelta la
+   conexion, que es lo que devuelve el servicio; la consulta sigue viva al otro
+   lado hasta que Postgres la corte por `statement_timeout`. Es aceptable y no
+   es gratis.
+2. **Revisar si `max: 1` sigue siendo lo correcto.** Con una sola conexion por
+   instancia, una consulta lenta bloquea a todas las demas de esa instancia. Se
+   eligio por el limite de conexiones de Supabase; con el rescate puesto, quiza
+   admita dos.
 
-**Lo que sigue apuntado, por orden, para cuando se sepa cual es:**
+**De la vuelta 17 (los treinta toques).** Ahora que la base contesta, por fin se
+puede probar en el telefono:
 
-1. **El tope que no cierra la conexion** (vuelta 14, sin resolver). No se pudo
-   comprobar aqui: PGlite corre en el mismo proceso y bloquea el reloj que
-   mediria el abandono. Hace falta una base remota o un doble que no bloquee.
-2. **El tope de tiempo general para las consultas**, distinguiendo la migracion
-   del resto (ver la cabecera de `loading.tsx`).
-
-**De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono, y
-hasta que la base conteste no se puede. El sospechoso que queda es Safari sin
-instalar, donde el primer toque en la franja de abajo despliega la barra del
-navegador en vez de llegar a la pagina.
+1. **Si siguen haciendo falta varios toques.** Ya no puede ser por falta de
+   senal: hay tres. El sospechoso que queda es Safari **sin instalar**, donde el
+   primer toque en la franja de abajo despliega la barra del navegador en vez de
+   llegar a la pagina. Se distingue en un segundo: instalado en la pantalla de
+   inicio contra pestana de Safari.
+2. **Si el scroll sigue a tirones.** El desenfoque ya no esta. Si continua, el
+   siguiente sitio es `.panel-accion-anclada`.
