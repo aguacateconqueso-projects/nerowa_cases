@@ -2417,35 +2417,87 @@ es un cache, es una averia esperando.
 
 5 comprobaciones del techo. **136 en total.**
 
+### Sesion 10, vuelta 23 — la pantalla de diagnostico probaba un camino parecido, no el mismo
+
+Con el rescate de la conexion desplegado, `/panel/estado` salio **entera en
+verde**:
+
+    Guardando en la base de datos — la base contesto en 25 ms
+    El pulso ........... ✓ 25 ms      Las tablas ......... ✓ creadas
+    Sesiones abiertas .. ✓ 5, ninguna atascada
+    Personas 2 · Colores 8 · Lotes 1 · Pedidos 0 · Tiendas 0
+
+Y `/panel` y `/panel/tiendas`: **"Esta pantalla no cargo"**, con el numero
+`1922332652` y nada mas.
+
+**La base estaba perfecta y el panel no cargaba ninguna pantalla.** Otra vez el
+diagnostico diciendo que todo va bien mientras nada va bien.
+
+**Lo que si se pudo deducir, y acoto mucho.** El digest de Next es
+`hash(mensaje + traza)` —esta en `create-error-handler.js`—, asi que **el mismo
+numero en dos pantallas distintas significa el mismo error y la misma traza**.
+No es codigo de cada pagina: es codigo compartido. Y lo unico compartido que
+`/panel/estado` NO recorre es el camino del almacen.
+
+**Ahi estaba el agujero:** todo lo que probaba la pantalla de estado iba por
+`conexion()` **directamente** —el pulso, las tablas, las sesiones, los conteos—
+y las pantallas del panel van por `servicios().almacen`, que antes de cada
+consulta espera al arranque (migraciones y semilla) y lleva su propio techo de
+tiempo. **El unico trozo que fallaba era justo el unico que el diagnostico no
+tocaba.**
+
+Una herramienta que prueba un camino *parecido* al que falla, en vez del mismo,
+da verde y miente. Es la cuarta vez que esta pantalla falla, y las cuatro por
+afirmar mas de lo que habia comprobado.
+
+**Y hay una razon por la que el mensaje no se podia leer de ninguna otra forma:**
+en produccion React **tapa** el mensaje de un error de servidor y solo deja el
+digest. No es un descuido del panel, es a proposito, para que un error no filtre
+nada al navegador. Con `error.tsx` no habia forma de saber que pasaba.
+
+**Arreglado:** `/panel/estado` recorre ahora el mismo camino que las pantallas
+rotas —las mismas dos llamadas que hace la pantalla de pedidos, a traves del
+almacen— y, si falla, **enseña el mensaje crudo**. Solo lo ve el dueño, y es lo
+unico que permite arreglarlo. Comprobado escondiendo una tabla: la seccion sale
+y dice `relation "pedidos" does not exist`.
+
+Con una prueba que lo vigila, porque este agujero se vuelve a abrir solo el dia
+que alguien "simplifique" el diagnostico dejando las consultas directas.
+
+**Lo que aun no se sabe, y es honesto decirlo:** que error concreto da en
+produccion. Esta vuelta no lo adivina — construye la unica forma de leerlo. Es
+lo mismo que la vuelta 21, y funciono: aquella sonda contesto a la primera y
+cerro dos dias de hipotesis.
+
+1 comprobacion de salud mas. **137 en total.**
+
 
 ---
 
 ## Lo que queda por confirmar
 
-**De la vuelta 22 (la conexion muerta).** Es la causa, no una sospecha: la sonda
-la senalo y el arreglo esta medido de punta a punta contra un Postgres de
-verdad. Lo que hay que ver en produccion es sencillo — **el panel carga**. Y si
-alguna vez vuelve a atascarse una conexion, la peticion siguiente tiene que
-funcionar sola, sin esperar a que Vercel recicle la instancia.
+**Una sola cosa, y otra vez la contesta el propio panel.** Abrir
+`/panel/estado`: si las pantallas del panel siguen sin cargar, sale una seccion
+nueva, **"El camino que recorren las pantallas del panel"**, con el mensaje
+crudo del error. Ese texto dice donde tocar, y es el que React tapa en
+produccion.
 
-**Lo que sigue pendiente, ya sin urgencia:**
+Lo que se sabe hasta ahora, y acota mucho:
+
+- La base responde en **25 ms**, las tablas estan, no hay sesiones atascadas.
+- Las consultas **directas** funcionan; las que pasan por el **almacen** no.
+- El mismo digest en dos pantallas distintas ⇒ mismo error y misma traza ⇒ el
+  fallo esta en codigo compartido: el arranque del almacen o el techo de las
+  consultas, no en cada pagina.
+
+**Lo que sigue pendiente, por orden:**
 
 1. **Que `conTope` cancele la consulta, no solo la abandone.** Hoy se suelta la
    conexion, que es lo que devuelve el servicio; la consulta sigue viva al otro
-   lado hasta que Postgres la corte por `statement_timeout`. Es aceptable y no
-   es gratis.
-2. **Revisar si `max: 1` sigue siendo lo correcto.** Con una sola conexion por
-   instancia, una consulta lenta bloquea a todas las demas de esa instancia. Se
-   eligio por el limite de conexiones de Supabase; con el rescate puesto, quiza
-   admita dos.
+   lado hasta que Postgres la corte.
+2. **Revisar si `max: 1` sigue siendo lo correcto**, ahora que hay rescate.
 
-**De la vuelta 17 (los treinta toques).** Ahora que la base contesta, por fin se
-puede probar en el telefono:
-
-1. **Si siguen haciendo falta varios toques.** Ya no puede ser por falta de
-   senal: hay tres. El sospechoso que queda es Safari **sin instalar**, donde el
-   primer toque en la franja de abajo despliega la barra del navegador en vez de
-   llegar a la pagina. Se distingue en un segundo: instalado en la pantalla de
-   inicio contra pestana de Safari.
-2. **Si el scroll sigue a tirones.** El desenfoque ya no esta. Si continua, el
-   siguiente sitio es `.panel-accion-anclada`.
+**De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono, y
+hasta que el panel cargue no se puede. El sospechoso que queda es Safari **sin
+instalar**, donde el primer toque en la franja de abajo despliega la barra del
+navegador en vez de llegar a la pagina.

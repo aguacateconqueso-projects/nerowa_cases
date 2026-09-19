@@ -74,6 +74,21 @@ export interface Diagnostico {
   sesiones?: Intento[];
   /** Por que no se pudieron contar las filas, si no se pudo. */
   cuentasError?: string;
+  /**
+   * El MISMO camino que recorren las pantallas del panel, recorrido aqui.
+   *
+   * Existe porque hubo un dia en que `/panel/estado` decia que todo estaba
+   * bien —pulso de 25 ms, tablas creadas, ninguna sesion atascada— y `/panel`
+   * y `/panel/tiendas` daban "Esta pantalla no cargo" con un numero y nada
+   * mas. En produccion React tapa el mensaje de un error de servidor y solo
+   * deja el numero, asi que no habia forma de saber que fallaba.
+   *
+   * La diferencia entre esta pantalla y aquellas es que esta pregunta por la
+   * conexion directa y aquellas pasan por el almacen —con su arranque, sus
+   * migraciones y su semilla—. Este campo recorre ese camino a proposito y
+   * ensena el error crudo, que es lo unico que permite arreglarlo.
+   */
+  caminoDelPanelError?: string;
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -303,6 +318,42 @@ export async function diagnosticar(): Promise<Diagnostico> {
     lo que parece paralelo— y encima traia las filas enteras para mirar
     `.length`. Contar es trabajo de la base.
   */
+  /*
+    RECORRER EL CAMINO DE LAS PANTALLAS ROTAS, no uno parecido.
+
+    Todo lo de arriba pregunta por `conexion()` directamente. Las pantallas del
+    panel no: pasan por `servicios().almacen`, que antes de cada consulta espera
+    al arranque —migraciones y semilla— y lleva su propio techo de tiempo. Es
+    exactamente el trozo que esta pantalla no probaba, y por eso podia salir
+    entera en verde mientras las demas no cargaban ninguna.
+
+    Se hace con las mismas dos llamadas que hace la pantalla de pedidos.
+  */
+  if (persistente) {
+    try {
+      await conTope(
+        Promise.all([almacen.listarPedidos(), almacen.listarColores()]),
+        Math.max(Math.min(9000, queda() + 3000), 2000),
+      );
+    } catch (error) {
+      /*
+        Crudo y entero. Esta pantalla solo la ve el dueno, y este mensaje es el
+        unico que dice donde tocar. Lo unico que nunca sale es la cadena de
+        conexion, que va en la traza y no en el mensaje.
+      */
+      base.caminoDelPanelError = error instanceof Error ? error.message : String(error);
+      base.pistas.push({
+        nivel: "error",
+        titulo: "Esta pantalla funciona, pero las del panel no",
+        queHacer:
+          "La base responde a las consultas directas y falla cuando se pasa por " +
+          "el almacen. O sea que no es la base: es el arranque —migraciones y " +
+          "semilla— o el techo de tiempo de las consultas. El mensaje exacto sale " +
+          "abajo, en \"el camino que recorren las pantallas del panel\".",
+      });
+    }
+  }
+
   if (base.salud?.tablasCreadas) {
     /*
       Contar VA APARTE de medir la salud, aunque compartan viaje.
