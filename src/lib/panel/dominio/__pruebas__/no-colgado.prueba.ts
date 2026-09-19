@@ -13,6 +13,7 @@ import {
   envolverAlmacenPostgres,
   TECHO_ARRANQUE_MS,
   TECHO_CONSULTA_MS,
+  TECHO_REINTENTO_MS,
 } from "../../adaptadores/postgres/no-quedarse-colgado";
 import { TiempoAgotado } from "../../tope";
 
@@ -56,11 +57,58 @@ async function principal() {
     await assert.rejects(a.listarPedidos(), (e: unknown) => e instanceof TiempoAgotado);
     const tardo = Date.now() - desde;
 
-    assert.equal(soltada, 1, "tenia que soltar la conexion atascada");
+    /*
+      Dos sueltas y no una: se suelta la conexion atascada antes de reintentar,
+      y otra vez cuando el reintento tampoco contesta. Las dos veces por el
+      mismo motivo — una conexion que se quedo ocupada no puede volver al
+      grupo.
+    */
+    assert.equal(soltada, 2, "una suelta por intento fallido");
+    const total = TECHO_CONSULTA_MS + TECHO_REINTENTO_MS;
     assert.ok(
-      tardo >= TECHO_CONSULTA_MS - 500 && tardo < TECHO_CONSULTA_MS + 2000,
-      `se rindio a los ${tardo} ms, fuera del techo de ${TECHO_CONSULTA_MS} ms`,
+      tardo >= total - 800 && tardo < total + 2500,
+      `se rindio a los ${tardo} ms, y los dos techos suman ${total} ms`,
     );
+  });
+
+  await comprueba("tras soltar, REINTENTA en la misma peticion y puede salvarla", async () => {
+    /*
+      Soltar la conexion arreglaba la peticion SIGUIENTE, pero quien estaba
+      mirando la pantalla ya se habia llevado el error. Con el reintento, la
+      misma peticion se salva: se suelta lo atascado y se pregunta otra vez por
+      una conexion nueva.
+    */
+    let intentos = 0;
+    let soltada = 0;
+    const a = envolverAlmacenPostgres(
+      almacenQue(async () => {
+        intentos += 1;
+        if (intentos === 1) return nunca();
+        return "listo a la segunda";
+      }),
+      async () => {},
+      () => {
+        soltada += 1;
+      },
+    );
+
+    assert.equal(await a.listarPedidos(), "listo a la segunda");
+    assert.equal(intentos, 2, "tenia que reintentar una vez");
+    assert.equal(soltada, 1, "y soltar la conexion atascada antes de reintentar");
+  });
+
+  await comprueba("si el reintento tampoco contesta, se rinde y no hace bucle", async () => {
+    let intentos = 0;
+    const a = envolverAlmacenPostgres(
+      almacenQue(async () => {
+        intentos += 1;
+        return nunca();
+      }),
+      async () => {},
+      () => {},
+    );
+    await assert.rejects(a.listarPedidos(), (e: unknown) => e instanceof TiempoAgotado);
+    assert.equal(intentos, 2, "dos intentos y para: un bucle se comeria la pagina");
   });
 
   await comprueba("un error normal de Postgres NO tira la conexion", async () => {
@@ -126,6 +174,13 @@ async function principal() {
 
     await migracion;
     assert.ok(arranco, "la migracion tenia que terminar entera, por su cuenta");
+  });
+
+  await comprueba("los dos techos juntos caben antes del corte de Vercel", () => {
+    assert.ok(
+      TECHO_CONSULTA_MS + TECHO_REINTENTO_MS <= 12000,
+      "entre el intento y el reintento no puede irse el tiempo de la pagina",
+    );
   });
 
   await comprueba("el techo esta por encima del statement_timeout de 5 s", () => {

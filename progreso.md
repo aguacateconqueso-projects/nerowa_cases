@@ -2543,29 +2543,97 @@ distancia todo el tiempo.
 
 4 comprobaciones del arranque que no bloquea. **141 en total.**
 
+### Sesion 10, vuelta 25 — el registro de Vercel, y una contradiccion que no cuadra
+
+Adrian mando el registro de Vercel, que era lo unico a lo que no tenia acceso.
+Trae dos cosas y las dos importan.
+
+**La primera: el arreglo de la vuelta anterior FUNCIONO.** En el despliegue
+viejo, cada peticion dejaba esta linea:
+
+    NOTICE 42P07: relation "migraciones_aplicadas" already exists, skipping
+
+Es el `create table if not exists` del arranque, por protocolo simple, en cada
+peticion. En el despliegue nuevo **esa linea ya no aparece**. El protocolo
+simple salio del camino de todos los dias, como se pretendia.
+
+**La segunda: y aun asi falla.**
+
+    error TiempoAgotado: La base no contesto en 7 segundos
+          ms: 7000, digest: '2794020227'   requestPath: /panel/tiendas
+
+Siete mil son el techo de **la consulta**, no el del arranque (que son cuatro
+mil). Y la pantalla de estado no enseña la seccion "El arranque de la base", o
+sea que el arranque **termino bien**. El fallo esta en la consulta misma.
+
+**Y ahi aparece una contradiccion que no se puede explicar con lo que sabemos:**
+
+| Consulta | Por donde | Tiempo |
+|---|---|---|
+| `select count(*) from tiendas` | `conexion()` | **25 ms** |
+| `select * from tiendas order by activa desc, nombre` | `conexion()` | **agota 7 s** |
+
+**La misma conexion. La misma tabla. Y la tabla esta VACIA.** Una contesta en
+veinticinco milisegundos y la otra no contesta. Eso no es una consulta lenta:
+es una consulta que no llega a ejecutarse.
+
+**Lo que se hace esta vuelta, y son dos cosas distintas a proposito.**
+
+*Para saber cual es.* Las llamadas del almacen se prueban ahora **una por una y
+cronometradas**, en serie, cada una con su propio tope corto. Agrupadas solo
+decian "algo del almacen tarda"; por separado dicen **cual**, y esa es la
+diferencia entre arreglar y seguir probando.
+
+*Para que cargue igual.* Cuando una consulta agota el tope, ya no se abandona la
+peticion: se suelta la conexion y **se vuelve a intentar en la misma peticion**,
+con una recien abierta —13 y 22 ms cuesta abrirla en produccion, esta medido—.
+Un solo reintento, no un bucle: si con conexion nueva tampoco contesta, el
+problema no era la conexion y repetir solo gastaria el tiempo que le queda a la
+pagina para poder contarlo.
+
+Medido de punta a punta con el socket muerto: antes, la primera peticion tras el
+corte fallaba; ahora **carga con datos**, en 7,16 s, y las siguientes en 0,06 s.
+
+**Lo que aprendi, y es sobre pedir ayuda.** El registro de Vercel contesto en
+una lectura dos preguntas que me costaron dos vueltas cada una: si el arreglo
+anterior habia entrado (si) y si el fallo era el arranque o la consulta (la
+consulta). Llevaba tres dias deduciendo desde fuera algo que estaba escrito.
+**Tenia que haberlo pedido en la vuelta 18**, cuando quedo claro que no podia
+ver produccion, en vez de construir cuatro pantallas para deducirlo.
+
+3 comprobaciones del techo mas. **144 en total.**
+
 
 ---
 
 ## Lo que queda por confirmar
 
-**Que el panel cargue.** Esta vuelta quita el arranque del camino critico de dos
-formas independientes: ya no manda nada por el protocolo simple cuando la tabla
-existe, y aunque se colgara, se le suelta la conexion a los 4 s y la consulta
-sigue por una nueva. Para que el panel siga sin cargar tendrian que fallar las
-dos a la vez.
+**Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,
+porque el reintento con conexion nueva salva la peticion. Si carga, sigue
+pendiente entender POR QUE tropieza la primera.
 
-**Si aun asi no carga**, `/panel/estado` trae ahora dos secciones que lo dicen:
+**Y para eso, `/panel/estado` trae ahora la seccion que lo dice:** *"Cada
+consulta del panel, una por una"*, con el tiempo de cada llamada y cual es la
+que revienta. Esa tabla nombra la consulta concreta.
 
-- **"El arranque de la base"** — si las migraciones o la semilla tropezaron.
-- **"El camino que recorren las pantallas del panel"** — el mensaje crudo de lo
-  que revienta, que es el que React tapa en produccion.
+**La contradiccion que hay que explicar**, y es la pista mas fuerte que queda:
 
-**Lo que sigue pendiente, ya sin urgencia:**
+    select count(*) from tiendas ................ 25 ms
+    select * from tiendas order by activa, nombre  agota 7 s
 
-1. **Que `conTope` cancele la consulta, no solo la abandone.** Hoy se suelta la
-   conexion; la consulta sigue viva al otro lado hasta que Postgres la corte.
-2. **Revisar si `max: 1` sigue siendo lo correcto.** Con una sola conexion por
-   instancia, cualquier cosa lenta bloquea todo lo demas de esa instancia.
+Misma conexion, misma tabla, tabla vacia. Lo que las diferencia no es el
+trabajo: es la FORMA de la consulta. Por donde mirar cuando se sepa cual es:
+
+1. Los tipos de las columnas que devuelve `select *` — `jsonb`, `timestamptz` —
+   y si el cliente esta pidiendo informacion de tipos por su cuenta.
+2. Si el pooler en modo transaccion trata distinto una consulta con resultado
+   grande o con `order by`.
+
+**Lo que sigue apuntado, sin urgencia:**
+
+1. **Que `conTope` cancele la consulta, no solo la abandone.**
+2. **Revisar si `max: 1` sigue siendo lo correcto**, ahora que hay rescate y
+   reintento.
 
 **De la vuelta 17 (los treinta toques).** Sigue sin probarse en el telefono. El
 sospechoso que queda es Safari **sin instalar**, donde el primer toque en la

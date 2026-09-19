@@ -98,6 +98,16 @@ export interface Diagnostico {
    * en esta sesion.
    */
   arranqueError?: string;
+  /**
+   * Cada consulta del almacen por separado, con su tiempo o su fallo.
+   *
+   * Existe porque el diagnostico llego a un punto imposible de resolver
+   * mirando: `select count(*) from tiendas` contestaba en 25 ms y
+   * `select * from tiendas order by activa desc, nombre` —la misma tabla, vacia,
+   * por la MISMA conexion— agotaba siete segundos. Con las llamadas agrupadas no
+   * habia forma de saber cual era; una por una, se ve.
+   */
+  llamadas?: { que: string; ms?: number; error?: string }[];
   cuentas: Cuenta[];
   migraciones: string[];
   /** Variables que hacen falta y si estan puestas. Nunca su valor. */
@@ -339,11 +349,45 @@ export async function diagnosticar(): Promise<Diagnostico> {
     Se hace con las mismas dos llamadas que hace la pantalla de pedidos.
   */
   if (persistente) {
+    /*
+      UNA POR UNA, Y CRONOMETRADAS.
+
+      Agrupadas no decian nada: "algo del almacen tarda". Por separado dicen
+      cual, y eso es la diferencia entre arreglar y seguir probando. Cada una
+      lleva su propio tope corto: que una se cuelgue no puede llevarse por
+      delante a las demas — la leccion de la vuelta 16, otra vez.
+
+      Van en serie a proposito, no en paralelo: el cliente tiene `max: 1` y en
+      paralelo se pondrian en fila igual, pero los tiempos saldrian sumados unos
+      sobre otros y no se podria leer cual es la lenta.
+    */
+    const deUnaEnUna: [string, () => Promise<unknown>][] = [
+      ["listarColores", () => almacen.listarColores()],
+      ["listarUsuarios", () => almacen.listarUsuarios()],
+      ["listarTiendas", () => almacen.listarTiendas()],
+      ["listarPedidos", () => almacen.listarPedidos()],
+      ["listarPedidosMayoristas", () => almacen.listarPedidosMayoristas()],
+      ["listarLotes", () => almacen.listarLotes()],
+    ];
+
+    base.llamadas = [];
+    for (const [que, llamar] of deUnaEnUna) {
+      const desde = Date.now();
+      try {
+        await conTope(Promise.resolve(llamar()), 2500);
+        base.llamadas.push({ que, ms: Date.now() - desde });
+      } catch (error) {
+        base.llamadas.push({
+          que,
+          ms: Date.now() - desde,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const rota = base.llamadas.find((l) => l.error);
     try {
-      await conTope(
-        Promise.all([almacen.listarPedidos(), almacen.listarColores()]),
-        Math.max(Math.min(9000, queda() + 3000), 2000),
-      );
+      if (rota) throw new Error(`${rota.que}: ${rota.error}`);
     } catch (error) {
       /*
         Crudo y entero. Esta pantalla solo la ve el dueno, y este mensaje es el
