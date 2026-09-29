@@ -36,6 +36,16 @@ git fetch --quiet origin main 2>/dev/null || exit 0
 # "Merge pull request #N from <cuenta>/<rama>", que es como los mezcla GitHub.
 mezclada=$(git log origin/main --merges --grep="from .*/$rama\$" --format=%h -1 2>/dev/null)
 
+# Si ese merge ya esta DENTRO de lo que se empuja, la rama se reinicio desde main
+# despues de mezclarse (`git checkout -B <rama> origin/main`) y el trabajo nuevo
+# saldra en un PR nuevo. Es como trabaja Claude en la nube, que usa un solo nombre
+# de rama por sesion: los PR #34 a #38 salieron asi de la misma rama. Lo que este
+# guardia corta es el otro caso, un commit encima de la punta VIEJA, que no
+# contiene el merge.
+if [ -n "$mezclada" ] && git merge-base --is-ancestor "$mezclada" HEAD 2>/dev/null; then
+  exit 0
+fi
+
 if [ -n "$mezclada" ]; then
   cat >&2 <<AVISO
 
