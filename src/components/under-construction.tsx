@@ -8,12 +8,7 @@ const MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Nerowa Cas
 const QUESTIONS = [
   {
     id: "price",
-    text: (
-      <>
-        A double bass case, properly made, for{" "}
-        <span className="t-figures">€180</span>?
-      </>
-    ),
+    text: "A double bass case, properly made, that doesn’t cost a fortune?",
   },
   {
     id: "bows",

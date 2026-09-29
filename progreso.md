@@ -234,6 +234,7 @@ en variable de entorno, no solo con un nombre raro de carpeta.
 | 2026-09-15 | **El costo de un estuche es 34 EUR, no 24 EUR**, y el panel lo calcula **por lote de importacion** | Los 24 EUR son precio de fabrica en China; traer el lote a Vilnius costo 1.000 EUR mas por cada 100 unidades. Usar 24 inflaria el margen un 42%. Y como el flete y la aduana cambian con cada lote, un numero fijo ensuciaria todo el historico al cambiar de ruta |
 | 2026-09-15 | **En la tienda se muestra el precio con IVA** (217,80 EUR), no los 180 EUR netos | Vendiendo a consumidores en la Union Europea el precio que se enseña tiene que ser el final con impuestos. El numero de hoy en el hero es un marcador de posicion y hay que cambiarlo |
 | 2026-09-15 | **Los numeros y graficos no van en la pantalla de pedidos**, sino a un toque de distancia | Unica cosa de la lista de Adrian que se movio de sitio. La pestana 1 es la cola de trabajo: si arriba hay un grafico, lo primero que ve Alfredo al abrir ya no es lo que le falta despachar |
+| 2026-09-29 | **La pagina de espera no muestra precio.** La primera pregunta pasa a "A double bass case, properly made, that doesn't cost a fortune?" | Lo pidieron quitar. Ademas, los €180 que mostraba eran el precio sin IVA |
 
 ---
 
@@ -2603,6 +2604,36 @@ ver produccion, en vez de construir cuatro pantallas para deducirlo.
 
 3 comprobaciones del techo mas. **144 en total.**
 
+### Sesion 11 — 2026-09-29: la pagina de espera sin precio
+
+**Pedido:** quitar el precio de la pagina de espera. Es la unica que sirve el
+dominio, asi que el cambio sale al publico en cuanto se mezcla.
+
+**Hecho:** la primera de las cuatro preguntas pasa de
+
+    A double bass case, properly made, for €180?
+
+a
+
+    A double bass case, properly made, that doesn’t cost a fortune?
+
+Adrian eligio esta entre cuatro opciones. El motivo: la serie funciona porque
+cada pregunta suena demasiado buena para ser verdad, y "for €180?" era la
+sorpresa de la primera. "That doesn't cost a fortune?" guarda esa sorpresa sin
+dar cifra, va en el mismo tono hablado de "that isn't ugly?", y deja al lector
+con la pregunta de cuanto cuesta justo encima de "Write to us". "Great price"
+se descarto por sonar a anuncio.
+
+**El precio tambien estaba donde no se ve:** la descripcion de la pagina, en
+`src/app/layout.tsx`, decia "180 EUR". Es el texto que sale en Google y en la
+vista previa cuando se comparte el enlace por WhatsApp o Instagram, asi que se
+quito tambien. Ojo: esas vistas previas se guardan en cache, y durante unos
+dias pueden seguir ensenando el texto viejo.
+
+**De paso se cierra la incoherencia apuntada en la tercera vuelta de la sesion
+10:** la pagina decia €180, que es el precio sin IVA. Sin cifra, ya no hay
+precio equivocado que ensenar. El precio del hero en `/store` sigue siendo un
+marcador de posicion y sigue pendiente pasarlo a 217,80 EUR.
 
 ---
 
