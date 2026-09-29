@@ -2635,6 +2635,23 @@ dias pueden seguir ensenando el texto viejo.
 precio equivocado que ensenar. El precio del hero en `/store` sigue siendo un
 marcador de posicion y sigue pendiente pasarlo a 217,80 EUR.
 
+### Sesion 11, segunda vuelta — el guardia nunca estuvo encendido
+
+**El guardia de `pre-push` no se activaba con `npm install`**, aunque la
+condicion 1 y la decima vuelta de la sesion 10 dijeran lo contrario:
+`package.json` nunca tuvo el script `prepare`. Lo que se vio funcionar en la
+sesion 10 era un `core.hooksPath` puesto a mano en ese mismo contenedor; en cada
+sesion nueva el guardia estaba apagado. Ahora `prepare` corre
+`git config core.hooksPath .githooks`, y falla en silencio donde no hay git,
+como en el build de Vercel.
+
+**Y encenderlo tal cual habria bloqueado el trabajo normal.** El guardia cortaba
+cualquier rama con un merge en `main`, incluida la que se reinicia desde `main`
+con el mismo nombre despues de mezclarse, que es como trabaja Claude en la nube
+(los PR #34 a #38 salieron asi de una sola rama). Ahora deja pasar ese caso,
+porque el merge queda dentro de lo que se empuja, y sigue cortando el que existe
+para cortar: un commit encima de la punta vieja.
+
 ---
 
 ## Lo que queda por confirmar
