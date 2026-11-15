@@ -9,7 +9,7 @@ Si algo no esta escrito aqui, no paso.
 
 **Fase 1 de 7 — cerrada.** La pagina de espera esta **publicada en
 `nerowacases.com`**. El repositorio, Next.js, Tailwind y el despliegue en Vercel
-funcionan.
+funcionan. Desde la sesion 11 la pagina de espera **no muestra precio**.
 
 **Fase 3 — el hero, en marcha.** La tienda vive en **`/store`**, no en la raiz:
 el dominio sigue sirviendo solo la pagina de espera y las dos cosas conviven en
@@ -45,6 +45,36 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 ---
 
 ## Lo primero de la proxima sesion
+
+**La proxima sesion es para DARLE LA VUELTA A LA WEB de Nerowa.** Lo dijo
+Adrian al cerrar la sesion 11 (2026-11-15). Todavia no se sabe el alcance:
+**lo primero es preguntarle que quiere cambiar y por que, antes de tocar
+codigo** (condicion 4). Tres cosas que conviene tener a mano para esa charla:
+
+- **Que "web" es.** Hay dos: la **pagina de espera** de `nerowacases.com`
+  (`src/components/under-construction.tsx`), que es lo unico publico, y la
+  **tienda** en `/store`, que solo se ve en los previews de Vercel. Cambiar la
+  primera sale al publico en cuanto se mezcla; la segunda no.
+- **Lo que esta verificado y no depende del diseno** (ver mas abajo, "Lo que NO
+  hay que rehacer"): la formula de color de `palette.ts`, el estado y el carrito
+  de `store-context.tsx`, y el reparto de gestos de `case-scene.tsx`. Si la
+  vuelta es visual, esas piezas se reusan; si se descartan, que sea a proposito.
+- **Lo que sigue faltando y bloquea cualquier version de la tienda:** el `.glb`
+  del estuche, los 14 colores con nombre y valor exacto, y el precio con IVA
+  (217,80 EUR) en lugar del marcador de posicion.
+
+Alfredo ya aviso que va cambiando sobre la marcha: **no adelantar trabajo sobre
+el hero sin su lista** sigue valiendo.
+
+**Lo que quedo de la sesion 11, todo mezclado:** la pagina de espera ya no dice
+precio ([#39](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/39))
+y el guardia de `pre-push` se enciende solo con `npm install`
+([#40](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/40)).
+**Pendiente de mirar con los ojos:** que `nerowacases.com` ensene la linea
+nueva. Desde la sesion no se pudo abrir el dominio.
+
+**El panel queda en segundo plano** mientras dure la vuelta a la web, con su
+error abierto sin diagnosticar (lo de abajo sigue vigente cuando se retome).
 
 **LA BASE YA FUNCIONA.** Costo seis vueltas (13 a 16 de la bitacora) y quedo
 resuelto: cadena del pooler, region de Vercel en Dublin al lado de la base,
@@ -2651,6 +2681,23 @@ con el mismo nombre despues de mezclarse, que es como trabaja Claude en la nube
 (los PR #34 a #38 salieron asi de una sola rama). Ahora deja pasar ese caso,
 porque el merge queda dentro de lo que se empuja, y sigue cortando el que existe
 para cortar: un commit encima de la punta vieja.
+
+**Comprobado en una sesion de verdad, no solo en la prueba:** al retomar el
+2026-11-15 el contenedor era nuevo, `core.hooksPath` estaba vacio y
+`npm install` lo dejo en `.githooks` solo.
+
+**Un tropiezo de esta vuelta, para no repetirlo:** probando el guardia con un
+`git worktree` aparte, una linea del script de prueba corrio en el repositorio
+principal y lo cambio de rama. No se perdio nada (se respaldaron los archivos y
+se volvio con `git symbolic-ref` + `git reset`, que no tocan el directorio de
+trabajo), pero **las pruebas de git van en un clon aparte, nunca en un worktree
+del mismo repositorio**, y cada linea con `cd` explicito.
+
+### Cierre de la sesion 11 — 2026-11-15
+
+Adrian pide cerrar y abrir sesion nueva para darle la vuelta a la web. Se
+actualizo "Lo primero de la proxima sesion" con eso. La sesion 11 deja dos PR,
+los dos mezclados: #39 (pagina de espera sin precio) y #40 (guardia).
 
 ---
 
