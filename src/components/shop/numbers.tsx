@@ -73,14 +73,38 @@ export function Numbers() {
           role="img"
           aria-label={`Top view of the case: ${LENGTH_LABEL} long; ${WIDTH_MARKS.map((m) => `${m.label} at the ${m.name}`).join(", ")}.`}
         >
+          <defs>
+            {/* Brillo de un borde al otro: la tapa es curva, y en plano sin
+                esto el case parecia una mancha recortada. */}
+            <linearGradient id="sh-case-sheen" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stopColor="#fff" stopOpacity="0.28" />
+              <stop offset="0.45" stopColor="#fff" stopOpacity="0.04" />
+              <stop offset="1" stopColor="#000" stopOpacity="0.28" />
+            </linearGradient>
+          </defs>
+
+          <path d={CASE_OUTLINE.path} fill={color.hex} className="transition-[fill] duration-500" />
+          <path d={CASE_OUTLINE.path} fill="url(#sh-case-sheen)" />
           <path
             d={CASE_OUTLINE.path}
-            fill={color.hex}
+            fill="none"
             stroke="var(--sh-ink)"
-            strokeWidth={1.2}
+            strokeOpacity={0.55}
+            strokeWidth={1}
+            strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
-            className="transition-[fill] duration-500"
           />
+
+          {/* Las bisagras en el borde recto y los cierres en el curvo, donde
+              estan en el `.glb`. */}
+          <g fill="#121212">
+            {CASE_OUTLINE.hinges.map((x) => (
+              <rect key={`h${x}`} x={x - 12} y={edgesAt(x).top - 3.5} width={24} height={4} rx={1} />
+            ))}
+            {CASE_OUTLINE.latches.map((x) => (
+              <rect key={`l${x}`} x={x - 10} y={edgesAt(x).bottom - 1} width={20} height={6} rx={1.5} />
+            ))}
+          </g>
 
           {/* Cota del largo, por encima. */}
           <g stroke="var(--sh-ink)" strokeWidth={1} vectorEffect="non-scaling-stroke">

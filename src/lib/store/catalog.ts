@@ -15,6 +15,8 @@
       a ojo, hasta que haya foto de la muestra.
     - Brown: la foto de la carta lo ensena naranja tostado, no marron. Se usa
       tal cual, porque es lo que dice la carta; si no es asi, se corrige aqui.
+    - Midnight Blue: la foto sale casi negra; el valor se calculo conservando
+      su tono. Ver la nota en su linea.
 
   La disponibilidad sigue sin datos: los catorce van como disponibles.
 
@@ -41,7 +43,10 @@ export const COLORS: CaseColor[] = [
   { id: "yellow", name: "Yellow", hex: "#f4c50d", availability: "available" },
   { id: "turquoise", name: "Turquoise", hex: "#53c4f3", availability: "available" },
   { id: "teal", name: "Teal", hex: "#2a9d9a", availability: "available" },
-  { id: "midnight-blue", name: "Midnight Blue", hex: "#10141e", availability: "available" },
+  /* Calculado: la foto de la carta sale casi negra por la sombra del tejido.
+     Se conserva su tono (223 grados, azul) con algo mas de saturacion y luz
+     para que se lea azul y no negro. Provisional hasta la foto del case. */
+  { id: "midnight-blue", name: "Midnight Blue", hex: "#16213b", availability: "available" },
   /* Estimado: muestra pendiente en la carta. */
   { id: "pink", name: "Pink", hex: "#e597b8", availability: "available" },
   { id: "red", name: "Red", hex: "#6d0101", availability: "available" },

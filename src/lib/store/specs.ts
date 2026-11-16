@@ -21,7 +21,7 @@ export interface Spec {
    en milimetros desde el centro, con la punta ancha hacia +. Salen del contorno
    del `.glb`: donde el ancho real coincide con la medida. */
 export const WIDTH_MARKS = [
-  { at: -300, label: "5.6 cm", name: "tip" },
+  { at: -335, label: "5.6 cm", name: "tip" },
   { at: -127, label: "4.6 cm", name: "middle" },
   { at: 360, label: "10.12 cm", name: "wide end" },
 ] as const;

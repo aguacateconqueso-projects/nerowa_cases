@@ -25,7 +25,7 @@ export function availabilityLong(color: CaseColor): string {
   if (color.availability === "sold-out")
     return "Next batch in two to three weeks";
   if (color.availability === "low") return "Last few from this batch";
-  return "Ships from Vilnius in days";
+  return "Ships from Europe";
 }
 
 /* La lista de "Built for two bows". Solo lo que ya se sabe del estuche. */
