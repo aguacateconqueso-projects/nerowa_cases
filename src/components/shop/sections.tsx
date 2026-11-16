@@ -19,6 +19,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { CONTACT_EMAIL, LOGO } from "@/lib/brand";
 import { COLORS, PRICE_EUR, colorById } from "@/lib/store/catalog";
+import { contrastRatio } from "@/lib/store/palette";
 import { INSIDE, VOICES, availabilityShort } from "@/lib/shop/content";
 import { FAQ } from "@/components/store/store-sections";
 import { useStore } from "@/components/store/store-context";
@@ -67,7 +68,7 @@ export function Catalogue() {
           <span className="t-figures">{COLORS.length}</span> colours
         </h2>
         <p className="sh-serif sh-serif-lg text-pretty lg:col-span-7 lg:col-start-5">
-          One case in fourteen colours, two bows inside. Shipped from Vilnius, at your door in days.
+          One case in fourteen colours, two bows inside. Shipped from Europe.
         </p>
       </div>
 
@@ -353,6 +354,32 @@ export function Answers() {
   );
 }
 
+/*
+  Un color de case al azar para el renglon, sin repetir el ultimo que salio. Se
+  elige siempre en un manejador de evento, nunca en el render: el servidor y el
+  navegador sacarian numeros distintos y React rechaza la diferencia.
+*/
+let lastTint = "";
+function randomTint(): string {
+  const pool = COLORS.filter((c) => c.hex !== lastTint);
+  lastTint = pool[Math.floor(Math.random() * pool.length)].hex;
+  return lastTint;
+}
+
+const TINT_INK = "#0b0b0b";
+const TINT_PAPER = "#f7f7f5";
+
+/* La letra sobre el color: la que mas contraste saque, medida y no a ojo. */
+function inkOn(hex: string): string {
+  return contrastRatio(hex, TINT_INK) >= contrastRatio(hex, TINT_PAPER) ? TINT_INK : TINT_PAPER;
+}
+
+/*
+  Cada pregunta se pinta entera de un color de case al azar y la letra se da
+  vuelta para leerse. En escritorio se pinta al pasar el raton; en telefono, que
+  no tiene raton, al abrirla. Abierta, se queda con su color; el color que se
+  ve al hacer clic es el mismo que se queda, sin saltar a otro.
+*/
 function AnswerRow({
   question,
   answer,
@@ -365,12 +392,38 @@ function AnswerRow({
   onToggle: () => void;
 }) {
   const panelId = useId();
+  const [hoverTint, setHoverTint] = useState<string | null>(null);
+  const [openTint, setOpenTint] = useState<string | null>(null);
+
+  const tint = open ? openTint : hoverTint;
+  const ink = tint ? inkOn(tint) : undefined;
+
+  const toggle = () => {
+    if (!open) setOpenTint(hoverTint ?? randomTint());
+    onToggle();
+  };
 
   return (
-    <li className="border-b border-black/12">
+    <li
+      onPointerEnter={(event) => {
+        /* Solo con raton de verdad. Un telefono no tiene "pasar por encima", y
+           algunos navegadores mandan eventos de raton sinteticos al hacer
+           scroll; sin esta guarda, una pregunta cerrada se quedaba pintada. */
+        if (event.pointerType === "mouse" && window.matchMedia("(hover: hover)").matches) {
+          setHoverTint(randomTint());
+        }
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === "mouse") setHoverTint(null);
+      }}
+      style={{ background: tint ?? undefined, color: ink }}
+      className={`-mx-4 border-b px-4 transition-[background-color,color,border-color] duration-300 lg:-mx-5 lg:px-5 ${
+        tint ? "border-transparent" : "border-black/12"
+      }`}
+    >
       <button
         type="button"
-        onClick={onToggle}
+        onClick={toggle}
         aria-expanded={open}
         aria-controls={panelId}
         className="sh-focus grid w-full grid-cols-[1fr_auto] items-start gap-6 py-5 text-left lg:grid-cols-12"
@@ -380,7 +433,8 @@ function AnswerRow({
             acostarse y la cruz queda en signo menos. */}
         <span
           aria-hidden
-          className="relative h-10 w-10 shrink-0 border border-black/15 lg:col-start-12 lg:justify-self-end"
+          className="relative h-10 w-10 shrink-0 border lg:col-start-12 lg:justify-self-end"
+          style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)" }}
         >
           <span className="absolute left-1/2 top-1/2 h-px w-3.5 -translate-x-1/2 -translate-y-1/2 bg-current" />
           <span
@@ -396,8 +450,10 @@ function AnswerRow({
           open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
+        {/* La respuesta va a la derecha, en el bloque que termina en el
+            cuadrado de la cruz. En telefono, a lo ancho. */}
         <div className="overflow-hidden lg:grid lg:grid-cols-12">
-          <p className="sh-body max-w-[60ch] pb-6 pr-12 opacity-75 lg:col-span-5 lg:col-start-7 lg:pr-0">
+          <p className="sh-body max-w-[60ch] pb-6 pr-12 lg:col-span-5 lg:col-start-8 lg:pr-0">
             {answer}
           </p>
         </div>
@@ -409,10 +465,9 @@ function AnswerRow({
 /* ================================================================== el pie */
 
 /*
-  La lista de correo con el campo gigante, y despues el pie: columnas de enlaces
-  y el logo a todo el ancho. En la referencia el pie es claro con el logo negro;
-  aqui es negro con el logo en su dorado, que es como se ve Nerowa en la pagina
-  de espera.
+  La lista de correo con el campo gigante, y despues el pie: el logo chico en su
+  dorado y las columnas de enlaces, sobre negro. El logo gigante de la referencia
+  se quito.
 
   Sin redes sociales, por norma del proyecto. Las paginas de envios,
   devoluciones y legales todavia no existen: van a las preguntas, que es donde
@@ -497,19 +552,11 @@ export function ShopFooter() {
           </div>
         </div>
 
-        {/* El logo a todo el ancho, en su dorado. */}
-        <Image
-          src={LOGO.src}
-          width={LOGO.width}
-          height={LOGO.height}
-          alt=""
-          sizes="100vw"
-          className="mt-24 h-auto w-full"
-        />
-
-        <div className="sh-label flex flex-col gap-2 py-6 opacity-60 sm:flex-row sm:justify-between">
+        {/* Sin el logo a todo el ancho de la referencia: se quito por pedido de
+            Adrian (2026-11-16). Con el logo chico de arriba basta. */}
+        <div className="sh-label mt-24 flex flex-col gap-2 border-t border-white/15 py-6 opacity-60 sm:flex-row sm:justify-between">
           <p>© 2026 Nerowa Cases. All rights reserved.</p>
-          <p>Shipped from Vilnius</p>
+          <p>Shipped from Europe</p>
         </div>
       </div>
     </footer>

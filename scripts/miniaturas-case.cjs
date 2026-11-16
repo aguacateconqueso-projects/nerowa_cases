@@ -7,7 +7,9 @@
 
   Como:
     1. npm run dev                      (deja el servidor en marcha)
-    2. node scripts/miniaturas-case.cjs  [http://localhost:3000]
+    2. node scripts/miniaturas-case.cjs  [http://localhost:3000] [id ...]
+
+  Con ids al final (por ejemplo `midnight-blue`), saca solo esos colores.
 
   Necesita Playwright con Chromium instalado en la maquina (no es dependencia
   del proyecto). `sharp` si lo es: viene con Next.
@@ -30,7 +32,9 @@ const OUT = path.join(ROOT, "public/images/case");
 
 const catalog = fs.readFileSync(path.join(ROOT, "src/lib/store/catalog.ts"), "utf8");
 const block = catalog.slice(catalog.indexOf("export const COLORS"), catalog.indexOf("];", catalog.indexOf("export const COLORS")));
-const ids = [...block.matchAll(/id: "([^"]+)"/g)].map((m) => m[1]);
+const all = [...block.matchAll(/id: "([^"]+)"/g)].map((m) => m[1]);
+const only = process.argv.slice(3);
+const ids = only.length ? all.filter((id) => only.includes(id)) : all;
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });

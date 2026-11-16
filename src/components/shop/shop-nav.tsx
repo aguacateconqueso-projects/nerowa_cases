@@ -69,7 +69,15 @@ export function ShopNav({ tone }: { tone: NavTone }) {
   const linkClass = "sh-roll-host sh-focus sh-label whitespace-nowrap";
 
   return (
-    <header className="sh-nav fixed inset-x-0 top-0 z-40" style={{ color: ink }}>
+    /*
+      `pointer-events-none` en la cabecera entera, y se encienden solo los
+      enlaces y el panel abierto. La cabecera es fija y CONTIENE el panel de
+      "Shop", que cerrado es invisible pero sigue ocupando su alto: sin esto, la
+      cabecera medía ~350 px y se comía los toques de esa franja de pantalla en
+      toda la pagina. Asi fallaban, "a veces si y a veces no", las preguntas
+      frecuentes en el telefono: dependia de en que altura quedaban al tocar.
+    */
+    <header className="sh-nav pointer-events-none fixed inset-x-0 top-0 z-40" style={{ color: ink }}>
       {/* El papel del panel, detras de la barra, para que la barra y el panel se
           lean como una sola pieza cuando esta abierto. */}
       <div
@@ -83,7 +91,7 @@ export function ShopNav({ tone }: { tone: NavTone }) {
         <a
           href="#top"
           aria-label="Nerowa Cases, back to top"
-          className="sh-focus shrink-0 lg:absolute lg:left-1/2 lg:-translate-x-1/2"
+          className="sh-focus pointer-events-auto shrink-0 lg:absolute lg:left-1/2 lg:-translate-x-1/2"
         >
           <Image
             src={LOGO.src}
@@ -99,7 +107,7 @@ export function ShopNav({ tone }: { tone: NavTone }) {
           />
         </a>
 
-        <nav aria-label="Shop" className="ml-auto flex items-center gap-4 lg:order-first lg:ml-0 lg:gap-6">
+        <nav aria-label="Shop" className="pointer-events-auto ml-auto flex items-center gap-4 lg:order-first lg:ml-0 lg:gap-6">
           <button
             ref={shopButtonRef}
             type="button"
@@ -118,7 +126,7 @@ export function ShopNav({ tone }: { tone: NavTone }) {
           </a>
         </nav>
 
-        <div className="ml-4 flex items-center gap-4 lg:ml-auto lg:gap-6">
+        <div className="pointer-events-auto ml-4 flex items-center gap-4 lg:ml-auto lg:gap-6">
           <a href="#answers" className={`${linkClass} hidden sm:inline-flex`}>
             <Roll>Contact</Roll>
           </a>
@@ -141,7 +149,7 @@ export function ShopNav({ tone }: { tone: NavTone }) {
         id="sh-shop-panel"
         aria-hidden={!shopOpen}
         className={`relative bg-[var(--sh-paper)] text-[var(--sh-ink)] shadow-[0_24px_48px_-32px_rgb(0_0_0/0.6)] transition-[opacity,transform] duration-300 ease-out ${
-          shopOpen ? "opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
+          shopOpen ? "pointer-events-auto opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
         }`}
       >
         <ul className="sh-noscroll flex gap-2 overflow-x-auto px-4 pb-4 pt-2 lg:px-5">

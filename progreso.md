@@ -2859,6 +2859,31 @@ porque las abiertas ensenan el interior.
 
 ---
 
+### Sesion 12, sexta vuelta — preguntas, plano, envio y Midnight Blue
+
+- **Las preguntas frecuentes fallaban "a veces" en el telefono.** Causa: la
+  cabecera fija contiene el panel de "Shop", que cerrado es invisible pero
+  ocupa su alto; la cabecera medía ~350 px y se comia los toques de esa franja
+  en TODA la pagina. Ahora la cabecera es `pointer-events-none` y solo reciben
+  toques los enlaces y el panel abierto (`shop-nav.tsx`). Comprobado: 6 de 6
+  preguntas abren al primer toque en iPhone y escritorio.
+- **Preguntas rediseñadas:** cada renglon se pinta de un color de case al azar
+  (escritorio al pasar el raton, telefono al abrir) y la letra se elige por
+  contraste medido. La respuesta va a la derecha.
+- **Plano de "The numbers" rehecho:** el contorno se saca pintando la cascara
+  vista desde arriba en una cuadricula de 0.25 mm (antes, de vertices sueltos:
+  bordes ondulados y puntas cortadas). Lleva brillo y las bisagras y cierres en
+  su sitio real del `.glb`.
+- **Fuera el logo gigante del pie.**
+- **"Ships from Europe"**, sin "in days": hay lotes que tardan semanas.
+- **Closed / Open** va centrado encima de las miniaturas en escritorio.
+- **Midnight Blue = #16213b**, calculado: la foto de la carta sale casi negra;
+  se conservo su tono (223 grados) con mas saturacion y luz. Provisional hasta
+  la foto del case. Sus dos fotos de producto se volvieron a sacar
+  (`node scripts/miniaturas-case.cjs <url> midnight-blue`).
+
+---
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,

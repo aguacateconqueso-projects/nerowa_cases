@@ -118,9 +118,17 @@ export function ColourSlider() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        {/*
+          Encima de las miniaturas, en una fila: las vistas y el paso entre
+          colores. En escritorio las vistas van CENTRADAS sobre las miniaturas
+          (pedido de Adrian: a la izquierda se perdian) y el paso a la derecha;
+          en telefono, vistas a la izquierda y paso a la derecha.
+        */}
+        <div className="mt-8 flex items-center justify-between gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+          <span aria-hidden className="hidden lg:block" />
+
           {/* Las vistas del estuche. */}
-          <div className="flex gap-1" role="radiogroup" aria-label="Case view">
+          <div className="flex border border-white/25 p-0.5" role="radiogroup" aria-label="Case view">
             {VIEWS.map((option) => (
               <button
                 key={option.id}
@@ -128,8 +136,8 @@ export function ColourSlider() {
                 role="radio"
                 aria-checked={view === option.id}
                 onClick={() => setView(option.id)}
-                className={`sh-focus sh-label px-3 py-2 transition-colors ${
-                  view === option.id ? "bg-[var(--sh-snow)] text-[var(--sh-ink)]" : "bg-white/10 hover:bg-white/20"
+                className={`sh-focus sh-label min-w-[76px] px-4 py-2.5 transition-colors ${
+                  view === option.id ? "bg-[var(--sh-snow)] text-[var(--sh-ink)]" : "hover:bg-white/15"
                 }`}
               >
                 {option.label}
@@ -137,14 +145,14 @@ export function ColourSlider() {
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
-            <button type="button" onClick={() => step(-1)} className="sh-focus sh-label opacity-80 hover:opacity-100">
+          <div className="flex items-center gap-4 lg:justify-self-end">
+            <button type="button" onClick={() => step(-1)} className="sh-focus sh-label -m-2 p-2 opacity-80 hover:opacity-100">
               Prev
             </button>
             <span className="sh-label t-figures opacity-70">
               {String(index + 1).padStart(2, "0")} / {COLORS.length}
             </span>
-            <button type="button" onClick={() => step(1)} className="sh-focus sh-label opacity-80 hover:opacity-100">
+            <button type="button" onClick={() => step(1)} className="sh-focus sh-label -m-2 p-2 opacity-80 hover:opacity-100">
               Next
             </button>
           </div>
