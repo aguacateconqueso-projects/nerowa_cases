@@ -165,13 +165,17 @@ export function ColourSlider() {
               aria-label={`${swatch.name}, ${availabilityShort(swatch).toLowerCase()}`}
               title={swatch.name}
               onClick={() => setColorId(swatch.id)}
-              className={`sh-thumb sh-focus relative h-14 w-12 shrink-0 overflow-hidden lg:h-16 lg:w-14 ${
+              /* Cuadro vertical y el case entero, apenas inclinado: asi se lee
+                 su silueta (la punta ancha, la placa, los cierres). En diagonal
+                 y cortado, como estaba, era una raya de color. */
+              className={`sh-thumb sh-focus relative h-24 w-11 shrink-0 overflow-hidden lg:h-28 lg:w-14 ${
                 swatch.id === color.id ? "sh-thumb--on" : ""
               } ${swatch.availability === "sold-out" ? "opacity-50" : ""}`}
             >
               <CaseGlyph
-                hex={swatch.hex}
-                className="absolute left-1/2 top-1/2 h-[130%] -translate-x-1/2 -translate-y-1/2 -rotate-[38deg]"
+                color={swatch}
+                sizes="24px"
+                className="absolute left-1/2 top-1/2 h-[90%] -translate-x-1/2 -translate-y-1/2 -rotate-[12deg]"
               />
             </button>
           ))}

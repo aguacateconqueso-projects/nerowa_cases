@@ -17,6 +17,12 @@ const eslintConfig = defineConfig([
     // Decodificador Draco copiado tal cual de three. Codigo de terceros.
     "public/draco/**",
   ]),
+  // Guiones de mantenimiento en CommonJS: cargan Playwright de la maquina con
+  // `require`, porque no es dependencia del proyecto.
+  {
+    files: ["scripts/**/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
 ]);
 
 export default eslintConfig;

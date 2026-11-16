@@ -1,12 +1,26 @@
 /*
-  El catalogo. TODO ESTO ES PROVISIONAL menos el precio.
+  El catalogo.
 
-  Los catorce colores de abajo son un marcador de posicion: los nombres
-  comerciales y los valores exactos los tiene Alfredo y estan anotados como
-  pendientes en `progreso.md`. Cuando lleguen, se cambian aqui y en ningun otro
-  sitio: la escena 3D, el fondo, el texto y el carrito leen de esta lista.
+  LOS COLORES son los de la carta oficial ("Colour chart", septiembre 2026),
+  con sus nombres y en su orden: 01 Yellow ... 14 Gold. El orden de la lista es
+  el orden en que salen las muestras en la web. Se cambian aqui y en ningun otro
+  sitio: la escena 3D, el fondo, el texto, las miniaturas y el carrito leen de
+  esta lista.
 
-  El orden de la lista es el orden en que salen las muestras en el hero.
+  Los valores salen de la foto de cada muestra en la carta (la mediana del
+  centro del cuadro), asi que son una guia, como dice la propia carta: el case
+  fisico manda. Dos excepciones:
+
+    - Pink y Lavender: la carta dice "Sample pending". Su valor es ESTIMADO,
+      a ojo, hasta que haya foto de la muestra.
+    - Brown: la foto de la carta lo ensena naranja tostado, no marron. Se usa
+      tal cual, porque es lo que dice la carta; si no es asi, se corrige aqui.
+
+  La disponibilidad sigue sin datos: los catorce van como disponibles.
+
+  Cada color tiene sus fotos de producto en `public/images/case/`, renderizadas
+  desde el `.glb`. Si cambia un color, hay que volver a sacarlas: ver
+  `scripts/miniaturas-case.mjs`.
 */
 
 export const PRICE_EUR = 180;
@@ -24,20 +38,22 @@ export interface CaseColor {
 }
 
 export const COLORS: CaseColor[] = [
-  { id: "black", name: "Black", hex: "#121212", availability: "available" },
-  { id: "white", name: "White", hex: "#ececea", availability: "available" },
-  { id: "red", name: "Red", hex: "#9e1b2f", availability: "available" },
-  { id: "burgundy", name: "Burgundy", hex: "#5c1526", availability: "low" },
-  { id: "navy", name: "Navy", hex: "#1b2a4a", availability: "available" },
-  { id: "sky", name: "Sky", hex: "#4a7fb5", availability: "available" },
-  { id: "forest", name: "Forest", hex: "#1f3d2b", availability: "available" },
-  { id: "olive", name: "Olive", hex: "#5a5c33", availability: "available" },
-  { id: "gold", name: "Gold", hex: "#c9a227", availability: "available" },
-  { id: "yellow", name: "Yellow", hex: "#e0b500", availability: "low" },
-  { id: "orange", name: "Orange", hex: "#c25612", availability: "available" },
-  { id: "purple", name: "Purple", hex: "#4c2a63", availability: "available" },
-  { id: "cream", name: "Cream", hex: "#d9cdb4", availability: "available" },
-  { id: "graphite", name: "Graphite", hex: "#4a4a4d", availability: "sold-out" },
+  { id: "yellow", name: "Yellow", hex: "#f4c50d", availability: "available" },
+  { id: "turquoise", name: "Turquoise", hex: "#53c4f3", availability: "available" },
+  { id: "teal", name: "Teal", hex: "#2a9d9a", availability: "available" },
+  { id: "midnight-blue", name: "Midnight Blue", hex: "#10141e", availability: "available" },
+  /* Estimado: muestra pendiente en la carta. */
+  { id: "pink", name: "Pink", hex: "#e597b8", availability: "available" },
+  { id: "red", name: "Red", hex: "#6d0101", availability: "available" },
+  { id: "white", name: "White", hex: "#e1dfec", availability: "available" },
+  { id: "silver", name: "Silver", hex: "#b2b6c9", availability: "available" },
+  { id: "brown", name: "Brown", hex: "#e07c39", availability: "available" },
+  /* Estimado: muestra pendiente en la carta. */
+  { id: "lavender", name: "Lavender", hex: "#b8a6dc", availability: "available" },
+  { id: "black", name: "Black", hex: "#0e0e10", availability: "available" },
+  { id: "purple", name: "Purple", hex: "#9a41aa", availability: "available" },
+  { id: "orange", name: "Orange", hex: "#fa9e09", availability: "available" },
+  { id: "gold", name: "Gold", hex: "#d8b870", availability: "available" },
 ];
 
 export const DEFAULT_COLOR_ID = "black";
