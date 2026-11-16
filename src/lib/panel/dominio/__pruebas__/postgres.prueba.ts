@@ -30,7 +30,10 @@ import postgres from "postgres";
 
 import { crearAlmacenPostgres } from "../../adaptadores/almacen-postgres";
 import type { Conexion } from "../../adaptadores/postgres/conexion";
-import { SQL_001_INICIAL } from "../../adaptadores/postgres/migraciones";
+import {
+  SQL_001_INICIAL,
+  SQL_002_EXISTENCIAS_Y_AVISOS,
+} from "../../adaptadores/postgres/migraciones";
 import { migrar } from "../../adaptadores/postgres/migrar";
 import { euros, IVA_LITUANIA } from "../dinero";
 import { deudaDe, totalesDe } from "../mayorista";
@@ -405,6 +408,99 @@ async function principal() {
     assert.deepEqual(apuntes.map((a) => a.detalle), ["tercero", "segundo", "primero"]);
     /* Y no se mezclan con los de otra cosa. */
     assert.deepEqual(await almacen.listarApuntes("pedido", "p-2"), []);
+  });
+
+  console.log("\nMigracion 002: existencias, ajustes y avisos");
+
+  const migraciones = [
+    { nombre: "001-inicial", sql: sqlInicial },
+    { nombre: "002-existencias-y-avisos", sql: SQL_002_EXISTENCIAS_Y_AVISOS },
+  ];
+
+  await comprueba("entra sobre una base que ya tenia la 001, y solo una vez", async () => {
+    assert.deepEqual(await migrar(cx, migraciones), ["002-existencias-y-avisos"]);
+    assert.deepEqual(await migrar(cx, migraciones), []);
+  });
+
+  await comprueba("los catorce colores de la carta entran, en su orden y antes que los viejos", async () => {
+    const colores = await almacen.listarColores();
+    const activos = colores.filter((c) => c.activo);
+    assert.equal(activos.length, 14);
+    assert.equal(activos[0]!.id, "yellow");
+    assert.equal(activos[13]!.id, "gold");
+    /* Los de relleno siguen ahi —algun pedido puede apuntarles— pero apagados
+       y al final. */
+    const viejos = colores.filter((c) => !c.activo).map((c) => c.id).sort();
+    assert.deepEqual(viejos, ["marino", "negro"]);
+  });
+
+  await comprueba("un conteo de varios colores va y vuelve entero", async () => {
+    await almacen.registrarMovimientos([
+      { id: "m-1", colorId: "black", cantidad: 12, tipo: "ajuste", motivo: "Conteo", usuarioId: "u-alfredo", creadoEn: "2026-11-01T10:00:00.000Z" },
+      { id: "m-2", colorId: "gold", cantidad: -1, tipo: "ajuste", usuarioId: "u-alfredo", creadoEn: "2026-11-01T10:00:00.000Z" },
+      { id: "m-3", colorId: "black", cantidad: 20, tipo: "entrada", loteId: "lote-1", usuarioId: "u-adrian", creadoEn: "2026-11-05T10:00:00.000Z" },
+    ]);
+    const leidos = await almacen.listarMovimientos();
+    assert.equal(leidos[0]!.id, "m-3");
+    assert.deepEqual(sinVacios(leidos.find((m) => m.id === "m-2")), {
+      id: "m-2", colorId: "gold", cantidad: -1, tipo: "ajuste",
+      usuarioId: "u-alfredo", creadoEn: "2026-11-01T10:00:00.000Z",
+    });
+    assert.equal(leidos.find((m) => m.id === "m-3")!.loteId, "lote-1");
+  });
+
+  await comprueba("una merma que suma no entra: el signo lo vigila la base", async () => {
+    await assert.rejects(
+      almacen.registrarMovimientos([
+        { id: "m-mal", colorId: "black", cantidad: 2, tipo: "merma", usuarioId: "u-alfredo", creadoEn: "2026-11-06T10:00:00.000Z" },
+      ]),
+    );
+  });
+
+  await comprueba("si una fila del conteo falla, no entra ninguna", async () => {
+    const antes = (await almacen.listarMovimientos()).length;
+    await assert.rejects(
+      almacen.registrarMovimientos([
+        { id: "m-bien", colorId: "teal", cantidad: 3, tipo: "ajuste", usuarioId: "u-alfredo", creadoEn: "2026-11-06T10:00:00.000Z" },
+        { id: "m-roto", colorId: "no-existe", cantidad: 3, tipo: "ajuste", usuarioId: "u-alfredo", creadoEn: "2026-11-06T10:00:00.000Z" },
+      ]),
+    );
+    assert.equal((await almacen.listarMovimientos()).length, antes);
+  });
+
+  await comprueba("los ajustes se guardan, se pisan y vuelven como numeros", async () => {
+    assert.deepEqual(await almacen.leerAjustes(), {});
+    await almacen.guardarAjustes({ horasRecordatorio: 12, umbralExistenciasBajas: 5 });
+    await almacen.guardarAjustes({ horasRecordatorio: 18 });
+    assert.deepEqual(await almacen.leerAjustes(), { horasRecordatorio: 18, umbralExistenciasBajas: 5 });
+  });
+
+  await comprueba("un aviso solo se reclama una vez, y soltado se puede volver a reclamar", async () => {
+    const aviso = {
+      clave: "pedido:p-1:escalada",
+      titulo: "#1043 lleva 3 dias sin enviar",
+      para: "Alfredo, Adrian",
+      canales: [],
+      enviadoEn: "2026-11-10T09:00:00.000Z",
+    };
+    assert.equal(await almacen.reclamarAviso(aviso), true);
+    assert.equal(await almacen.reclamarAviso(aviso), false);
+    await almacen.completarAviso(aviso.clave, ["consola", "telegram"]);
+    const [leido] = await almacen.listarAvisosEnviados(5);
+    assert.deepEqual(leido, { ...aviso, canales: ["consola", "telegram"] });
+
+    await almacen.soltarAviso(aviso.clave);
+    assert.equal(await almacen.reclamarAviso(aviso), true);
+  });
+
+  await comprueba("el chat de Telegram de una persona se guarda y se quita", async () => {
+    assert.equal((await almacen.actualizarUsuario("u-alfredo", { telegramChatId: "123456789" }))?.telegramChatId, "123456789");
+    assert.equal((await almacen.usuarioPorId("u-alfredo"))?.telegramChatId, "123456789");
+    /* `undefined` no toca nada; `null` lo quita. */
+    await almacen.actualizarUsuario("u-alfredo", {});
+    assert.equal((await almacen.usuarioPorId("u-alfredo"))?.telegramChatId, "123456789");
+    await almacen.actualizarUsuario("u-alfredo", { telegramChatId: null });
+    assert.equal((await almacen.usuarioPorId("u-alfredo"))?.telegramChatId, undefined);
   });
 
   console.log("\nLo que la base de datos NO deja hacer");

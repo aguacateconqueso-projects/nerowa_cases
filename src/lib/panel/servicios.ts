@@ -18,7 +18,7 @@
 
     PANEL_ALMACEN   memoria (por defecto) | postgres
     PANEL_CORREO    consola (por defecto) | resend
-    PANEL_AVISOS    consola (por defecto) | telegram
+    PANEL_AVISOS    consola (por defecto) | telegram  (+ TELEGRAM_BOT_TOKEN)
     PANEL_ARCHIVOS  memoria (por defecto) | supabase
 */
 
@@ -29,6 +29,7 @@ import { conexion, soltarConexion } from "./adaptadores/postgres/conexion";
 import { envolverAlmacenPostgres } from "./adaptadores/postgres/no-quedarse-colgado";
 import { crearArchivosMemoria } from "./adaptadores/archivos-memoria";
 import { crearAvisosConsola } from "./adaptadores/avisos-consola";
+import { crearAvisosTelegram } from "./adaptadores/avisos-telegram";
 import { crearCorreoConsola } from "./adaptadores/correo-consola";
 import type { Almacen } from "./puertos/almacen";
 import type { Archivos } from "./puertos/archivos";
@@ -100,9 +101,32 @@ function construir(): Servicios {
     switch (process.env.PANEL_AVISOS ?? "consola") {
       case "consola":
         return crearAvisosConsola();
+      case "telegram": {
+        const token = process.env.TELEGRAM_BOT_TOKEN;
+        if (!token) {
+          /*
+            Sin token NO se tumba el panel: se sigue con la consola y la
+            pantalla de Avisos lo dice. Que falte una clave de avisos no puede
+            impedir despachar un pedido.
+          */
+          console.error(
+            "[panel] PANEL_AVISOS=telegram pero falta TELEGRAM_BOT_TOKEN: los avisos van a la consola.",
+          );
+          return crearAvisosConsola();
+        }
+        return crearAvisosTelegram({
+          token,
+          chatPorRol: {
+            operacion: process.env.PANEL_TELEGRAM_OPERACION || undefined,
+            dueno: process.env.PANEL_TELEGRAM_DUENO || undefined,
+          },
+          urlPanel: urlDelPanel(),
+          respaldo: crearAvisosConsola(),
+        });
+      }
       default:
         throw new Error(
-          `PANEL_AVISOS="${process.env.PANEL_AVISOS}" no existe todavia. Hoy solo hay "consola".`,
+          `PANEL_AVISOS="${process.env.PANEL_AVISOS}" no existe. Los que hay son "consola" y "telegram".`,
         );
     }
   })();
@@ -135,4 +159,16 @@ export function servicios(): Servicios {
  */
 export function enModoDemostracion(): boolean {
   return servicios().almacen.nombre === "memoria";
+}
+
+/**
+ * La direccion del panel, para los enlaces de los avisos.
+ *
+ * PANEL_URL manda si esta puesta. Si no, la del despliegue de Vercel, que
+ * sirve pero cambia con cada despliegue; por eso conviene poner la buena.
+ */
+export function urlDelPanel(): string | undefined {
+  if (process.env.PANEL_URL) return process.env.PANEL_URL;
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  return vercel ? `https://${vercel}` : undefined;
 }

@@ -14,6 +14,14 @@ const MENSAJES: Record<string, string> = {
   pagado: "Corregido: vuelve a estar por enviar.",
   cancelado: "Pedido cancelado.",
   coste: "Anotado lo que costo el envio. Ya cuenta en la ganancia.",
+  creado: "Venta registrada. Ya esta en la cola para enviar.",
+
+  /* Existencias y ajustes, con prefijo `e-` por lo mismo que las tiendas. */
+  "e-conteo": "Conteo guardado. El estante cuadra.",
+  "e-conteo-igual": "Conteo revisado: todo cuadraba, no hubo que corregir nada.",
+  "e-entrada": "Entrada registrada. Ya cuentan como disponibles.",
+  "e-merma": "Merma anotada.",
+  "e-ajustes": "Ajustes guardados. Los proximos avisos ya los usan.",
 
   /*
     Tiendas mayoristas, con prefijo `m-`.

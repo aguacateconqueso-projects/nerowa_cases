@@ -29,6 +29,7 @@ import type {
 } from "@/lib/panel/dominio/tipos";
 import { servicios } from "@/lib/panel/servicios";
 import { exigirUsuario } from "@/lib/panel/sesion";
+import { avisarEvento } from "@/lib/panel/vigia";
 
 export interface Resultado {
   ok: boolean;
@@ -207,7 +208,20 @@ export async function crearPedidoMayorista(
     creadoEn: pedido.creadoEn,
   });
 
+  avisarEvento({
+    clave: `mayorista:${pedido.id}:nuevo`,
+    para: ["operacion", "dueno"],
+    menos: usuario.id,
+    aviso: {
+      urgencia: "urgente",
+      titulo: `Pedido de ${tienda.nombre}`,
+      cuerpo: `#${pedido.numero}: ${unidades} estuches, por confirmar. Lo registro ${usuario.nombre}.`,
+      enlace: `/panel/tiendas/pedido/${pedido.id}`,
+    },
+  });
+
   revalidatePath("/panel/tiendas");
+  revalidatePath("/panel/existencias");
   redirect(`/panel/tiendas/pedido/${pedido.id}?hecho=m-creado`);
 }
 
@@ -272,5 +286,6 @@ export async function avanzarPedidoMayorista(
   });
 
   revalidatePath("/panel/tiendas");
+  revalidatePath("/panel/existencias");
   redirect(`/panel/tiendas/pedido/${pedidoId}?hecho=m-${hacia}`);
 }

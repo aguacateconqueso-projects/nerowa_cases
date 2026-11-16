@@ -17,14 +17,17 @@ export function TarjetaPedido({
   pedido,
   colores,
   ahora,
+  cortes,
 }: {
   pedido: Pedido;
   colores: Map<string, Color>;
   ahora: number;
+  /** Los plazos de Ajustes: el filete y el aviso usan los mismos. */
+  cortes?: { horasRecordatorio: number; horasEscalada: number };
 }) {
   const horas = horasDesde(pedido.pagadoEn, ahora);
   const pendiente = pedido.estado === "pagado" || pedido.estado === "incidencia";
-  const urgencia = pendiente ? urgenciaDeEspera(horas) : "baja";
+  const urgencia = pendiente ? urgenciaDeEspera(horas, cortes) : "baja";
 
   const unidades = pedido.lineas.reduce((n, l) => n + l.cantidad, 0);
   const total = pedido.lineas.reduce((s, l) => s + l.precioUnitario * l.cantidad, 0);

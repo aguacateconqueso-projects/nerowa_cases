@@ -14,11 +14,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { euros } from "@/lib/panel/dominio/dinero";
-import { puedeTransitar } from "@/lib/panel/dominio/estados";
-import type { EstadoPedido } from "@/lib/panel/dominio/tipos";
+import { euros, IVA_LITUANIA, sinIva } from "@/lib/panel/dominio/dinero";
+import { NOMBRE_ESTADO, puedeTransitar } from "@/lib/panel/dominio/estados";
+import { faltantesPara } from "@/lib/panel/dominio/existencias";
+import type { EstadoPedido, LineaPedido, Pedido } from "@/lib/panel/dominio/tipos";
 import { servicios } from "@/lib/panel/servicios";
 import { exigirUsuario } from "@/lib/panel/sesion";
+import { leerExistencias } from "@/lib/panel/situacion";
+import { avisarEvento } from "@/lib/panel/vigia";
 
 export interface Resultado {
   ok: boolean;
@@ -105,10 +108,21 @@ export async function marcarEnviado(
   });
 
   /*
-    Aqui van, cuando existan: el correo al cliente con el seguimiento y el aviso
-    al otro. Los puertos ya estan (`servicios().correo` y `.avisos`); lo que
-    falta son las cuentas. Fase 7.2 y 7.3.
+    El aviso al otro: si despacha Alfredo, Adrian se entera; en silencio,
+    porque es una buena noticia y no algo que haya que atender. El correo al
+    cliente con el seguimiento llega con la fase 7.2, cuando haya proveedor.
   */
+  avisarEvento({
+    clave: `pedido:${pedidoId}:enviado`,
+    para: ["operacion", "dueno"],
+    menos: usuario.id,
+    aviso: {
+      urgencia: "normal",
+      titulo: `#${pedido.numero} enviado`,
+      cuerpo: `${usuario.nombre} lo despacho con el seguimiento ${seguimiento}.`,
+      enlace: `/panel/pedido/${pedidoId}`,
+    },
+  });
 
   revalidatePath("/panel");
   revalidatePath(`/panel/pedido/${pedidoId}`);
@@ -153,6 +167,24 @@ export async function cambiarEstado(
     detalle: `${usuario.nombre}: ${transicion.etiqueta.toLowerCase()}`,
     creadoEn: ahora,
   });
+
+  /*
+    Una incidencia es lo unico de estos cambios que alguien mas tiene que saber
+    YA: un paquete perdido o roto es un cliente esperando respuesta.
+  */
+  if (hacia === "incidencia") {
+    avisarEvento({
+      clave: `pedido:${pedidoId}:incidencia:${ahora}`,
+      para: ["operacion", "dueno"],
+      menos: usuario.id,
+      aviso: {
+        urgencia: "urgente",
+        titulo: `#${pedido.numero}: incidencia`,
+        cuerpo: `${usuario.nombre} reporto una incidencia con el envio de ${pedido.clienteNombre}.`,
+        enlace: `/panel/pedido/${pedidoId}`,
+      },
+    });
+  }
 
   revalidatePath("/panel");
   revalidatePath(`/panel/pedido/${pedidoId}`);
@@ -211,4 +243,163 @@ export async function ultimoCosteEnvio(): Promise<number | undefined> {
     .filter((p) => p.envioCoste !== undefined && p.enviadoEn)
     .sort((a, b) => (b.enviadoEn ?? "").localeCompare(a.enviadoEn ?? ""));
   return conCoste[0]?.envioCoste;
+}
+
+/* --------------------------------------------------------------------------
+   Registrar una venta a mano
+   -------------------------------------------------------------------------- */
+
+export interface ResultadoNuevo extends Resultado {
+  /** Los colores que no llegan, para que la persona decida si vende igual. */
+  faltantes?: { nombre: string; piden: number; hay: number }[];
+}
+
+/** Lee un importe escrito por una persona: "217,80" o "217.80". */
+function importe(texto: string): number | undefined {
+  const limpio = texto.trim().replace(",", ".");
+  if (!limpio) return undefined;
+  const valor = Number(limpio);
+  return Number.isFinite(valor) && valor >= 0 ? euros(valor) : undefined;
+}
+
+/**
+ * Registra una venta que entro por mensaje directo, en persona o por telefono.
+ *
+ * Es la fase 7.1: el panel sirve desde hoy para lo que Alfredo ya vende sin la
+ * tienda. El pedido entra como cualquier otro —"por enviar", con su numero—, y
+ * cuando llegue Stripe los de la web caeran en la misma cola sin rehacer nada.
+ *
+ * LOS PRECIOS SE ESCRIBEN CON IVA, y se guardan sin el. Alfredo sabe lo que el
+ * cliente le pago, no la base imponible; obligarlo a hacer la cuenta en la
+ * calle es garantizar un error. El panel la hace con el IVA lituano.
+ */
+export async function crearPedidoManual(
+  _anterior: ResultadoNuevo | undefined,
+  datos: FormData,
+): Promise<ResultadoNuevo> {
+  const usuario = await exigirUsuario();
+  const { almacen } = servicios();
+  const texto = (campo: string) => String(datos.get(campo) ?? "").trim();
+
+  const clienteNombre = texto("clienteNombre");
+  if (!clienteNombre) return { ok: false, mensaje: "Falta el nombre de quien compro." };
+
+  const linea1 = texto("linea1");
+  const ciudad = texto("ciudad");
+  const pais = texto("pais").toUpperCase();
+  if (!linea1 || !ciudad) {
+    return { ok: false, mensaje: "Falta la direccion: calle y ciudad, para la etiqueta." };
+  }
+  if (!/^[A-Z]{2}$/.test(pais)) {
+    return { ok: false, mensaje: "El pais va en dos letras: LT, DE, FR…" };
+  }
+
+  const precioConIva = importe(texto("precio"));
+  if (precioConIva === undefined || precioConIva === 0) {
+    return { ok: false, mensaje: "Escribe cuanto pago por estuche, con IVA." };
+  }
+  const envioTexto = texto("envio");
+  const envioConIva = envioTexto ? importe(envioTexto) : 0;
+  if (envioConIva === undefined) {
+    return { ok: false, mensaje: "El envio cobrado no es un numero valido." };
+  }
+
+  const [colores, lotes] = await Promise.all([almacen.listarColores(), almacen.listarLotes()]);
+  /* Las unidades salen del lote mas reciente: es el que esta en el estante. */
+  const loteId = [...lotes].sort((a, b) => b.llegadaEn.localeCompare(a.llegadaEn))[0]?.id;
+  const precioUnitario = sinIva(precioConIva, IVA_LITUANIA);
+
+  const lineas: LineaPedido[] = [];
+  for (const color of colores.filter((c) => c.activo)) {
+    const valor = texto(`cantidad-${color.id}`);
+    if (!valor) continue;
+    const cantidad = Number(valor);
+    if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > 99) {
+      return { ok: false, mensaje: `La cantidad de ${color.nombre} no es valida.` };
+    }
+    if (cantidad > 0) lineas.push({ colorId: color.id, cantidad, precioUnitario, loteId });
+  }
+  if (lineas.length === 0) {
+    return { ok: false, mensaje: "Pon cuantos estuches se llevo, y de que color." };
+  }
+
+  /*
+    Si no hay cajas para servirlo, se AVISA y la persona decide. No se bloquea:
+    puede que el conteo vaya atrasado o que el lote llegue manana, y un panel
+    que no deja trabajar se deja de usar. Lo que no puede pasar es venderlo sin
+    enterarse.
+  */
+  if (datos.get("venderIgual") !== "si") {
+    const { existencias, conConteo } = await leerExistencias();
+    if (conConteo) {
+      const faltan = faltantesPara(existencias, lineas);
+      if (faltan.length > 0) {
+        const nombres = new Map(colores.map((c) => [c.id, c.nombre]));
+        return {
+          ok: false,
+          mensaje: "No hay cajas suficientes para esta venta.",
+          faltantes: faltan.map((f) => ({
+            nombre: nombres.get(f.colorId) ?? f.colorId,
+            piden: f.piden,
+            hay: f.hay,
+          })),
+        };
+      }
+    }
+  }
+
+  const ahora = new Date().toISOString();
+  const pedido: Pedido = {
+    id: crypto.randomUUID(),
+    numero: await almacen.siguienteNumeroPedido(),
+    origen: "manual",
+    estado: "pagado",
+    clienteNombre,
+    clienteCorreo: texto("clienteCorreo"),
+    direccion: {
+      nombre: clienteNombre,
+      linea1,
+      linea2: texto("linea2") || undefined,
+      ciudad,
+      codigoPostal: texto("codigoPostal"),
+      pais,
+      telefono: texto("telefono") || undefined,
+    },
+    lineas,
+    envioCobrado: sinIva(envioConIva, IVA_LITUANIA),
+    tipoIva: IVA_LITUANIA,
+    pagadoEn: ahora,
+    notaInterna: texto("nota") || undefined,
+  };
+
+  await almacen.crearPedido(pedido);
+  await almacen.anotar({
+    id: crypto.randomUUID(),
+    entidad: "pedido",
+    entidadId: pedido.id,
+    accion: "creado",
+    usuarioId: usuario.id,
+    detalle: `${usuario.nombre} registro la venta a mano`,
+    creadoEn: ahora,
+  });
+
+  const unidades = lineas.reduce((n, l) => n + l.cantidad, 0);
+  const nombres = lineas
+    .map((l) => colores.find((c) => c.id === l.colorId)?.nombre ?? l.colorId)
+    .join(", ");
+  avisarEvento({
+    clave: `pedido:${pedido.id}:nuevo`,
+    para: ["operacion", "dueno"],
+    menos: usuario.id,
+    aviso: {
+      urgencia: "urgente",
+      titulo: `Venta nueva #${pedido.numero}`,
+      cuerpo: `${unidades} × ${nombres} para ${clienteNombre}, ${ciudad} (${pais}). La registro ${usuario.nombre}; esta ${NOMBRE_ESTADO.pagado.toLowerCase()}.`,
+      enlace: `/panel/pedido/${pedido.id}`,
+    },
+  });
+
+  revalidatePath("/panel");
+  revalidatePath("/panel/existencias");
+  redirect(`/panel/pedido/${pedido.id}?hecho=creado`);
 }

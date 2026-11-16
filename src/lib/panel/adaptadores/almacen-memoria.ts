@@ -19,33 +19,33 @@
 
 import { euros, IVA_LITUANIA } from "../dominio/dinero";
 import { PRECIO_PUBLICO } from "../dominio/economia";
+import type { AjustesPanel } from "../dominio/ajustes";
 import type {
   Apunte,
+  AvisoEnviado,
   Color,
   Lote,
+  MovimientoExistencias,
   Pedido,
   PedidoMayorista,
   Tienda,
   Usuario,
 } from "../dominio/tipos";
+import { COLORS } from "../../store/catalog";
 import { personasDelPanel } from "../personas";
 import type { Almacen, CambioPedido, FiltroPedidos } from "../puertos/almacen";
 
 /*
-  Los catorce colores son de relleno, igual que en la tienda: Alfredo todavia no
-  dio los nombres comerciales ni los valores exactos. Estan rotulados como
-  marcador de posicion en la propia pantalla.
+  Los catorce colores de la carta oficial, los mismos de la tienda y en el
+  mismo orden. Salen de `src/lib/store/catalog.ts` para que no haya dos listas
+  que se desincronicen: si cambia un color en la tienda, cambia aqui.
 */
-const COLORES: Color[] = [
-  ["negro", "Black", "#111111"],
-  ["marino", "Navy", "#1b2a4a"],
-  ["vinotinto", "Burgundy", "#5c1a2b"],
-  ["morado", "Plum", "#43285c"],
-  ["verde", "Forest", "#1f3d2b"],
-  ["gris", "Graphite", "#4a4a4a"],
-  ["crema", "Cream", "#e8ddc5"],
-  ["oro", "Gold", "#c9a227"],
-].map(([id, nombre, hex]) => ({ id, nombre, hex, activo: true }));
+const COLORES: Color[] = COLORS.map((c) => ({
+  id: c.id,
+  nombre: c.name,
+  hex: c.hex,
+  activo: true,
+}));
 
 const AHORA = Date.now();
 const hace = (horas: number) => new Date(AHORA - horas * 3_600_000).toISOString();
@@ -110,15 +110,15 @@ function pedidoEjemplo(
   dos que ya no son trabajo. Ver `docs/panel-nerowa.md` §4.3.
 */
 const PEDIDOS: Pedido[] = [
-  pedidoEjemplo(1043, 2, "Marta Kazlauskiene", "Vilnius", "LT", "marino", 1, "pagado"),
-  pedidoEjemplo(1042, 26, "Jonas Petrauskas", "Kaunas", "LT", "negro", 2, "pagado"),
-  pedidoEjemplo(1041, 73, "Anna Schmidt", "Berlin", "DE", "vinotinto", 1, "pagado"),
-  pedidoEjemplo(1040, 96, "Pierre Dubois", "Lyon", "FR", "verde", 1, "enviado", {
+  pedidoEjemplo(1043, 2, "Marta Kazlauskiene", "Vilnius", "LT", "midnight-blue", 1, "pagado"),
+  pedidoEjemplo(1042, 26, "Jonas Petrauskas", "Kaunas", "LT", "black", 2, "pagado"),
+  pedidoEjemplo(1041, 73, "Anna Schmidt", "Berlin", "DE", "red", 1, "pagado"),
+  pedidoEjemplo(1040, 96, "Pierre Dubois", "Lyon", "FR", "teal", 1, "enviado", {
     seguimiento: "RA123456789LT",
     enviadoEn: hace(70),
     envioCoste: euros(16),
   }),
-  pedidoEjemplo(1039, 240, "Elena Rossi", "Milano", "IT", "crema", 1, "entregado", {
+  pedidoEjemplo(1039, 240, "Elena Rossi", "Milano", "IT", "white", 1, "entregado", {
     seguimiento: "RA987654321LT",
     enviadoEn: hace(220),
     entregadoEn: hace(60),
@@ -202,8 +202,8 @@ const PEDIDOS_MAYORISTAS: PedidoMayorista[] = [
     cobro: "facturado",
     envio: "entregado",
     lineas: [
-      { colorId: "negro", cantidad: 10, precioUnitario: euros(110), loteId: LOTE_ACTUAL.id },
-      { colorId: "marino", cantidad: 6, precioUnitario: euros(110), loteId: LOTE_ACTUAL.id },
+      { colorId: "black", cantidad: 10, precioUnitario: euros(110), loteId: LOTE_ACTUAL.id },
+      { colorId: "midnight-blue", cantidad: 6, precioUnitario: euros(110), loteId: LOTE_ACTUAL.id },
     ],
     envioCobrado: euros(60),
     regimenIva: "nacional",
@@ -224,7 +224,7 @@ const PEDIDOS_MAYORISTAS: PedidoMayorista[] = [
     estado: "confirmado",
     cobro: "sin_facturar",
     envio: "enviado",
-    lineas: [{ colorId: "vinotinto", cantidad: 20, precioUnitario: euros(95), loteId: LOTE_ACTUAL.id }],
+    lineas: [{ colorId: "red", cantidad: 20, precioUnitario: euros(95), loteId: LOTE_ACTUAL.id }],
     envioCobrado: euros(120),
     regimenIva: "intracomunitario",
     tipoIva: 0,
@@ -240,13 +240,47 @@ const PEDIDOS_MAYORISTAS: PedidoMayorista[] = [
     estado: "por_confirmar",
     cobro: "sin_facturar",
     envio: "sin_enviar",
-    lineas: [{ colorId: "crema", cantidad: 4, precioUnitario: euros(120) }],
+    lineas: [{ colorId: "white", cantidad: 4, precioUnitario: euros(120) }],
     envioCobrado: euros(45),
     regimenIva: "sin_numero_valido",
     tipoIva: IVA_LITUANIA,
     creadoEn: hace(30),
   },
 ];
+
+/*
+  Como quedo el estante tras el conteo de ejemplo, contando las cajas que ya
+  salieron en los pedidos de arriba. Elegido para que se vean los tres casos:
+  colores con de sobra, uno con pocas (Midnight Blue: 3 en el estante y 1 de
+  ellas ya vendida) y uno agotado con una tienda pidiendo (White: no queda
+  ninguna y La Contrebasse pide 4 sin confirmar). Los colores que no salen aqui
+  estan a cero.
+
+  Son DATOS DE EJEMPLO, como todo este archivo. En la base de verdad no se
+  siembra ningun conteo: el panel pide contar la primera vez.
+*/
+const CONTEO_EJEMPLO: [string, number][] = [
+  ["black", 22],
+  ["midnight-blue", 9],
+  ["red", 25],
+  ["teal", 8],
+  ["white", 1],
+  ["gold", 6],
+  ["silver", 5],
+  ["yellow", 4],
+];
+
+function movimientosDeEjemplo(): MovimientoExistencias[] {
+  return CONTEO_EJEMPLO.map(([colorId, cantidad], i) => ({
+    id: `mov-ejemplo-${i}`,
+    colorId,
+    cantidad,
+    tipo: "ajuste",
+    motivo: "Conteo de ejemplo",
+    usuarioId: "u-alfredo",
+    creadoEn: hace(24 * 60),
+  }));
+}
 
 export function crearAlmacenMemoria(): Almacen {
   /*
@@ -262,6 +296,9 @@ export function crearAlmacenMemoria(): Almacen {
   /* Las dos personas salen de `personas.ts`, que es donde estan definidas. */
   const usuarios: Usuario[] = personasDelPanel();
   const apuntes: Apunte[] = [];
+  const movimientos: MovimientoExistencias[] = movimientosDeEjemplo();
+  let ajustes: Partial<AjustesPanel> = {};
+  const avisos: AvisoEnviado[] = [];
 
   const clon = <T,>(v: T): T => structuredClone(v);
   const norm = (correo: string) => correo.trim().toLowerCase();
@@ -277,6 +314,14 @@ export function crearAlmacenMemoria(): Almacen {
     },
     async listarUsuarios() {
       return clon(usuarios);
+    },
+    async actualizarUsuario(id, cambio) {
+      const i = usuarios.findIndex((u) => u.id === id);
+      if (i === -1) return undefined;
+      if (cambio.telegramChatId !== undefined) {
+        usuarios[i] = { ...usuarios[i]!, telegramChatId: cambio.telegramChatId ?? undefined };
+      }
+      return clon(usuarios[i]!);
     },
 
     async listarColores() {
@@ -367,6 +412,39 @@ export function crearAlmacenMemoria(): Almacen {
     },
     async siguienteNumeroMayorista() {
       return pedidosMayoristas.reduce((max, p) => Math.max(max, p.numero), 500) + 1;
+    },
+
+    async listarMovimientos() {
+      return clon([...movimientos].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)));
+    },
+    async registrarMovimientos(nuevos) {
+      movimientos.push(...clon([...nuevos]));
+    },
+
+    async leerAjustes() {
+      return clon(ajustes);
+    },
+    async guardarAjustes(cambio) {
+      ajustes = { ...ajustes, ...cambio };
+    },
+
+    async reclamarAviso(aviso) {
+      if (avisos.some((a) => a.clave === aviso.clave)) return false;
+      avisos.push(clon(aviso));
+      return true;
+    },
+    async completarAviso(clave, canales) {
+      const a = avisos.find((x) => x.clave === clave);
+      if (a) a.canales = [...canales];
+    },
+    async soltarAviso(clave) {
+      const i = avisos.findIndex((x) => x.clave === clave);
+      if (i !== -1) avisos.splice(i, 1);
+    },
+    async listarAvisosEnviados(limite) {
+      return clon(
+        [...avisos].sort((a, b) => b.enviadoEn.localeCompare(a.enviadoEn)).slice(0, limite),
+      );
     },
 
     async anotar(apunte) {

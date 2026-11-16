@@ -16,6 +16,13 @@ import type { Usuario } from "../dominio/tipos";
 export function crearAvisosConsola(): Avisos {
   return {
     nombre: "consola",
+    describir() {
+      return {
+        listo: false,
+        detalle:
+          "Los avisos se calculan pero no salen del servidor: solo quedan en su registro. Falta conectar el bot de Telegram.",
+      };
+    },
     async avisar(a: Usuario, aviso: Aviso) {
       console.info(
         `[aviso:consola] ${aviso.urgencia.toUpperCase()} para=${a.nombre} ` +

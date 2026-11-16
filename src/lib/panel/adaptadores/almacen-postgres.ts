@@ -19,13 +19,16 @@
   - Las fechas salen como `Date` y el dominio las quiere en ISO 8601.
 */
 
+import { CLAVES_AJUSTE, type AjustesPanel } from "../dominio/ajustes";
 import type {
   Apunte,
+  AvisoEnviado,
   Color,
   Direccion,
   Id,
   LineaPedido,
   Lote,
+  MovimientoExistencias,
   Pedido,
   PedidoMayorista,
   Tienda,
@@ -33,12 +36,14 @@ import type {
 } from "../dominio/tipos";
 import type {
   Almacen,
+  CambioUsuario,
   CambioPedido,
   CambioPedidoMayorista,
   CambioTienda,
   FiltroPedidos,
 } from "../puertos/almacen";
 import type { Conexion } from "./postgres/conexion";
+import { huecos } from "./postgres/huecos";
 
 /* --------------------------------------------------------------------------
    Traduccion de tipos
@@ -310,8 +315,18 @@ export function crearAlmacenPostgres(cx: Conexion): Almacen {
       return filas.map(aUsuario);
     },
 
+    async actualizarUsuario(id, cambio: CambioUsuario) {
+      const q = armarUpdate("usuarios", { telegramChatId: "telegram_chat_id" }, { ...cambio }, id);
+      if (!q) return this.usuarioPorId(id);
+      const filas = await cx.consultar<Fila>(q.sql, q.params);
+      return filas[0] ? aUsuario(filas[0]) : undefined;
+    },
+
     async listarColores() {
-      const filas = await cx.consultar<Fila>("select * from colores order by nombre");
+      /* El orden de la carta; los de relleno de antes, sin orden, al final. */
+      const filas = await cx.consultar<Fila>(
+        "select * from colores order by activo desc, orden nulls last, nombre",
+      );
       return filas.map(
         (f): Color => ({
           id: String(f.id),
@@ -474,6 +489,103 @@ export function crearAlmacenPostgres(cx: Conexion): Almacen {
         "select coalesce(max(numero), 500) + 1 as siguiente from pedidos_mayoristas",
       );
       return Number(filas[0]?.siguiente ?? 501);
+    },
+
+    async listarMovimientos() {
+      const filas = await cx.consultar<Fila>(
+        "select * from movimientos_existencias order by creado_en desc",
+      );
+      return filas.map(
+        (f): MovimientoExistencias => ({
+          id: String(f.id),
+          colorId: String(f.color_id),
+          cantidad: Number(f.cantidad),
+          tipo: f.tipo as MovimientoExistencias["tipo"],
+          loteId: texto(f.lote_id),
+          motivo: texto(f.motivo),
+          usuarioId: String(f.usuario_id),
+          creadoEn: instante(f.creado_en),
+        }),
+      );
+    },
+    async registrarMovimientos(movimientos) {
+      if (movimientos.length === 0) return;
+      /*
+        Una sola sentencia con todas las filas: o entran todas o ninguna, sin
+        abrir una transaccion a mano —que con el pooler de transacciones es
+        justo lo que no conviene—. Un conteo a medias descuadraria el estante.
+      */
+      await cx.consultar(
+        `insert into movimientos_existencias
+           (id, color_id, cantidad, tipo, lote_id, motivo, usuario_id, creado_en)
+         values ${huecos(movimientos.length, 8)}`,
+        movimientos.flatMap((m) => [
+          m.id, m.colorId, m.cantidad, m.tipo, m.loteId ?? null,
+          m.motivo ?? null, m.usuarioId, m.creadoEn,
+        ]),
+      );
+    },
+
+    async leerAjustes() {
+      const filas = await cx.consultar<Fila>("select clave, valor from ajustes");
+      const leidos: Partial<AjustesPanel> = {};
+      for (const f of filas) {
+        const clave = String(f.clave) as keyof AjustesPanel;
+        /* Una clave que el codigo ya no conoce se ignora, no se cuela. */
+        if (CLAVES_AJUSTE.includes(clave)) leidos[clave] = objeto<number>(f.valor);
+      }
+      return leidos;
+    },
+    async guardarAjustes(cambio) {
+      const pares = Object.entries(cambio).filter(
+        ([clave, valor]) =>
+          valor !== undefined && CLAVES_AJUSTE.includes(clave as keyof AjustesPanel),
+      );
+      if (pares.length === 0) return;
+      const params = pares.flatMap(([clave, valor]) => [clave, json(valor)]);
+      const filas = pares.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2}::jsonb, now())`);
+      await cx.consultar(
+        `insert into ajustes (clave, valor, actualizado_en) values ${filas.join(", ")}
+         on conflict (clave) do update set valor = excluded.valor, actualizado_en = now()`,
+        params,
+      );
+    },
+
+    async reclamarAviso(aviso: AvisoEnviado) {
+      const filas = await cx.consultar<Fila>(
+        `insert into avisos_enviados (clave, titulo, para, canales, enviado_en)
+         values ($1, $2, $3, $4, $5)
+         on conflict (clave) do nothing
+         returning clave`,
+        [aviso.clave, aviso.titulo, aviso.para, aviso.canales.join(","), aviso.enviadoEn],
+      );
+      return filas.length > 0;
+    },
+    async completarAviso(clave, canales) {
+      await cx.consultar("update avisos_enviados set canales = $1 where clave = $2", [
+        canales.join(","),
+        clave,
+      ]);
+    },
+    async soltarAviso(clave) {
+      await cx.consultar("delete from avisos_enviados where clave = $1", [clave]);
+    },
+    async listarAvisosEnviados(limite) {
+      const filas = await cx.consultar<Fila>(
+        "select * from avisos_enviados order by enviado_en desc limit $1",
+        [limite],
+      );
+      return filas.map(
+        (f): AvisoEnviado => ({
+          clave: String(f.clave),
+          titulo: String(f.titulo),
+          para: String(f.para),
+          canales: String(f.canales ?? "")
+            .split(",")
+            .filter(Boolean),
+          enviadoEn: instante(f.enviado_en),
+        }),
+      );
     },
 
     async anotar(apunte: Apunte) {
