@@ -15,6 +15,7 @@ import { useId, useState } from "react";
 
 import { CONTACT_EMAIL } from "@/lib/brand";
 import { PRICE_EUR } from "@/lib/store/catalog";
+import { SPECS_CLOSED, SPECS_OPEN } from "@/lib/store/specs";
 
 /* ------------------------------------------------------------ contenedores */
 
@@ -70,10 +71,11 @@ export function WhatItIs() {
 
 /* --------------------------------------------------------- especificaciones */
 
+/* Las medidas salen de `lib/store/specs.ts`, las mismas de `/shop`. Lo que
+   sigue con raya todavia no se sabe. */
 const SPECS: { label: string; value: string }[] = [
-  { label: "External length", value: "—" },
-  { label: "External width", value: "—" },
-  { label: "External depth", value: "—" },
+  ...SPECS_CLOSED,
+  ...SPECS_OPEN.map((spec) => ({ ...spec, label: `Open, ${spec.label.toLowerCase()}` })),
   { label: "Usable interior length", value: "—" },
   { label: "Weight", value: "—" },
   { label: "Shell", value: "—" },
@@ -102,7 +104,7 @@ export function Specs() {
         ))}
       </dl>
       <p className="t-label mt-6 text-[10px] text-[var(--store-fg)]/35">
-        Placeholder — measured values pending
+        Placeholder — weight, interior length and materials pending
       </p>
     </Section>
   );

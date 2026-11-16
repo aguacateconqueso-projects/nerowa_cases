@@ -69,8 +69,8 @@ const DIAGONAL = -0.72;
 
 /* Giro de reposo sobre el eje largo: deja ver la cara y el canto de los
    cierres a la vez, en vez de una silueta plana. */
-const REST_YAW = -0.6;
-const REST_PITCH = 0.2;
+export const REST_YAW = -0.6;
+export const REST_PITCH = 0.2;
 
 const INTRO_MS = 2400;
 
@@ -181,7 +181,9 @@ function RoomReflections() {
   return null;
 }
 
-function Lighting() {
+/* Exportada para `app/render-case`, que saca las fotos de producto con la misma
+   luz que el visor. */
+export function Lighting() {
   return (
     <>
       <RoomReflections />

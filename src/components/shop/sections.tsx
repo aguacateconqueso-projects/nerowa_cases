@@ -86,12 +86,14 @@ export function Catalogue() {
             >
               <span className="relative block aspect-[1/1.05] overflow-hidden bg-[var(--sh-tile)]">
                 <CaseGlyph
-                  hex={color.hex}
+                  color={color}
+                  sizes="(min-width: 1024px) 100px, 72px"
                   className="sh-swap__main absolute left-1/2 top-1/2 h-[112%] -translate-x-1/2 -translate-y-1/2 -rotate-[38deg]"
                 />
                 <CaseGlyph
-                  hex={color.hex}
+                  color={color}
                   view="open"
+                  sizes="(min-width: 1024px) 170px, 120px"
                   className="sh-swap__alt absolute left-1/2 top-1/2 h-[104%] -translate-x-1/2 -translate-y-1/2 -rotate-[38deg]"
                 />
                 {color.availability !== "available" && (
@@ -165,8 +167,9 @@ export function Inside() {
         <div aria-hidden className="relative -mx-4 h-[56svh] overflow-hidden lg:hidden">
           <CaseGlyph
             key={color.id}
-            hex={color.hex}
+            color={color}
             view="open"
+            sizes="240px"
             className="sh-fade absolute left-1/2 top-1/2 h-[150%] -translate-x-1/2 -translate-y-1/2 rotate-[52deg]"
           />
         </div>
@@ -184,8 +187,9 @@ export function Inside() {
       <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 hidden w-[58%] lg:block">
         <CaseGlyph
           key={color.id}
-          hex={color.hex}
+          color={color}
           view="open"
+          sizes="440px"
           className="sh-fade absolute left-[44%] top-[62%] h-[150%] -translate-x-1/2 -translate-y-1/2 rotate-[52deg]"
         />
       </div>
@@ -281,7 +285,7 @@ export function Confirm() {
             </div>
             <div className="relative mt-4 h-20 w-20 overflow-hidden bg-white/10">
               <CaseGlyph
-                hex={colorById(voice.colorId).hex}
+                color={colorById(voice.colorId)}
                 className="absolute left-1/2 top-1/2 h-[150%] -translate-x-1/2 -translate-y-1/2 -rotate-[38deg]"
               />
             </div>
@@ -303,7 +307,7 @@ export function Confirm() {
                 }`}
               >
                 <CaseGlyph
-                  hex={colorById(v.colorId).hex}
+                  color={colorById(v.colorId)}
                   className="absolute left-1/2 top-1/2 h-[150%] -translate-x-1/2 -translate-y-1/2 -rotate-[38deg]"
                 />
               </button>
@@ -476,6 +480,7 @@ export function ShopFooter() {
               </li>
             </FooterColumn>
             <FooterColumn title="Help">
+              <FooterLink href="#numbers">Measurements</FooterLink>
               <FooterLink href="#answers">Shipping</FooterLink>
               <FooterLink href="#answers">Returns</FooterLink>
               <FooterLink href="#answers">Questions</FooterLink>

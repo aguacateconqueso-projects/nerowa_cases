@@ -12,6 +12,7 @@
                    dos: `case-stage.tsx`)
     Catalogue      los catorce colores en carrusel
     Inside         lo que trae el estuche
+    Numbers        las medidas, con el plano acotado del contorno real
     Confirm        "LOW END. HIGH STANDARDS." fijo + "THEY CAN CONFIRM."
     Answers        preguntas frecuentes
     ShopFooter     lista de correo + pie con el logo gigante
@@ -33,6 +34,7 @@ import { StoreProvider, useStore } from "@/components/store/store-context";
 import { Hero } from "./hero";
 import { CaseStage } from "./case-stage";
 import { ColourSlider } from "./colour-slider";
+import { Numbers } from "./numbers";
 import { Preloader } from "./preloader";
 import { Answers, Catalogue, Confirm, Inside, ShopFooter } from "./sections";
 import { ShopCart } from "./shop-cart";
@@ -138,6 +140,7 @@ function ShopShell() {
         </div>
         <Catalogue />
         <Inside />
+        <Numbers />
         <Confirm />
         <Answers />
       </main>

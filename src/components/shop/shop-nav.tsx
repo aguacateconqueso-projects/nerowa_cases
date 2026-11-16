@@ -158,7 +158,7 @@ export function ShopNav({ tone }: { tone: NavTone }) {
               >
                 <span className="relative block aspect-[4/5] overflow-hidden bg-[var(--sh-tile)]">
                   <CaseGlyph
-                    hex={color.hex}
+                    color={color}
                     className="absolute left-1/2 top-1/2 h-[118%] -translate-x-1/2 -translate-y-1/2 -rotate-[38deg] transition-transform duration-500 group-hover:-rotate-[30deg]"
                   />
                 </span>

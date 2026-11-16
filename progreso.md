@@ -2801,6 +2801,46 @@ Las referencias y el visor de Adrian quedan en `docs/modelo-3d/` (fuera de
 
 ---
 
+### Sesion 12, cuarta vuelta — carta de colores, fotos del case real y medidas
+
+**1. Las miniaturas ensenan el case real.** Antes eran un ovalo dibujado con
+codigo. Ahora son fotos de producto renderizadas del `.glb`, cerrado y abierto,
+una por color, en `public/images/case/` (28 WebP, 596 KB en disco; Next sirve
+cada una al tamano en que se ve). Las usa `CaseGlyph`
+(`components/shop/case-glyph.tsx`) en miniaturas, tarjetas, menu, catalogo,
+carrito y la seccion oscura. Se sacan con:
+
+    npm run dev
+    node scripts/miniaturas-case.cjs http://localhost:3000
+
+que abre `/render-case` (solo existe en desarrollo; en produccion da 404) con la
+misma luz y pose del visor, y escribe `src/lib/store/case-images.ts`. **Hay que
+volver a correrlo si cambia un color o el `.glb`.** Tarda ~5 min aqui (sin GPU).
+
+**2. Los colores son los de la carta oficial** (septiembre 2026), con sus
+nombres y su orden: Yellow, Turquoise, Teal, Midnight Blue, Pink, Red, White,
+Silver, Brown, Lavender, Black, Purple, Orange, Gold. Valores tomados de la foto
+de cada muestra. **Pink y Lavender son estimados** (muestra pendiente en la
+carta). **Brown sale naranja tostado en la foto de la carta** (#e07c39): se usa
+asi; si el case es marron de verdad, se corrige en `catalog.ts` y se vuelven a
+sacar las fotos. Disponibilidad: sin datos, los catorce como disponibles.
+
+**3. Las medidas del case real** (las mando Adrian) estan en
+`src/lib/store/specs.ts` y salen en dos sitios:
+- `/shop`, seccion nueva **"The numbers."** despues de "Built for two bows": un
+  plano a escala con el contorno real (sacado del `.glb` con
+  `scripts/contorno-case.cjs`), pintado del color elegido, con la cota del largo
+  y las tres de ancho; y tres listas: cerrado, abierto, herrajes.
+- `/store`, en la tabla de especificaciones (peso, largo util y materiales
+  siguen pendientes).
+El contorno del `.glb` coincide con las medidas: ~10.3 cm en la punta ancha,
+~4.7 en el medio, ~5.6-5.8 cerca de la punta angosta.
+
+Lo que no sale en la web (detalle de placas de bisagra y base de anilla) queda
+anotado en `specs.ts`.
+
+---
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,

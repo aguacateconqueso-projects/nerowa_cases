@@ -70,7 +70,7 @@ export const VOICES: Voice[] = [
     name: "Name pending",
     role: "Double bass · City",
     quote: "A teacher, a section player, a soloist: whoever answers first.",
-    colorId: "navy",
+    colorId: "midnight-blue",
   },
   {
     number: "03",

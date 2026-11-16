@@ -115,7 +115,7 @@ export function MiniCard({
       <div className="relative h-24 w-24 shrink-0 overflow-hidden bg-[var(--sh-tile)]">
         <CaseGlyph
           key={color.id}
-          hex={color.hex}
+          color={color}
           className="sh-fade absolute left-1/2 top-1/2 h-[150%] -translate-x-1/2 -translate-y-1/2 -rotate-[38deg]"
         />
       </div>
