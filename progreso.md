@@ -2884,6 +2884,26 @@ porque las abiertas ensenan el interior.
 
 ---
 
+### Sesion 12, septima vuelta — el `.glb` corregido (forma cerrada)
+
+Adrian corrigio un error de forma que se veia con el case cerrado. Subio los dos
+archivos con nombre fechado (`*_20261116b.glb`); se pasaron a los nombres fijos
+que carga la web (`nerowa_case.glb`, `nerowa_case_draco.glb`) y se borraron los
+fechados, para no publicar duplicados.
+
+Cambian 13 piezas: cascara, banda y bordes del lado de las bisagras (~0.4 mm),
+las tiras sobre las bisagras y los bolsillos del talon; el eje de las bisagras
+(`lid_pivot`) se movio 0.2 mm. Nodos, materiales y animacion iguales: el codigo
+no cambia (el recentrado al abrir lee el eje del archivo). Se volvieron a sacar
+el contorno de "The numbers" y las 28 fotos de producto.
+
+**Para la proxima vez que suba un modelo:** con el mismo nombre de siempre y en
+la rama de trabajo, `public/models/nerowa_case.glb` y
+`public/models/nerowa_case_draco.glb`, los dos. La web carga el Draco; si solo
+se sube el completo, la tienda no cambia.
+
+---
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,
