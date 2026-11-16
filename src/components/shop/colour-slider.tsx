@@ -12,6 +12,9 @@
   color aqui lo elige en toda la pagina: el hero, las tarjetas y el carrito
   hablan del mismo estuche.
 
+  En escritorio el estuche de la derecha no es de esta seccion: es el de
+  `case-stage.tsx`, que viene bajando desde el hero. En telefono si es de aqui.
+
   Lo que se agrega a la referencia, porque el estuche lo necesita:
     - Las vistas cerrado y abierto, como en `/store`.
     - El aviso de que el color en pantalla puede variar (`estructura-web.md`).
@@ -29,15 +32,13 @@
     └───────────────────────────────────────┘
 */
 
-import Image from "next/image";
 import { useRef, useState } from "react";
 
-import { LOGO } from "@/lib/brand";
 import { COLORS, VIEWS } from "@/lib/store/catalog";
 import { availabilityLong, availabilityShort } from "@/lib/shop/content";
 import { CaseScene } from "@/components/store/scene/case-scene";
 import { useStore } from "@/components/store/store-context";
-import { MiniCard, useInView } from "./bits";
+import { MiniCard, useInView, useIsDesktop } from "./bits";
 import { CaseGlyph } from "./case-glyph";
 
 export function ColourSlider() {
@@ -46,6 +47,7 @@ export function ColourSlider() {
   /* Se enciende un poco antes de llegar, para que el estuche ya este dibujado
      cuando la seccion asoma. */
   const inView = useInView(sectionRef, "200px 0px");
+  const isDesktop = useIsDesktop();
   const [grabbing, setGrabbing] = useState(false);
 
   const index = COLORS.findIndex((c) => c.id === color.id);
@@ -67,18 +69,7 @@ export function ColourSlider() {
         <h2 key={color.id} className="sh-xxl sh-fade">
           {color.name}
         </h2>
-        <div className="sh-label mt-4 hidden items-center justify-between lg:flex">
-          <span>Two-bow case</span>
-          <Image
-            src={LOGO.src}
-            width={LOGO.width}
-            height={LOGO.height}
-            alt=""
-            sizes="96px"
-            className="h-auto w-24"
-            style={{ filter: palette.heroIsDark ? "brightness(0) invert(1)" : "brightness(0)" }}
-          />
-        </div>
+        <p className="sh-label mt-4 hidden lg:block">Two-bow case</p>
       </div>
 
       {/* ------------------------------------- tarjeta de compra, arriba */}
@@ -86,20 +77,22 @@ export function ColourSlider() {
         <MiniCard color={color} />
       </div>
 
-      {/* ---------------------------------------------------- el estuche */}
+      {/* ------------------------------------- el estuche, solo en telefono */}
       <div
-        className={`relative z-10 h-[52svh] min-h-[320px] lg:absolute lg:inset-y-0 lg:right-0 lg:h-auto lg:w-[52%] ${
+        className={`relative z-10 h-[52svh] min-h-[320px] lg:hidden ${
           grabbing ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
-        <CaseScene
-          colorHex={color.hex}
-          open={view === "open"}
-          active={inView}
-          resetSignal={0}
-          onGrabChange={setGrabbing}
-          fit="fill"
-        />
+        {isDesktop === false && (
+          <CaseScene
+            colorHex={color.hex}
+            open={view === "open"}
+            active={inView}
+            resetSignal={0}
+            onGrabChange={setGrabbing}
+            fit="fill"
+          />
+        )}
       </div>
 
       {/* ----------------------------------------------- datos y miniaturas */}

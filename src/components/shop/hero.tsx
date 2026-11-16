@@ -5,8 +5,14 @@
   la lata en 3D por delante del titular, y abajo a la derecha dos tarjetas
   pequenas, una para comprar y otra para la lista de correo.
 
-  Aqui: "TWO BOWS. ONE CASE." y el estuche 3D de `/store` encima, en el color
-  elegido, con todos sus gestos (girar, acercar, doble toque para volver).
+  Aqui: "TWO BOWS. ONE CASE." y el estuche 3D de `/store`, en el color elegido,
+  con todos sus gestos (girar, acercar, doble toque para volver).
+
+  Cambio del 2026-11-16, pedido de Adrian: el estuche ya no cruza el titular. En
+  escritorio el titular va a la izquierda en cuatro lineas y el estuche a la
+  derecha; ese estuche no es de esta seccion sino de `case-stage.tsx`, que lo
+  mantiene a la derecha al bajar hasta la seccion de color. En telefono el
+  estuche si es de aqui y va debajo del titular.
 
   La tarjeta de correo de la referencia ofrece un 10% de descuento. Esa parte no
   se copia: `docs/estructura-web.md` deja fuera los descuentos de entrada. Lo que
@@ -19,12 +25,13 @@ import { useRef, useState } from "react";
 import { CONTACT_EMAIL } from "@/lib/brand";
 import { CaseScene } from "@/components/store/scene/case-scene";
 import { useStore } from "@/components/store/store-context";
-import { MiniCard, Roll, useInView, useListSignup } from "./bits";
+import { MiniCard, Roll, useInView, useIsDesktop, useListSignup } from "./bits";
 
 export function Hero({ ready }: { ready: boolean }) {
   const { color } = useStore();
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef);
+  const isDesktop = useIsDesktop();
   const [grabbing, setGrabbing] = useState(false);
   const [listClosed, setListClosed] = useState(false);
   const signup = useListSignup();
@@ -36,24 +43,26 @@ export function Hero({ ready }: { ready: boolean }) {
       data-nav="light"
       className="relative h-[100svh] min-h-[600px] overflow-hidden bg-[var(--sh-light)] text-[var(--sh-ink)]"
     >
-      <h1 className="sh-xxl sh-xxl--hero absolute inset-x-4 top-16 lg:inset-x-5 lg:top-[28vh]">
-        <span className="block">Two bows.</span>
-        <span className="block">One case.</span>
+      {/* Cuatro lineas, una palabra cada una: asi el titular cabe en la mitad
+          izquierda sin perder tamano y la derecha queda libre para el estuche. */}
+      <h1 className="sh-xxl sh-xxl--hero absolute inset-x-4 top-16 lg:left-5 lg:right-auto lg:top-20 lg:max-w-[46%]">
+        <span className="block">Two</span>
+        <span className="block">bows.</span>
+        <span className="block">One</span>
+        <span className="block">case.</span>
       </h1>
 
       {/*
-        El estuche va POR DELANTE del titular, como la lata de la referencia. En
-        telefono el lienzo empieza debajo del titular para que el estuche no lo
-        tape entero; en escritorio ocupa la pantalla y cruza las letras.
-        Solo se monta cuando termino la entrada: asi su propia animacion de
-        llegada se ve, en vez de pasar detras de la cortina.
+        Solo telefono: el lienzo empieza debajo del titular. Se monta cuando
+        termino la entrada, asi su propia animacion de llegada se ve en vez de
+        pasar detras de la cortina.
       */}
       <div
-        className={`absolute inset-x-0 bottom-0 top-[30%] z-10 lg:top-0 ${
+        className={`absolute inset-x-0 bottom-0 top-[44%] z-10 lg:hidden ${
           grabbing ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
-        {ready && (
+        {ready && isDesktop === false && (
           <CaseScene
             colorHex={color.hex}
             open={false}

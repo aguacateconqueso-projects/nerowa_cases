@@ -6,8 +6,10 @@
   Orden de la pagina, el mismo de la referencia:
 
     entrada        "TUNING IN 0-100%", una vez por sesion
-    Hero           "TWO BOWS. ONE CASE." + estuche 3D + tarjeta de compra
-    ColourSlider   un color a pantalla completa, con el estuche y las miniaturas
+    Hero           "TWO BOWS. ONE CASE." + tarjeta de compra
+    ColourSlider   un color a pantalla completa, con las miniaturas
+                   (en escritorio, un solo estuche 3D a la derecha recorre las
+                   dos: `case-stage.tsx`)
     Catalogue      los catorce colores en carrusel
     Inside         lo que trae el estuche
     Confirm        "LOW END. HIGH STANDARDS." fijo + "THEY CAN CONFIRM."
@@ -29,6 +31,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { StoreProvider, useStore } from "@/components/store/store-context";
 import { Hero } from "./hero";
+import { CaseStage } from "./case-stage";
 import { ColourSlider } from "./colour-slider";
 import { Preloader } from "./preloader";
 import { Answers, Catalogue, Confirm, Inside, ShopFooter } from "./sections";
@@ -126,8 +129,13 @@ function ShopShell() {
       </div>
 
       <main>
-        <Hero ready={ready} />
-        <ColourSlider />
+        {/* Hero y color comparten envoltorio: el estuche de escritorio vive
+            aqui y baja pegado a la derecha por las dos secciones. */}
+        <div className="relative">
+          <CaseStage ready={ready} />
+          <Hero ready={ready} />
+          <ColourSlider />
+        </div>
         <Catalogue />
         <Inside />
         <Confirm />
