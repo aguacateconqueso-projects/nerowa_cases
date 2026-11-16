@@ -2904,6 +2904,18 @@ se sube el completo, la tienda no cambia.
 
 ---
 
+### Sesion 12, octava vuelta — respuestas alineadas y sin plazos inventados
+
+- **Preguntas:** en escritorio la respuesta va en el MISMO renglon que la
+  pregunta, a su derecha y alineada arriba con ella (antes caia debajo, suelta).
+  En telefono, debajo y alineada con la pregunta. Letra de la respuesta de 14 a
+  17-18 px. El foco de teclado va por dentro del renglon (`.sh-focus-inset`).
+- **Fuera "2 a 3 semanas"** (Adrian: es falso). En la respuesta de envios, la
+  tarjeta de compra y el estado "agotado": ahora se dice que deje su correo y se
+  le avisa cuando llegue el proximo lote.
+
+---
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,
