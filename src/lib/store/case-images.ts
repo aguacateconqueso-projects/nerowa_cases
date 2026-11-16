@@ -10,6 +10,6 @@ export const CASE_IMAGE_SIZE = {
   },
   "open": {
     "width": 789,
-    "height": 2548
+    "height": 2549
   }
 } as const;

@@ -2841,6 +2841,24 @@ anotado en `specs.ts`.
 
 ---
 
+### Sesion 12, quinta vuelta — el `.glb` con el interior nuevo
+
+Adrian actualizo el modelo: bolsillo del talon, tope de la punta, tiras sobre
+las bisagras y ganchos de velcro abiertos. Subio los dos `.glb` a
+`public/models/` (Draco: 1.87 -> 2.00 MB; completo: 4.5 -> 6.0 MB).
+
+**No hizo falta tocar codigo.** El archivo nuevo conserva lo que usa la web:
+nodo raiz `nerowa_case`, `lid_pivot` en x=-0.06 m, animacion `abrir` de 2.4 s
+sobre los mismos cinco pivotes, y la cascara en el material `shell`. Los
+materiales nuevos (`nerowa_velcro`, `nerowa_rim`, las tiras en `nerowa_strap`)
+no se tinen. Por fuera mide lo mismo: el contorno de "The numbers" sale
+identico.
+
+Se volvieron a sacar las 28 fotos de producto (`scripts/miniaturas-case.cjs`),
+porque las abiertas ensenan el interior.
+
+---
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,
