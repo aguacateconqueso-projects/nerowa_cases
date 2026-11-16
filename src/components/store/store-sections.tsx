@@ -162,7 +162,7 @@ export const FAQ = [
   {
     question: "How long does delivery take?",
     answer:
-      "Three to five days inside the European Union, four to seven to the United Kingdom, from the day the case is despatched. If a colour is out of stock, the next batch takes two to three weeks and you are told before you pay.",
+      "Three to five days inside the European Union, four to seven to the United Kingdom, from the day the case is despatched. If your colour is out of stock, leave your email and we will let you know when the next batch arrives, so you can order it.",
   },
   {
     question: "What if my colour is sold out?",

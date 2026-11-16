@@ -131,7 +131,7 @@ export function MiniCard({
         <div className="sh-label flex items-end justify-between gap-3">
           <span className="t-figures">&euro;{PRICE_EUR}</span>
           {soldOut ? (
-            <span className="opacity-60">Back in 2–3 weeks</span>
+            <span className="opacity-60">Next batch soon</span>
           ) : (
             <button
               type="button"

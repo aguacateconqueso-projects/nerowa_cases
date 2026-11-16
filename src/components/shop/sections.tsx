@@ -417,16 +417,28 @@ function AnswerRow({
         if (event.pointerType === "mouse") setHoverTint(null);
       }}
       style={{ background: tint ?? undefined, color: ink }}
-      className={`-mx-4 border-b px-4 transition-[background-color,color,border-color] duration-300 lg:-mx-5 lg:px-5 ${
+      className={`-mx-4 border-b px-4 transition-[background-color,color,border-color] duration-300 lg:-mx-5 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:px-5 ${
         tint ? "border-transparent" : "border-black/12"
       }`}
     >
+      {/*
+        Escritorio: pregunta y respuesta en el MISMO renglon. La pregunta a la
+        izquierda (columnas 1-6), la respuesta a su derecha (7-11) alineada
+        arriba con ella, y el cuadrado de la cruz en la 12. Antes la respuesta
+        caia debajo, suelta a media pagina, sin alinearse con nada.
+        Telefono: la respuesta debajo, alineada con la pregunta.
+
+        El boton y la respuesta comparten la fila 1 a proposito y los dos van
+        con columna EXPLICITA. Si el boton no la tuviera, la rejilla lo mandaria
+        a columnas nuevas para no pisar la respuesta, y la pregunta acababa en
+        una tira angosta a la derecha.
+      */}
       <button
         type="button"
         onClick={toggle}
         aria-expanded={open}
         aria-controls={panelId}
-        className="sh-focus grid w-full grid-cols-[1fr_auto] items-start gap-6 py-5 text-left lg:grid-cols-12"
+        className="sh-focus-inset grid w-full grid-cols-[1fr_auto] items-start gap-6 py-5 text-left lg:col-span-12 lg:col-start-1 lg:row-start-1 lg:grid-cols-12"
       >
         <span className="sh-serif sh-serif-md max-w-[22ch] lg:col-span-6">{question}</span>
         {/* El cuadrado con la cruz de la referencia. La raya vertical gira hasta
@@ -446,14 +458,15 @@ function AnswerRow({
       </button>
       <div
         id={panelId}
-        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out lg:col-span-5 lg:col-start-7 lg:row-start-1 lg:self-start ${
           open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
-        {/* La respuesta va a la derecha, en el bloque que termina en el
-            cuadrado de la cruz. En telefono, a lo ancho. */}
-        <div className="overflow-hidden lg:grid lg:grid-cols-12">
-          <p className="sh-body max-w-[60ch] pb-6 pr-12 lg:col-span-5 lg:col-start-8 lg:pr-0">
+        <div className="overflow-hidden">
+          {/* El primer renglon cae a la altura del de la pregunta: el mismo
+              aire de arriba (py-5) mas lo que la serif grande lleva por encima
+              de la mayuscula. */}
+          <p className="max-w-[52ch] pb-6 pr-14 text-[1.0625rem] leading-[1.55] lg:pr-0 lg:pt-[1.85rem] lg:text-lg">
             {answer}
           </p>
         </div>

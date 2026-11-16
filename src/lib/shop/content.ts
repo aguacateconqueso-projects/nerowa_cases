@@ -23,7 +23,7 @@ export function availabilityShort(color: CaseColor): string {
 
 export function availabilityLong(color: CaseColor): string {
   if (color.availability === "sold-out")
-    return "Next batch in two to three weeks";
+    return "Leave your email for the next batch";
   if (color.availability === "low") return "Last few from this batch";
   return "Ships from Europe";
 }
