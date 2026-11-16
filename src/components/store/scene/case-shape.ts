@@ -55,7 +55,7 @@ export function buildCaseOutline(
   y casi nada de largo, porque el estuche por dentro es casi tan largo como por
   fuera. Encogerlo parejo dejaria un reborde de metro y medio en cada punta.
 */
-function outlinePoints(
+export function outlinePoints(
   widthScale: number,
   lengthScale: number,
   steps: number,

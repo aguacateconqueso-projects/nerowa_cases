@@ -2701,6 +2701,46 @@ los dos mezclados: #39 (pagina de espera sin precio) y #40 (guardia).
 
 ---
 
+### Sesion 12 — 2026-11-16: `/shop`, la tienda con la estructura de Dialed
+
+Adrian pidio la web de **dialedcoffee.com ajustada a Nerowa**: todo el
+funcionamiento y, por ahora, tambien el diseno, con los colores de Nerowa.
+
+**Vive en `/shop`, al lado de `/store`, sin reemplazarla.** Las dos se ven en el
+mismo preview para compararlas. Si se queda `/shop`, se borra `/store`.
+
+Lo que se copio, en el orden de la referencia: entrada con contador ("TUNING
+IN"), cabecera de texto suelto que cambia de color segun la seccion, hero con
+titular gigante y el estuche 3D encima, seccion de color a pantalla completa con
+miniaturas, carrusel de los 14 colores, "Built for two bows" en oscuro, titular
+fijo ("LOW END. HIGH STANDARDS.") tapado por "They can confirm", preguntas,
+lista de correo con campo gigante, pie con el logo a todo el ancho, carrito en
+panel y barra de avance.
+
+Lo que se ajusto y por que:
+
+- **Colores:** negro, blanco roto y dorado de la marca; la seccion de color usa
+  `paletteFor` (el hero a todo color de `/store`).
+- **Tipografia:** las de Dialed (Hando y Affairs) son de pago. Archivo hace de
+  grotesca y **Newsreader** de serif, cargada solo en `/shop`. Los titulares
+  van en mayusculas y peso normal, como en la referencia: **contradice
+  `docs/sistema-visual.md`** (caja baja, 600-700). Si se queda, hay que
+  actualizar esa norma.
+- **Fuera:** el 10% de descuento, la barra de envio gratis, la suscripcion, el
+  huevo de pascua de descuento y las redes sociales (normas del proyecto).
+- **Fotos:** no hay. Las miniaturas son el estuche dibujado en plano con la
+  misma silueta del 3D (`components/shop/case-glyph.tsx`).
+- **Testimonios:** tres huecos marcados como pendientes. No se inventan nombres.
+- **Lista de correo:** no existe todavia; el formulario lo dice al enviarlo.
+
+Cambios en piezas compartidas: `CaseScene` acepta `fit="fill"` (por defecto
+sigue igual), y se exportan `outlinePoints` y `FAQ`. `/store` se comprobo igual.
+
+**Pendiente:** que Adrian y Alfredo lo vean en el preview y decidan si `/shop`
+reemplaza a `/store`.
+
+---
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,
