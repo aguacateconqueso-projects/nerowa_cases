@@ -146,7 +146,7 @@ export function Shipping() {
   lo que ya se sabe del negocio; las de verdad son las que hoy le llegan a
   Alfredo por mensaje directo y todavia no las mando.
 */
-const FAQ = [
+export const FAQ = [
   {
     question: "Does it really fit a German and a French bow at once?",
     answer:

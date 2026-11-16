@@ -1,0 +1,320 @@
+/*
+  Estilos de `/shop`, la tienda con la estructura de dialedcoffee.com llevada a
+  Nerowa. Todo vive bajo `.shop` para no tocar `/store` ni la pagina de espera.
+
+  De la referencia se copia la estructura y el ritmo: titulares enormes en
+  mayusculas con una grotesca de peso normal, una serif para los subtitulos,
+  secciones claras y oscuras que se alternan, y tarjetas pequenas de compra
+  flotando sobre todo.
+
+  Lo que se ajusta a Nerowa:
+    - Colores: negro, blanco roto y dorado de la marca, mas el color del estuche
+      elegido en la seccion de colores (sale de `palette.ts`, no se inventa).
+    - Tipografia: Archivo hace de la grotesca (Hando en la referencia) y
+      Newsreader de la serif (Affairs en la referencia). Las dos de la
+      referencia son de pago; estas son libres y se sirven desde el dominio.
+    - Esquinas rectas en todo. Es norma de marca (`docs/sistema-visual.md`).
+*/
+
+.shop {
+  --sh-light: #e9e8e4;
+  --sh-paper: #f7f7f5;
+  --sh-tile: #e4e2dd;
+  --sh-ink: #0b0b0b;
+  --sh-dark: #0b0b0b;
+  --sh-snow: #f2f2f2;
+  --sh-gold: #d4a441;
+
+  background: var(--sh-paper);
+  color: var(--sh-ink);
+  font-family: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ------------------------------------------------------------- tipografia */
+
+.sh-serif {
+  font-family: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/*
+  El titular gigante. En la referencia va de 4 a 12.5 rem; aqui baja a 3 rem en
+  telefono porque las palabras de Nerowa son mas largas ("STANDARDS.", "BURGUNDY")
+  y a 390 px de ancho no caben a 4.
+*/
+.sh-xxl {
+  font-weight: 400;
+  font-size: clamp(3rem, 12.6vw, 12.5rem);
+  line-height: 0.84;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+/* El titular del hero, en telefono, va mas grande que el resto: son palabras
+   cortas y en la referencia esa primera pantalla es casi todo letra. En
+   escritorio vuelve a la escala comun. */
+@media (max-width: 1023px) {
+  .sh-xxl--hero {
+    font-size: clamp(3rem, 19vw, 9rem);
+  }
+}
+
+.sh-lg {
+  font-weight: 400;
+  font-size: clamp(2rem, 1.6rem + 1.6vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.sh-serif-lg {
+  font-size: clamp(2rem, 1.7rem + 1.4vw, 3rem);
+  line-height: 1.05;
+}
+
+.sh-serif-md {
+  font-size: clamp(1.5rem, 1.35rem + 0.75vw, 2.25rem);
+  line-height: 1.1;
+}
+
+.sh-serif-sm {
+  font-size: clamp(1.25rem, 1.2rem + 0.3vw, 1.5rem);
+  line-height: 1.15;
+}
+
+.sh-body {
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.sh-label {
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.sh-eyebrow {
+  font-size: 0.875rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sh-caption {
+  font-size: 0.6875rem;
+  line-height: 1.3;
+}
+
+/* ---------------------------------------------------------- texto que rueda */
+
+/*
+  El efecto de los enlaces de la referencia: al pasar por encima, el texto sube
+  y entra una copia identica desde abajo. Son dos lineas apiladas dentro de una
+  ventana de una linea de alto.
+*/
+.sh-roll {
+  display: inline-flex;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+/* La copia va en absoluto, justo debajo: asi la ventana mide una sola linea y
+   la copia no ocupa sitio hasta que sube. */
+.sh-roll__track {
+  position: relative;
+  display: block;
+  transition: transform 420ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.sh-roll__track > span {
+  display: block;
+}
+
+.sh-roll__track > span + span {
+  position: absolute;
+  left: 0;
+  top: 100%;
+}
+
+.sh-roll-host:hover .sh-roll__track,
+.sh-roll-host:focus-visible .sh-roll__track {
+  transform: translateY(-100%);
+}
+
+/* ---------------------------------------------------------------- botones */
+
+.sh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--sh-ink);
+  color: var(--sh-snow);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  transition:
+    background 200ms ease-out,
+    opacity 200ms ease-out;
+}
+
+.sh-btn--light {
+  background: var(--sh-snow);
+  color: var(--sh-ink);
+}
+
+.sh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.sh-focus:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------ la cabecera */
+
+.sh-nav {
+  transition: color 300ms ease-out;
+}
+
+.sh-nav__logo {
+  transition: filter 300ms ease-out;
+}
+
+/* ------------------------------------------------------------ la entrada */
+
+.sh-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--sh-dark);
+  color: var(--sh-snow);
+  transition: transform 550ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.sh-preloader--out {
+  transform: translateY(-100%);
+}
+
+/* ------------------------------------------------------ la seccion de color */
+
+/*
+  El fondo es el color del hero de `palette.ts`, a todo color arriba y bajando a
+  casi negro abajo, como la lata roja de la referencia. El color de fondo cambia
+  con un fundido; el velo negro va encima y no cambia, asi que la transicion se
+  ve entera.
+
+  El velo es negro y no el fondo oscuro de la paleta a proposito: el texto de la
+  franja de abajo es SIEMPRE claro, y para que eso valga en los catorce colores
+  (amarillo incluido) el velo tiene que llegar a negro de verdad.
+*/
+.sh-colour {
+  background-color: var(--hero);
+  transition: background-color 600ms ease-out;
+}
+
+.sh-colour__veil {
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / 0) 0%,
+    rgb(0 0 0 / 0) 34%,
+    rgb(0 0 0 / 0.62) 58%,
+    rgb(0 0 0 / 0.86) 74%,
+    rgb(0 0 0 / 0.94) 100%
+  );
+}
+
+.sh-thumb {
+  background: rgb(255 255 255 / 0.06);
+  outline: 1px solid rgb(255 255 255 / 0.1);
+  outline-offset: -1px;
+  transition:
+    background 200ms ease-out,
+    outline-color 200ms ease-out;
+}
+
+.sh-thumb:hover {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.sh-thumb--on {
+  background: rgb(255 255 255 / 0.22);
+  outline: 1px solid rgb(255 255 255 / 0.9);
+}
+
+/* ------------------------------------------------------------- carruseles */
+
+.sh-noscroll {
+  scrollbar-width: none;
+}
+
+.sh-noscroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------------------------------------------------------- tarjeta de foto */
+
+.sh-swap__alt {
+  opacity: 0;
+  transition: opacity 350ms ease-out;
+}
+
+@media (hover: hover) {
+  .sh-swap:hover .sh-swap__alt {
+    opacity: 1;
+  }
+  .sh-swap:hover .sh-swap__main {
+    opacity: 0;
+  }
+}
+
+.sh-swap__main {
+  transition: opacity 350ms ease-out;
+}
+
+/* ------------------------------------------------------------- formularios */
+
+.sh-input {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  color: inherit;
+}
+
+.sh-input::placeholder {
+  color: currentColor;
+  opacity: 0.4;
+}
+
+/* -------------------------------------------------- entradas al aparecer */
+
+@keyframes sh-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sh-fade {
+  animation: sh-fade 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sh-roll__track,
+  .sh-preloader,
+  .sh-colour,
+  .sh-swap__alt,
+  .sh-swap__main {
+    transition: none;
+  }
+  .sh-fade {
+    animation: none;
+  }
+}

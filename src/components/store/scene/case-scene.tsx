@@ -95,6 +95,16 @@ interface CaseSceneProps {
   /* Verdadero en cuanto el estuche deja su pose de reposo. Lo usa la consola
      para ensenar o esconder "Reset view". */
   onPoseDirty?: (dirty: boolean) => void;
+  /*
+    Como se encaja el estuche en el lienzo.
+
+      "store"  el de `/store`: deja sitio al panel de compra (de pie a la derecha
+               en escritorio, barra abajo en telefono). Es el valor por defecto.
+      "fill"   el lienzo entero es para el estuche. Lo usa `/shop`, donde el
+               lienzo ya viene recortado al hueco que le toca y no hay panel que
+               esquivar.
+  */
+  fit?: "store" | "fill";
 }
 
 export function CaseScene({
@@ -104,6 +114,7 @@ export function CaseScene({
   resetSignal,
   onGrabChange,
   onPoseDirty,
+  fit = "store",
 }: CaseSceneProps) {
   return (
     <Canvas
@@ -125,6 +136,7 @@ export function CaseScene({
         resetSignal={resetSignal}
         onGrabChange={onGrabChange}
         onPoseDirty={onPoseDirty}
+        fitMode={fit}
       />
     </Canvas>
   );
@@ -163,12 +175,14 @@ function CaseRig({
   resetSignal,
   onGrabChange,
   onPoseDirty,
+  fitMode,
 }: {
   colorHex: string;
   open: boolean;
   resetSignal: number;
   onGrabChange?: (grabbing: boolean) => void;
   onPoseDirty?: (dirty: boolean) => void;
+  fitMode: "store" | "fill";
 }) {
   const gl = useThree((state) => state.gl);
 
@@ -621,10 +635,12 @@ function CaseRig({
         alto y se corre a la izquierda, al centro de lo que el panel deja libre.
       */
       const portrait = width < height * 0.8;
-      const usableHeight = height * (portrait ? 0.6 : 0.8);
+      const filling = fitMode === "fill";
+      const usableHeight = height * (filling ? 0.8 : portrait ? 0.6 : 0.8);
       /* Ancho del panel mas su margen, en unidades del mundo. Sale de los mismos
-         320 px + 24 que fija `globals.css`. */
-      const panel = portrait ? 0 : (344 / state.size.width) * width;
+         320 px + 24 que fija `globals.css`. Con "fill" no hay panel. */
+      const panel =
+        filling || portrait ? 0 : (344 / state.size.width) * width;
       const usableWidth = (width - panel) * 0.96;
 
       const scale = Math.min(usableHeight / needHeight, usableWidth / needWidth);
@@ -634,7 +650,7 @@ function CaseRig({
       );
       fit.current.position.y = THREE.MathUtils.damp(
         fit.current.position.y,
-        portrait ? height * 0.16 : height * 0.02,
+        filling ? 0 : portrait ? height * 0.16 : height * 0.02,
         6,
         delta,
       );
