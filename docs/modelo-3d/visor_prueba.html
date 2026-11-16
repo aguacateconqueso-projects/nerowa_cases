@@ -63,7 +63,7 @@ const controls = new OrbitControls(camera, canvas); controls.enableDamping = tru
 const key = new THREE.DirectionalLight('#ffffff', 1.6); key.position.set(1,2,1.5); scene.add(key);
 
 let mixer, action, shellMat, clipDur = 2.4, state = 'closed';
-new GLTFLoader().load('nerowa_case.glb', (gltf) => {
+new GLTFLoader().load('../../public/models/nerowa_case.glb', (gltf) => {
   const root = gltf.scene;
   root.rotation.y = -0.6;           // diagonal, como en la tienda
   scene.add(root);

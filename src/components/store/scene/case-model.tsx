@@ -75,6 +75,16 @@ const ROT_X = Math.PI / 2;
 const SHELL_MATERIAL = "shell";
 const OPEN_CLIP = "abrir";
 
+/*
+  La descarga arranca al cargar este modulo, no cuando se monta el lienzo. En
+  `/shop` el lienzo del hero espera a que termine la entrada (casi dos
+  segundos): ese tiempo se aprovecha bajando el `.glb`. Solo en el navegador; en
+  el servidor no hay nada que descargar.
+*/
+if (typeof window !== "undefined") {
+  useGLTF.preload(CASE_GLB, DRACO_PATH, false);
+}
+
 interface CaseModelProps {
   colorHex: string;
   open: boolean;
