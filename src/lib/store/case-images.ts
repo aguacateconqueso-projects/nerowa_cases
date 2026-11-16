@@ -5,11 +5,11 @@
 
 export const CASE_IMAGE_SIZE = {
   "closed": {
-    "width": 224,
+    "width": 225,
     "height": 1290
   },
   "open": {
-    "width": 789,
+    "width": 791,
     "height": 2549
   }
 } as const;
