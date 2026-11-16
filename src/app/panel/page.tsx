@@ -10,12 +10,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { alertasPara } from "@/lib/panel/dominio/alertas";
 import { ESTADOS_PENDIENTES } from "@/lib/panel/dominio/estados";
 import type { Color } from "@/lib/panel/dominio/tipos";
 import { ahoraServidor } from "@/lib/panel/reloj";
-import { servicios } from "@/lib/panel/servicios";
 import { usuarioActual } from "@/lib/panel/sesion";
+import { leerSituacion } from "@/lib/panel/situacion";
+import { revisarEnSegundoPlano } from "@/lib/panel/vigia";
 
+import { FranjaAvisos } from "./_piezas/franja-avisos";
 import { TarjetaPedido } from "./_piezas/tarjeta-pedido";
 
 export const metadata = { title: "Pedidos" };
@@ -26,12 +29,20 @@ export default async function PantallaPedidos() {
   const usuario = await usuarioActual();
   if (!usuario) redirect("/panel/entrar");
 
-  const { almacen } = servicios();
-  const [pedidos, listaColores, ahora] = await Promise.all([
-    almacen.listarPedidos(),
-    almacen.listarColores(),
-    ahoraServidor(),
-  ]);
+  const ahora = await ahoraServidor();
+  /*
+    Una sola lectura para la cola, la franja de avisos y los cortes de
+    urgencia: lo que se ve aqui y lo que manda el vigia salen del mismo
+    calculo. Ver `src/lib/panel/situacion.ts`.
+  */
+  const { pedidos, colores: listaColores, alertas, ajustes } = await leerSituacion(ahora);
+
+  /*
+    Y despues de ensenar la pantalla, el vigia mira si hay avisos que mandar.
+    No retrasa nada: corre cuando la respuesta ya salio, y como mucho cada
+    cinco minutos. Ver `src/lib/panel/vigia.ts`.
+  */
+  revisarEnSegundoPlano();
 
   const colores = new Map<string, Color>(listaColores.map((c) => [c.id, c]));
   const pendientes = pedidos.filter((p) => ESTADOS_PENDIENTES.includes(p.estado));
@@ -51,14 +62,17 @@ export default async function PantallaPedidos() {
               : `${pendientes.length} ${pendientes.length === 1 ? "pedido" : "pedidos"} por enviar`}
           </h1>
         </div>
-        <Link
-          href="/panel/numeros"
-          className="t-label shrink-0 pb-1"
-          style={{ color: "var(--gold-bright)" }}
-        >
-          Ver numeros ▸
-        </Link>
+        <nav className="flex shrink-0 flex-col items-end gap-2 pb-1" aria-label="Mas">
+          <Link href="/panel/existencias" className="t-label" style={{ color: "var(--gold-bright)" }}>
+            Existencias ▸
+          </Link>
+          <Link href="/panel/numeros" className="t-label" style={{ color: "var(--gold-bright)" }}>
+            Numeros ▸
+          </Link>
+        </nav>
       </header>
+
+      <FranjaAvisos alertas={alertasPara(alertas, usuario.rol)} />
 
       {pendientes.length === 0 ? (
         <EstadoVacio />
@@ -66,17 +80,23 @@ export default async function PantallaPedidos() {
         <ul className="grid gap-3">
           {pendientes.map((pedido) => (
             <li key={pedido.id}>
-              <TarjetaPedido pedido={pedido} colores={colores} ahora={ahora} />
+              <TarjetaPedido pedido={pedido} colores={colores} ahora={ahora} cortes={ajustes} />
             </li>
           ))}
         </ul>
       )}
 
+      {pendientes.length > 0 ? (
+        <Link href="/panel/pedido/nuevo" className="panel-boton panel-boton-suave mt-4">
+          + Registrar una venta a mano
+        </Link>
+      ) : null}
+
       <Grupo titulo="En camino" cantidad={enCamino.length}>
         <ul className="grid gap-3 pt-3">
           {enCamino.map((pedido) => (
             <li key={pedido.id}>
-              <TarjetaPedido pedido={pedido} colores={colores} ahora={ahora} />
+              <TarjetaPedido pedido={pedido} colores={colores} ahora={ahora} cortes={ajustes} />
             </li>
           ))}
         </ul>
@@ -86,7 +106,7 @@ export default async function PantallaPedidos() {
         <ul className="grid gap-3 pt-3">
           {cerrados.map((pedido) => (
             <li key={pedido.id}>
-              <TarjetaPedido pedido={pedido} colores={colores} ahora={ahora} />
+              <TarjetaPedido pedido={pedido} colores={colores} ahora={ahora} cortes={ajustes} />
             </li>
           ))}
         </ul>

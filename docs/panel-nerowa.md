@@ -5,7 +5,7 @@
 > de `docs/estructura-web.md`, que se queda como la especificación original de
 > seis pantallas.
 >
-> **Nada de esto está construido todavía.** Es lo que se va a construir y por qué.
+> **Lo construido está en §17 y §18.** El resto es lo que se va a construir y por qué.
 
 ---
 
@@ -542,16 +542,17 @@ como todo lo demás en este proyecto.
 | # | Qué sale | Qué se puede hacer al terminarla |
 |---|---|---|
 | **7.0** ✅ | Armazón de tres pestañas, entrar con enlace sin contraseña, instalable en el iPhone, capa de puertos y adaptadores, y la pantalla de pedidos funcionando con datos de ejemplo | **Hecha.** Se abre el preview, se entra, se despacha un pedido de punta a punta. Falta la base de datos real y el bot de Telegram, que necesitan cuentas |
-| **7.1** | Pestaña 1 con **pedidos cargados a mano** | **Sirve desde ya para lo que venden hoy por mensaje directo.** Registrar la venta, pegar el seguimiento, marcar enviado |
+| **7.1** ✅ | Pestaña 1 con **pedidos cargados a mano** | **Hecha (sesión 13).** Registrar la venta con el precio con IVA, avisa si no hay cajas, entra en la cola por enviar |
 | **7.1b** ✅ | **Base de datos de verdad** (Postgres en Supabase) | **Hecha.** Lo que se guarda se queda. Adelantada porque el almacén en memoria hacía imposible probar el panel en Vercel |
 | **7.2** | Enganche con Stripe y correos automáticos | Las ventas de la web entran solas y el cliente recibe sus avisos |
-| **7.3** | Escalado de avisos y resumen diario | Ningún pedido se queda parado sin que alguien se entere |
+| **7.3** ✅ | Escalado de avisos y resumen diario | **Hecha (sesión 13), falta conectar el bot.** Recordatorio a 24 h, escalado a 48 h, resumen diario, avisos de existencias, tiendas y facturas. Salen por Telegram en cuanto se ponga `TELEGRAM_BOT_TOKEN` |
 | **7.4** | Devoluciones completas, con el enlace en los correos | El cliente pide su devolución solo y el circuito se cierra |
 | **7.5** | Números y gráficos, con costos | Ganancia real por mes, colores que se venden, países |
 | **7.6a** ✅ | Pestaña 2 por dentro: fichas de tienda, pedidos, cobro y envío por separado | **Hecha.** Se da de alta una tienda con sus datos y condiciones, se le registran pedidos, y se ve lo que debe y desde cuándo |
 | **7.6b** | El portal con enlace propio para que las tiendas pidan solas | Pendiente. Necesita los datos fiscales de la empresa |
 | **7.7** | Pestaña 3 completa: tareas, notas, documentos | Cierre administrativo del mes en un botón |
-| **7.8** | Existencias y reservas (pantallas D y E de la especificación original) | Avisar a quien espera un color cuando llega el lote |
+| **7.8a** ✅ | **Existencias** por color: en el estante, vendidas sin enviar, disponibles; contar, entradas, mermas | **Hecha (sesión 13).** Falta el primer conteo de Alfredo |
+| **7.8b** | Reservas (pantalla E de la especificación original) | Avisar a quien espera un color cuando llega el lote |
 
 **Por qué 7.1 antes que Stripe.** Es la decisión que tomaste y vale la pena dejar
 escrito el motivo: el panel empieza a ser útil **antes** de que la tienda venda un
@@ -700,5 +701,84 @@ Los tres pasaban el typecheck, el lint y el build:
 
 ---
 
-*Escrito en la sesión 10. La fase 7.0 está construida y verificada en el
-navegador; el resto del documento sigue siendo diseño a la espera de aprobación.*
+---
+
+## 18. Lo construido en la sesión 13: cantidades y avisos
+
+### 18.1 Existencias: las ventas no se apuntan dos veces
+
+Las existencias **no se guardan, se calculan** cada vez a partir de dos cosas:
+
+- **Los pedidos**, que ya dicen qué se vendió y en qué estado está. Un pedido
+  por enviar ocupa cajas; uno enviado ya salió del estante; uno cancelado
+  devuelve sus cajas sin que nadie haga nada.
+- **Los movimientos**, que son solo lo que ningún pedido explica: llegó un
+  lote (*entrada*), Alfredo contó y no cuadraba (*conteo*), se rompió o se
+  regaló una caja (*merma*, con motivo obligatorio).
+
+Un contador por color que baja con cada venta sería una segunda copia de lo
+que ya dicen los pedidos, y basta un fallo a mitad de una acción para que
+mienta para siempre. Así no puede.
+
+Por color se ven tres números:
+
+| Número | Pregunta que contesta |
+|---|---|
+| **Disponibles** (el grande) | ¿Puedo vender otro? |
+| En el estante | ¿Cuántas cajas debería haber aquí? (con esto se comprueba un conteo) |
+| Por enviar / de tiendas sin confirmar | ¿Cuántas de esas ya tienen dueño? |
+
+**Decisiones tomadas por defecto, para confirmar** (§15):
+
+1. **Los pedidos de tiendas salen de las mismas cajas que la web** (§15.2). Uno
+   *por confirmar* no descuenta, pero se ve; uno *confirmado* sí descuenta.
+2. **Vender sin cajas no se bloquea, se avisa.** La venta a mano y el pedido de
+   tienda dicen qué color no llega, y hay que marcar "venderlo igual".
+3. **El arranque es un conteo**, no una cifra sembrada: en la base de verdad
+   no se inventa cuántas cajas hay (§15.8). El panel pide contarlas.
+
+Los colores del panel son ya **los 14 de la carta oficial**, leídos del mismo
+catálogo que la tienda. La migración 002 desactiva los 8 de relleno sin
+borrarlos.
+
+### 18.2 Avisos
+
+Una sola función (`dominio/alertas.ts`) decide qué hay que avisar; la franja de
+la pantalla de pedidos y los mensajes salen del mismo cálculo. El **vigía**
+(`vigia.ts`) los manda **una vez cada uno**: cada alerta lleva una clave
+("pedido X, escalado") que se reclama en la base antes de mandar.
+
+| Alerta | A quién | ¿Suena? |
+|---|---|---|
+| Venta nueva (a mano o de tienda) | Al otro | Sí |
+| Pedido sin enviar a las 24 h | Alfredo | Sí |
+| Pedido sin enviar a las 48 h | Los dos | Sí |
+| Incidencia | Los dos | Sí |
+| **Vendido lo que no hay** | Los dos | Sí |
+| Tienda sin respuesta a las 24 h | Los dos | Sí |
+| Pedido enviado | Al otro | En silencio |
+| Color agotado / quedan pocas (todos juntos en un mensaje) | Los dos | En silencio |
+| 7 días en camino sin entregar | Alfredo | En silencio |
+| Factura de tienda vencida | Los dos | En silencio |
+| Resumen diario (solo si hay algo pendiente) | Alfredo | En silencio |
+
+**Cuándo se revisa:** una vez al día por el cron de Vercel (`vercel.json`), cada
+vez que alguien abre la pantalla de pedidos (como mucho cada 5 minutos, después
+de enseñarla) y con el botón "Revisar ahora". No es cada hora porque el plan
+gratuito de Vercel solo admite crons diarios y uno más frecuente hace fallar el
+despliegue.
+
+**Los plazos están en Ajustes** (Admin → Ajustes y avisos), no en el código.
+
+### 18.3 Lo que falta para que los avisos lleguen al teléfono
+
+1. Crear el bot con @BotFather y poner en Vercel `TELEGRAM_BOT_TOKEN` y
+   `PANEL_AVISOS=telegram`.
+2. Poner `CRON_SECRET` (cualquier texto largo) para la revisión diaria.
+3. Cada uno le escribe al bot, y en Ajustes toca "Buscar mi chat" y "Mandarme
+   un aviso de prueba".
+
+---
+
+*Escrito en la sesión 10 y ampliado en la 13. Las fases 7.0, 7.1, 7.1b, 7.3,
+7.6a y 7.8a están construidas; el resto sigue siendo diseño.*

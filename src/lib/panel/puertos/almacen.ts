@@ -16,12 +16,15 @@
   - Los metodos hablan del negocio ("pedidos pendientes"), no de consultas.
 */
 
+import type { AjustesPanel } from "../dominio/ajustes";
 import type {
   Apunte,
+  AvisoEnviado,
   Color,
   EstadoPedido,
   Id,
   Lote,
+  MovimientoExistencias,
   Pedido,
   PedidoMayorista,
   Tienda,
@@ -52,6 +55,12 @@ export type CambioPedidoMayorista = Partial<
   Omit<PedidoMayorista, "id" | "numero" | "tiendaId" | "lineas" | "creadoEn">
 >;
 
+/** Lo que se puede cambiar de una persona desde el panel. */
+export interface CambioUsuario {
+  /** `null` lo quita; `undefined` no lo toca, como en el resto del almacen. */
+  telegramChatId?: string | null;
+}
+
 export interface FiltroPedidos {
   estados?: readonly EstadoPedido[];
   limite?: number;
@@ -72,6 +81,7 @@ export interface Almacen {
   usuarioPorCorreo(correo: string): Promise<Usuario | undefined>;
   usuarioPorId(id: Id): Promise<Usuario | undefined>;
   listarUsuarios(): Promise<Usuario[]>;
+  actualizarUsuario(id: Id, cambio: CambioUsuario): Promise<Usuario | undefined>;
 
   /* --- Producto --- */
   listarColores(): Promise<Color[]>;
@@ -107,6 +117,38 @@ export interface Almacen {
   ): Promise<PedidoMayorista | undefined>;
   /** El siguiente numero visible de pedido mayorista. Empieza en 501. */
   siguienteNumeroMayorista(): Promise<number>;
+
+  /*
+    --- Existencias ---
+
+    Solo lo que ningun pedido explica: entradas, conteos y mermas. Las ventas
+    NO pasan por aqui; se descuentan solas leyendo los pedidos. El porque esta
+    en `dominio/existencias.ts`.
+  */
+  /** Todos, del mas nuevo al mas viejo. */
+  listarMovimientos(): Promise<MovimientoExistencias[]>;
+  /** Varios a la vez, y o entran todos o ninguno: un conteo es una sola cosa. */
+  registrarMovimientos(movimientos: readonly MovimientoExistencias[]): Promise<void>;
+
+  /* --- Ajustes --- */
+  /** Solo lo que alguien cambio. Lo demas lo pone `completarAjustes`. */
+  leerAjustes(): Promise<Partial<AjustesPanel>>;
+  guardarAjustes(cambio: Partial<AjustesPanel>): Promise<void>;
+
+  /*
+    --- Avisos que ya salieron ---
+
+    `reclamarAviso` es lo que impide mandar dos veces el mismo aviso, incluso
+    con dos revisiones a la vez en dos instancias: anota la clave SOLO si no
+    estaba, y dice si la anoto. Quien recibe `true` es el unico que lo manda.
+  */
+  reclamarAviso(aviso: AvisoEnviado): Promise<boolean>;
+  /** Apunta por donde salio, despues de mandarlo. */
+  completarAviso(clave: string, canales: readonly string[]): Promise<void>;
+  /** Devuelve la clave si no salio por ningun canal, para reintentarlo. */
+  soltarAviso(clave: string): Promise<void>;
+  /** Los ultimos, del mas nuevo al mas viejo. */
+  listarAvisosEnviados(limite: number): Promise<AvisoEnviado[]>;
 
   /* --- Rastro --- */
   anotar(apunte: Apunte): Promise<void>;

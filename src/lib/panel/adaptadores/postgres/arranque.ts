@@ -17,33 +17,33 @@ import "server-only";
   deshacer lo que alguien haya editado.
 */
 
+import { COLORS } from "../../../store/catalog";
 import { personasDelPanel } from "../../personas";
 
 import type { Conexion } from "./conexion";
 import { huecos } from "./huecos";
 import { migrar, type Migracion } from "./migrar";
-import { SQL_001_INICIAL } from "./migraciones";
+import { SQL_001_INICIAL, SQL_002_EXISTENCIAS_Y_AVISOS } from "./migraciones";
 import { unaSolaVez } from "./una-sola-vez";
 
 const MIGRACIONES: readonly Migracion[] = [
   { nombre: "001-inicial", sql: SQL_001_INICIAL },
+  { nombre: "002-existencias-y-avisos", sql: SQL_002_EXISTENCIAS_Y_AVISOS },
 ];
 
 /*
-  Los catorce colores siguen siendo de relleno: Alfredo no ha dado los nombres
-  comerciales ni los valores exactos. Estan rotulados como marcador de posicion
-  en la propia pagina, y cuando lleguen los de verdad entran por una migracion.
+  Los catorce colores de la carta oficial, leidos del catalogo de la tienda.
+  Antes aqui habia ocho de relleno; la migracion 002 los desactiva y mete
+  estos. Se siembran tambien desde aqui para que una base NUEVA arranque con
+  los mismos colores que la tienda, sin depender de que alguien los meta a
+  mano. `on conflict do nothing`: lo que ya este, se respeta.
 */
-const COLORES: [string, string, string][] = [
-  ["negro", "Black", "#111111"],
-  ["marino", "Navy", "#1b2a4a"],
-  ["vinotinto", "Burgundy", "#5c1a2b"],
-  ["morado", "Plum", "#43285c"],
-  ["verde", "Forest", "#1f3d2b"],
-  ["gris", "Graphite", "#4a4a4a"],
-  ["crema", "Cream", "#e8ddc5"],
-  ["oro", "Gold", "#c9a227"],
-];
+const COLORES: [string, string, string, number][] = COLORS.map((c, i) => [
+  c.id,
+  c.name,
+  c.hex,
+  i + 1,
+]);
 
 async function sembrar(cx: Conexion) {
   /*
@@ -60,10 +60,10 @@ async function sembrar(cx: Conexion) {
   );
 
   await cx.consultar(
-    `insert into colores (id, nombre, hex, activo)
-     values ${huecos(COLORES.length, 4)}
+    `insert into colores (id, nombre, hex, activo, orden)
+     values ${huecos(COLORES.length, 5)}
      on conflict (id) do nothing`,
-    COLORES.flatMap(([id, nombre, hex]) => [id, nombre, hex, true]),
+    COLORES.flatMap(([id, nombre, hex, orden]) => [id, nombre, hex, true, orden]),
   );
 
   /*

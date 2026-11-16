@@ -25,9 +25,26 @@ export interface Aviso {
   enlace?: string;
 }
 
+export interface ResultadoAviso {
+  /** Por donde salio de verdad. */
+  canales: string[];
+  /**
+   * Si se INTENTO mandar por un canal real y no salio. Distinto de "no habia
+   * a donde mandarlo": lo primero se reintenta, lo segundo no.
+   */
+  fallo?: string;
+}
+
 export interface Avisos {
   readonly nombre: string;
+  /**
+   * Por donde salen de verdad los avisos, en una frase para la pantalla de
+   * Ajustes. Un aviso que no sale a ningun sitio tiene que decirlo: "se
+   * escriben en el registro del servidor" no puede parecer "te llegan al
+   * telefono".
+   */
+  describir(): { listo: boolean; detalle: string };
   /** Manda el aviso a una persona. Nunca lanza: un aviso fallido no puede
    *  tumbar la accion que lo disparo. Devuelve por donde salio. */
-  avisar(a: Usuario, aviso: Aviso): Promise<{ canales: string[] }>;
+  avisar(a: Usuario, aviso: Aviso): Promise<ResultadoAviso>;
 }

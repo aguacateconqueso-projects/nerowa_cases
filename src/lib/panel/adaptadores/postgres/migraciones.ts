@@ -168,3 +168,85 @@ create table if not exists apuntes (
 
 create index if not exists apuntes_entidad on apuntes (entidad, entidad_id, creado_en desc);
 `;
+
+export const SQL_002_EXISTENCIAS_Y_AVISOS = String.raw`
+-- Existencias, ajustes de los avisos, constancia de los avisos enviados, y los
+-- catorce colores de verdad. Sesion 13.
+
+-- 1. LOS COLORES DE LA CARTA OFICIAL.
+--
+-- Hasta aqui la base tenia ocho colores de relleno. Entran los catorce de la
+-- carta ("Colour chart", septiembre 2026), con los mismos ids que la tienda
+-- (src/lib/store/catalog.ts), y en su orden.
+--
+-- Los de relleno NO se borran: algun pedido de prueba puede apuntar a ellos, y
+-- lo que ya paso no se tira (regla 4 de la migracion 001). Se desactivan, y el
+-- panel deja de ofrecerlos.
+alter table colores add column if not exists orden integer;
+
+insert into colores (id, nombre, hex, activo, orden) values
+  ('yellow',        'Yellow',        '#f4c50d', true,  1),
+  ('turquoise',     'Turquoise',     '#53c4f3', true,  2),
+  ('teal',          'Teal',          '#2a9d9a', true,  3),
+  ('midnight-blue', 'Midnight Blue', '#16213b', true,  4),
+  ('pink',          'Pink',          '#e597b8', true,  5),
+  ('red',           'Red',           '#6d0101', true,  6),
+  ('white',         'White',         '#e1dfec', true,  7),
+  ('silver',        'Silver',        '#b2b6c9', true,  8),
+  ('brown',         'Brown',         '#e07c39', true,  9),
+  ('lavender',      'Lavender',      '#b8a6dc', true, 10),
+  ('black',         'Black',         '#0e0e10', true, 11),
+  ('purple',        'Purple',        '#9a41aa', true, 12),
+  ('orange',        'Orange',        '#fa9e09', true, 13),
+  ('gold',          'Gold',          '#d8b870', true, 14)
+on conflict (id) do nothing;
+
+update colores set activo = false
+ where id in ('negro', 'marino', 'vinotinto', 'morado', 'verde', 'gris', 'crema', 'oro');
+
+-- 2. LO QUE ENTRA Y SALE DEL ESTANTE SIN SER UNA VENTA.
+--
+-- Las ventas NO van aqui: se descuentan leyendo los pedidos. Esta tabla solo
+-- lleva lo que ningun pedido explica (un lote que llega, un conteo, una caja
+-- rota). El porque esta en src/lib/panel/dominio/existencias.ts.
+create table if not exists movimientos_existencias (
+  id          text primary key,
+  color_id    text not null references colores (id),
+  cantidad    integer not null check (cantidad <> 0),
+  tipo        text not null check (tipo in ('entrada', 'ajuste', 'merma')),
+  lote_id     text references lotes (id),
+  motivo      text,
+  usuario_id  text not null references usuarios (id),
+  creado_en   timestamptz not null default now(),
+  -- Una merma que suma o una entrada que resta es un error de signo, y aqui
+  -- se para antes de descuadrar el estante.
+  check (
+    (tipo = 'entrada' and cantidad > 0) or
+    (tipo = 'merma' and cantidad < 0) or
+    tipo = 'ajuste'
+  )
+);
+
+create index if not exists movimientos_existencias_creado on movimientos_existencias (creado_en desc);
+
+-- 3. LOS AJUSTES DE LOS AVISOS: plazos, umbral, hora del resumen.
+-- Solo se guarda lo que alguien cambio; lo demas sale del codigo.
+create table if not exists ajustes (
+  clave           text primary key,
+  valor           jsonb not null,
+  actualizado_en  timestamptz not null default now()
+);
+
+-- 4. CONSTANCIA DE LOS AVISOS QUE YA SALIERON, para no repetirlos.
+-- La clave primaria es lo que hace que dos revisiones a la vez no manden dos
+-- veces el mismo aviso: solo una consigue insertar la fila.
+create table if not exists avisos_enviados (
+  clave       text primary key,
+  titulo      text not null,
+  para        text not null,
+  canales     text not null default '',
+  enviado_en  timestamptz not null default now()
+);
+
+create index if not exists avisos_enviados_en on avisos_enviados (enviado_en desc);
+`;

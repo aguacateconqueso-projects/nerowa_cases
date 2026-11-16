@@ -23,7 +23,9 @@ solo en los previews de Vercel (el dominio sigue con la pagina de espera):
   Ya usa tambien el `.glb` real y los colores nuevos, porque comparten la escena
   3D, el catalogo y el carrito. **Falta decidir si se borra.**
 
-**Fase 7 — el panel, disenada y sin codigo.** En la sesion 10 se diseno entero
+**Fase 7 — el panel, en marcha.** Desde la sesion 13 lleva **pedidos a mano,
+existencias por color y avisos con escalado** (listos para Telegram en cuanto
+haya bot). Ver la sesion 13 abajo y `docs/panel-nerowa.md` §18. En la sesion 10 se diseno entero
 en **`docs/panel-nerowa.md`**: tres pestanas (ventas de la web, tiendas
 mayoristas, administracion), entregado como **aplicacion instalable en el
 telefono**, con **Telegram** como canal de los avisos urgentes y **escalado** para
@@ -2911,6 +2913,48 @@ Adrian pidio cerrar y seguir en otra sesion. Se actualizo "Estado actual" y
 "Lo primero de la proxima sesion".
 
 ---
+
+### Sesion 13 — 2026-11-16: el panel maneja cantidades y avisa
+
+**Pedido de Adrian:** "sigue armando toda la estructura para que se manejen
+bien las cantidades, alertas a Alfredo, etc."
+
+**Hecho** (detalle en `docs/panel-nerowa.md` §18):
+
+| Pieza | Donde |
+|---|---|
+| Existencias calculadas de pedidos + movimientos (entrada, conteo, merma) | `dominio/existencias.ts`, `/panel/existencias` |
+| Venta a mano (fase 7.1): el boton existia y daba 404 | `/panel/pedido/nuevo` |
+| Que avisar, a quien y cuando, en una funcion pura | `dominio/alertas.ts` |
+| Plazos editables (24 h, 48 h, umbral, hora del resumen) | `dominio/ajustes.ts`, `/panel/ajustes` |
+| El vigia: manda cada aviso una vez, agrupa los de existencias | `src/lib/panel/vigia.ts` |
+| Telegram, con "buscar mi chat" y aviso de prueba | `adaptadores/avisos-telegram.ts` |
+| Cron diario + revision al abrir los pedidos | `vercel.json`, `/api/panel/vigia` |
+| Franja de avisos arriba de la cola | `_piezas/franja-avisos.tsx` |
+| Aviso de "no hay cajas" al confirmar un pedido de tienda | `tiendas/pedido/[id]` |
+| Los 14 colores de la carta en el panel; migracion 002 | `postgres/migraciones.ts` |
+
+52 comprobaciones nuevas (existencias, alertas, Telegram, migracion 002 en
+Postgres de verdad). **192 en total, todas en verde.** Recorrido entero en el
+navegador con tamano de iPhone, sin errores.
+
+**Corregido mirando, no leyendo:** el primer dia salian siete mensajes
+urgentes de "agotado" seguidos (colores sin una sola caja). Ahora "agotado"
+llega en silencio y los avisos de existencias de una revision van en un solo
+mensaje; lo urgente es haber vendido lo que no hay.
+
+**Decisiones tomadas por defecto, para que Adrian las confirme:**
+
+1. Los pedidos de tiendas salen de las mismas cajas que la web.
+2. Vender sin cajas no se bloquea: se avisa y se marca "venderlo igual".
+3. En la base de verdad no se inventa el stock: el panel pide el primer conteo.
+4. La venta a mano se escribe con IVA (217,80 por defecto) y se guarda sin el.
+5. El resumen diario va solo a Alfredo, a las 9 de Vilnius.
+
+**Lo que falta de ellos para que los avisos suenen:** crear el bot con
+@BotFather; en Vercel `TELEGRAM_BOT_TOKEN`, `PANEL_AVISOS=telegram` y
+`CRON_SECRET`; que cada uno le escriba al bot y guarde su chat en Ajustes.
+Y que Alfredo haga **el primer conteo** del estante.
 
 ## Lo que queda por confirmar
 

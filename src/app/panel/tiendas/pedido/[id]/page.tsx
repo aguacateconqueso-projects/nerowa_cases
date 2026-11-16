@@ -19,8 +19,10 @@ import {
   NOMBRE_ESTADO_MAYORISTA,
   totalesDe,
 } from "@/lib/panel/dominio/mayorista";
+import { faltantesPara } from "@/lib/panel/dominio/existencias";
 import { servicios } from "@/lib/panel/servicios";
 import { usuarioActual } from "@/lib/panel/sesion";
+import { leerExistencias } from "@/lib/panel/situacion";
 
 import { Confirmacion } from "../../../_piezas/confirmacion";
 import { BotonAvanzar } from "../avanzar";
@@ -43,11 +45,22 @@ export default async function PantallaPedidoMayorista({
   const pedido = await almacen.pedidoMayoristaPorId(id);
   if (!pedido) notFound();
 
-  const [tienda, colores, apuntes] = await Promise.all([
+  const [tienda, colores, apuntes, estante] = await Promise.all([
     almacen.tiendaPorId(pedido.tiendaId),
     almacen.listarColores(),
     almacen.listarApuntes("pedido-mayorista", id),
+    leerExistencias(),
   ]);
+
+  /*
+    Antes de confirmar, si hay cajas para servirlo. No se bloquea —puede que
+    el lote llegue la semana que viene y se confirme igual—, pero se dice ANTES
+    de decirle que si a la tienda, no despues.
+  */
+  const faltan =
+    pedido.estado === "por_confirmar" && estante.conConteo
+      ? faltantesPara(estante.existencias, pedido.lineas)
+      : [];
 
   const nombreColor = new Map(colores.map((c) => [c.id, c.nombre]));
   const hexColor = new Map(colores.map((c) => [c.id, c.hex]));
@@ -122,6 +135,20 @@ export default async function PantallaPedidoMayorista({
           ))}
         </ul>
       </section>
+
+      {faltan.length > 0 ? (
+        <p
+          role="status"
+          className="mt-4 rounded-lg px-3 py-3 text-[0.9375rem]"
+          style={{ background: "#3a2a12", color: "#f0cf95" }}
+        >
+          ⚠ No hay cajas para todo este pedido:{" "}
+          {faltan
+            .map((f) => `${nombreColor.get(f.colorId) ?? f.colorId} (piden ${f.piden}, ${f.hay === 0 ? "no queda ninguna" : `quedan ${f.hay}`})`)
+            .join("; ")}
+          . Si se confirma, quedan vendidas cajas que no estan.
+        </p>
+      ) : null}
 
       {/* La cuenta */}
       <section className="mt-4">

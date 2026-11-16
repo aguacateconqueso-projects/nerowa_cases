@@ -273,3 +273,58 @@ export interface PedidoMayorista {
   seguimiento?: string;
   notas?: string;
 }
+
+/* --------------------------------------------------------------------------
+   Existencias
+   -------------------------------------------------------------------------- */
+
+/**
+ * Por que entra o sale un estuche del estante SIN que haya una venta.
+ *
+ * Las ventas NO se apuntan aqui: salen solas de los pedidos. Esa es la
+ * decision que sostiene todo el calculo de existencias, y esta razonada en
+ * `dominio/existencias.ts`. Aqui solo va lo que ningun pedido explica.
+ */
+export type TipoMovimiento =
+  /** Llego mercancia: un lote nuevo, o parte de uno. Suma. */
+  | "entrada"
+  /** Alfredo conto el estante y no cuadraba. Va hacia donde haga falta. */
+  | "ajuste"
+  /** Se rompio, se regalo a un musico, se uso de muestra. Resta. */
+  | "merma";
+
+export interface MovimientoExistencias {
+  id: Id;
+  colorId: Id;
+  /** Con signo: una entrada suma, una merma resta, un ajuste va a donde toque. */
+  cantidad: number;
+  tipo: TipoMovimiento;
+  /** De que lote vino, si fue una entrada. */
+  loteId?: Id;
+  /** Lo que se escribio al registrarlo: "caja golpeada", "conteo de noviembre". */
+  motivo?: string;
+  usuarioId: Id;
+  creadoEn: Instante;
+}
+
+/* --------------------------------------------------------------------------
+   Avisos que ya salieron
+   -------------------------------------------------------------------------- */
+
+/**
+ * La constancia de que un aviso salio, para no mandarlo dos veces.
+ *
+ * La `clave` dice QUE se aviso, no cuando: "pedido:abc:escalada". Como el
+ * escalado se revisa cada vez que alguien abre el panel y una vez al dia por
+ * la noche, sin esto Alfredo recibiria el mismo "lleva 48 horas sin enviar"
+ * en cada revision.
+ */
+export interface AvisoEnviado {
+  clave: string;
+  titulo: string;
+  /** A quien, en texto: "Alfredo, Adrian". */
+  para: string;
+  /** Por donde salio de verdad: "telegram", "consola". Vacio mientras sale. */
+  canales: string[];
+  enviadoEn: Instante;
+}
