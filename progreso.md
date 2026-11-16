@@ -11,24 +11,17 @@ Si algo no esta escrito aqui, no paso.
 `nerowacases.com`**. El repositorio, Next.js, Tailwind y el despliegue en Vercel
 funcionan. Desde la sesion 11 la pagina de espera **no muestra precio**.
 
-**Fase 3 — el hero, en marcha.** La tienda vive en **`/store`**, no en la raiz:
-el dominio sigue sirviendo solo la pagina de espera y las dos cosas conviven en
-el mismo preview de Vercel. El hero esta completo con un **estuche de relleno**;
-el modelo real todavia no existe.
+**Fase 3 — la tienda, rehecha en la sesion 12.** Hay DOS tiendas, las dos
+solo en los previews de Vercel (el dominio sigue con la pagina de espera):
 
-El hero entro por el
-[PR #10](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/10) y se
-**rehizo entero en la sesion 9**, en tres tandas, todas mezcladas a `main` el
-2026-09-12:
-
-| PR | Que trae |
-|---|---|
-| [#12](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/12) | Los siete puntos de Alfredo: menu de una sola placa que se estira, logo que lo abre, estuche que se agarra de verdad, pagina a todo color con haces negros, scroll sin superposicion, cinta de color pegada, y la zona de compra reordenada |
-| [#12](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/12) (2.ª tanda) | El panel de compra de pie a la derecha, y fuera el boton "Inspect" |
-| [#13](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/13) | La rueda vuelve a bajar la pagina; acercar queda solo en el pellizco |
-
-**Lo que hay hoy en `main` es el hero que Alfredo dio por bueno a la vista**, con
-un **estuche de relleno**: el modelo real todavia no existe.
+- **`/shop`, la nueva** (PR #41 a #48, todos mezclados): la estructura de
+  dialedcoffee.com ajustada a Nerowa. Lleva **el case 3D real** (`.glb` de
+  Blender, con animacion de abrir), **los 14 colores de la carta oficial**,
+  **fotos de producto renderizadas del modelo** en cada color, y **las medidas
+  reales** con un plano a escala. Es la que Adrian esta revisando y corrigiendo.
+- **`/store`, la anterior** (sesion 9): el hero que Alfredo aprobo a la vista.
+  Ya usa tambien el `.glb` real y los colores nuevos, porque comparten la escena
+  3D, el catalogo y el carrito. **Falta decidir si se borra.**
 
 **Fase 7 — el panel, disenada y sin codigo.** En la sesion 10 se diseno entero
 en **`docs/panel-nerowa.md`**: tres pestanas (ventas de la web, tiendas
@@ -46,115 +39,98 @@ Vercel, no en el dominio. Ver "Entornos y publicacion".
 
 ## Lo primero de la proxima sesion
 
-**La proxima sesion es para DARLE LA VUELTA A LA WEB de Nerowa.** Lo dijo
-Adrian al cerrar la sesion 11 (2026-11-15). Todavia no se sabe el alcance:
-**lo primero es preguntarle que quiere cambiar y por que, antes de tocar
-codigo** (condicion 4). Tres cosas que conviene tener a mano para esa charla:
+**La sesion 12 (2026-11-16) cerro con todo mezclado en `main`** (PR #41 a #48)
+y la rama de trabajo al dia. Lo primero es **preguntarle a Adrian por donde
+sigue** (condicion 4): cerro diciendo solo "vamos a otra sesion".
 
-- **Que "web" es.** Hay dos: la **pagina de espera** de `nerowacases.com`
-  (`src/components/under-construction.tsx`), que es lo unico publico, y la
-  **tienda** en `/store`, que solo se ve en los previews de Vercel. Cambiar la
-  primera sale al publico en cuanto se mezcla; la segunda no.
-- **Lo que esta verificado y no depende del diseno** (ver mas abajo, "Lo que NO
-  hay que rehacer"): la formula de color de `palette.ts`, el estado y el carrito
-  de `store-context.tsx`, y el reparto de gestos de `case-scene.tsx`. Si la
-  vuelta es visual, esas piezas se reusan; si se descartan, que sea a proposito.
-- **Lo que sigue faltando y bloquea cualquier version de la tienda:** el `.glb`
-  del estuche, los 14 colores con nombre y valor exacto, y el precio con IVA
-  (217,80 EUR) en lugar del marcador de posicion.
+### Decisiones abiertas de la tienda
 
-Alfredo ya aviso que va cambiando sobre la marcha: **no adelantar trabajo sobre
-el hero sin su lista** sigue valiendo.
+1. **`/shop` o `/store`.** Si se queda `/shop`, se borra `/store` (y sus piezas
+   que ya no use nadie: `store-page`, `hero-controls`, `store-header`,
+   `store-beams`, `textured-background`, `cart-drawer`). Ojo: `/shop` reusa de
+   `/store` el contexto, el catalogo, la paleta, la escena 3D y las preguntas
+   (`FAQ` en `store-sections.tsx`); esas no se borran.
+2. **Tipografia.** `/shop` usa titulares en MAYUSCULAS y peso normal (como la
+   referencia), y Newsreader como serif. Contradice `docs/sistema-visual.md`
+   (caja baja, 600-700). Si `/shop` se queda, hay que reescribir esa norma.
+3. **La placa NEROWA** esta en el `.glb` hacia el lado de los cierres
+   (x = +0.019). Adrian habia dicho "del lado de las bisagras". Si va del otro
+   lado, se mueve en Blender; la web no espeja el modelo.
+4. **En `/shop` escritorio, con el case abierto, la punta de la tapa queda bajo
+   la tarjeta de compra.** Es de la maqueta, no del modelo; no se toco porque
+   se pidio no tocar el resto de la pagina. Preguntar.
 
-**Lo que quedo de la sesion 11, todo mezclado:** la pagina de espera ya no dice
-precio ([#39](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/39))
-y el guardia de `pre-push` se enciende solo con `npm install`
-([#40](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/40)).
-**Pendiente de mirar con los ojos:** que `nerowacases.com` ensene la linea
-nueva. Desde la sesion no se pudo abrir el dominio.
+### Datos que faltan y no los puedo suplir
 
-**El panel queda en segundo plano** mientras dure la vuelta a la web, con su
-error abierto sin diagnosticar (lo de abajo sigue vigente cuando se retome).
-
-**LA BASE YA FUNCIONA.** Costo seis vueltas (13 a 16 de la bitacora) y quedo
-resuelto: cadena del pooler, region de Vercel en Dublin al lado de la base,
-consultas agrupadas y topes en la propia conexion. **No hay que volver a tocar
-nada de eso.**
-
-**Lo primero es el error abierto de abajo: el panel va lento y las pestanas no
-responden al primer toque.** Adrian: *"funciona, está laggy, tengo que clicar 30
-veces en los iconos abajo para poder ver la pagina"*. Esta sin diagnosticar y es
-lo que impide usar el panel de verdad. Los dos sospechosos y como descartarlos
-estan en el apartado "Error abierto" al final de este archivo.
-
-**Despues, la fase 7.1**: meter pedidos a mano en la pestana 1. Es lo unico del
-panel que no depende de ningun dato que falte.
-
-**Lo que sigue faltando y no lo puedo suplir yo**: **los 14 colores con nombre y
-valor exacto**, el `.glb`, los datos fiscales de la empresa y el desglose de los
-1.000 EUR de importacion. Ver el apartado 14 de `docs/panel-nerowa.md`.
-
-**Preguntarle a Alfredo que quiere cambiar del hero rehecho.** Lo aprobo a la
-vista en la sesion 9 — *"me gusta lo que hiciste, visualmente"* — y los tres PR
-estan mezclados, asi que lo que hay en `main` es lo que el vio. Pero ya avisa dos
-veces que va cambiando sobre la marcha: **no adelantar trabajo sobre el hero sin
-su lista.**
-
-**Recordarle las dos cosas que tiene que hacer el, y que no puede hacer nadie
-mas:**
-
-1. **Abrir el preview en un iPhone y probar el pellizco.** Es lo unico de la
-   sesion 9 que no se pudo comprobar aqui. Safari entiende el pellizco como
-   acercar la PAGINA entera, porque la etiqueta de ventana de Next deja escalar.
-   Las guardas estan puestas (`touchmove` no pasivo que corta solo con dos dedos
-   o mas, mas `gesturestart` / `gesturechange`) y probadas en Chromium, pero el
-   aparato real hay que mirarlo. Si falla, se arregla en `case-scene.tsx`.
-2. **Encender Vercel Authentication** en el panel, para que los previews no se
-   abran solo con tener la URL.
-
-**Y las dos decisiones que tome yo y siguen sin veredicto:**
-
-1. **Sobre amarillo, oro y crema el estuche se apoya poco en el fondo**, porque
-   son el mismo color. Es la consecuencia directa de "la pagina full color en
-   reaccion al color del estuche". Lo que hoy los separa es el pozo negro del
-   centro (`.store-hero-well`) y los haces. Sobre azul marino, vinotinto o morado
-   se ve perfecto. **Si molesta, la salida es girar el tono del fondo unos grados
-   respecto al del estuche** — una linea en `heroSurfaceFor`. No lo hice porque
-   pidio el mismo color, no uno parecido.
-2. **El boton "Add to cart" sigue dorado en los catorce colores.** Es lo unico de
-   la pagina que no reacciona al color del estuche, y ahora se nota mas que antes
-   porque el resto del panel si se da vuelta entero.
-
-**Volver a pedir lo que bloquea cerrar la fase 3**, que no lo puedo suplir yo:
-
-| Que falta | Por que bloquea |
+| Que falta | Donde se usa |
 |---|---|
-| El `.glb` del estuche | Hoy corre un estuche de relleno. Alfredo esperaba dinero el lunes para mandarlo a modelar |
-| Los 14 colores: nombre comercial y valor exacto | Son la entrada de la formula del fondo. Sin ellos, tanto la paleta como el color del hero son inventados |
+| Foto de las muestras **Pink** y **Lavender** | Hoy su color es estimado (`catalog.ts`) |
+| Confirmar **Brown**: en la foto de la carta sale naranja tostado | `catalog.ts` |
+| Foto del **Midnight Blue** real | Hoy #16213b, calculado; Adrian mandara foto |
+| Disponibilidad por color | Los 14 van como disponibles |
+| Precio con IVA (217,80 EUR) | La web sigue diciendo 180 (`PRICE_EUR`) |
+| Peso, largo util por dentro, materiales | Tabla de `/store`, con raya |
+| Nombres, instrumento y foto de musicos que usen un Nerowa | "They can confirm" de `/shop`: huecos rotulados |
+| Lista de correo de verdad | Los formularios dicen que abre con la tienda |
+| Paginas de envios, devoluciones y legales | El pie enlaza a las preguntas |
 
-**Lo que NO hay que rehacer aunque cambie el diseno.** Estas piezas estan
-verificadas y son independientes de como se vea el hero:
+**Cuando cambie un color o el modelo:** `node scripts/miniaturas-case.cjs
+<url-del-dev> [ids]` saca de nuevo las fotos de producto, y
+`node scripts/contorno-case.cjs` el contorno del plano de medidas.
 
-- `src/lib/store/palette.ts` — la formula del color, con las dos superficies (el
-  hero a todo color y el fondo de lectura). Si cambia la paleta, cambian los
-  valores de entrada, no la formula. La comprobacion de contraste corre sola:
-  `enforceContrast` empuja el hero hasta que el texto cumple AA, asi que un color
-  nuevo no puede publicar texto ilegible.
+**Cuando Adrian suba un modelo nuevo:** los DOS archivos, con el nombre de
+siempre, en `public/models/` de la rama de trabajo: `nerowa_case.glb` y
+`nerowa_case_draco.glb`. La web carga el Draco; si solo sube el completo, la
+tienda no cambia. (En la sesion 12 costo tres intentos: un commit vacio por
+subir el Draco viejo, y luego los archivos con fecha en el nombre.) No se puede
+comprimir con Draco desde aqui: bajar `gltf-transform` de npm lo bloquea el
+sistema de permisos.
+
+### Lo que tiene que mirar Adrian en su telefono
+
+Nada de esto se puede medir aqui (el navegador del contenedor dibuja sin GPU,
+a menos de 3 cuadros por segundo):
+
+1. Que el 3D vaya a mas de 50 fps con el case quieto, y que cargue bien con 4G.
+2. El pellizco para acercar el case, en Safari de iPhone.
+3. Encender **Vercel Authentication** para que los previews no se abran con
+   solo tener la URL.
+
+### El entorno de la nube
+
+Para estudiar dialedcoffee.com se agregaron 7 dominios a la red del entorno
+`nerowa_cases` (dialedcoffee.com, www, cdn.prod.website-files.com,
+dialed-murex.vercel.app, d3e54v103j8qbb.cloudfront.net, dialed.itsoffbrand.io,
+cdn2.shopyflow.com). Ya no hacen falta; Adrian puede quitarlos en la
+configuracion del entorno.
+
+### El panel, en segundo plano
+
+Sigue igual que al cierre de la sesion 11. **La base funciona** (no tocar).
+Queda el **error abierto**: el panel va lento y las pestanas no responden al
+primer toque (*"tengo que clicar 30 veces en los iconos abajo"*); los
+sospechosos estan en "Lo que queda por confirmar", al final. Despues, la
+**fase 7.1** (pedidos a mano). Faltan los datos fiscales y el desglose de los
+1.000 EUR de importacion (apartado 14 de `docs/panel-nerowa.md`).
+
+**Una pista nueva para ese error:** en `/shop` las preguntas fallaban "a veces"
+porque una cabecera fija, con un panel invisible dentro, ocupaba ~350 px y se
+comia los toques de esa franja. Vale la pena mirar si en el panel hay algo fijo
+e invisible encima de la barra de pestanas.
+
+### Lo que NO hay que rehacer
+
+- `src/lib/store/palette.ts` — la formula del color, con su contraste AA.
 - `src/components/store/store-context.tsx` — el estado y el carrito.
-- `src/components/store/scene/case-scene.tsx` — el reparto de gestos. Esta medido
-  con eventos de verdad y documentado en su cabecera; **no se toca por intuicion**.
-- La separacion entre escena y modelo: `case-scene.tsx` tiene el comportamiento y
-  `case-model.tsx` + `case-shape.ts` tienen la forma. El `.glb` entra por el
-  segundo sin tocar el primero.
-
-**Y lo que si es desechable sin pena:** el estuche de relleno, los seis textos de
-preguntas frecuentes, las tres filas de envios y los catorce colores inventados.
-Todo eso esta rotulado como marcador de posicion en la propia pagina.
-
-**De la fase 2 (sistema de diseno) sigue pendiente** lo que no depende de nadie:
-escala tipografica completa, grid de 8 px y tokens de espaciado, y tokens
-estructurales (radios, bordes, sombras, capas). La mitad de color ya quedo
-resuelta por `palette.ts`; lo que falta son los valores.
+- `src/components/store/scene/case-scene.tsx` — gestos medidos con eventos de
+  verdad; **no se toca por intuicion**. Desde la sesion 12 tiene `fit="fill"` y
+  el reflejo de ambiente (`RoomEnvironment`).
+- `src/components/store/scene/case-model.tsx` — el `.glb`: escala 12.285, +90
+  grados en X, junta en el origen, sin espejo; tine solo `shell`; abrir/cerrar
+  con la animacion del archivo; recentrado por el eje real de las bisagras; el
+  case de codigo (`procedural-case.tsx`) de respaldo mientras carga o si falla.
+- `src/components/shop/shop-nav.tsx` — la cabecera es `pointer-events-none`;
+  solo los enlaces y el panel abierto reciben toques. No quitarlo.
 
 ---
 
@@ -2913,6 +2889,26 @@ se sube el completo, la tienda no cambia.
 - **Fuera "2 a 3 semanas"** (Adrian: es falso). En la respuesta de envios, la
   tarjeta de compra y el estado "agotado": ahora se dice que deje su correo y se
   le avisa cuando llegue el proximo lote.
+
+---
+
+### Cierre de la sesion 12 — 2026-11-16
+
+Sesion larga, toda sobre la tienda. Ocho PR, todos mezclados:
+
+| PR | Que trae |
+|---|---|
+| [#41](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/41) | `/shop`: la estructura de dialedcoffee.com ajustada a Nerowa |
+| [#42](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/42) | Estuche a la derecha en el hero, y fijo al bajar a los colores |
+| [#43](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/43) | El `.glb` real de Blender en `/store` y `/shop` |
+| [#44](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/44) | Carta de colores oficial, fotos del case real, medidas y plano |
+| [#45](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/45) | El `.glb` con el interior nuevo |
+| [#46](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/46) | Preguntas que abren siempre, plano limpio, "Ships from Europe" |
+| [#47](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/47) | El `.glb` corregido (forma con el case cerrado) |
+| [#48](https://github.com/aguacateconqueso-projects/nerowa_cases/pull/48) | Respuestas alineadas, letra mas grande, fuera "2 a 3 semanas" |
+
+Adrian pidio cerrar y seguir en otra sesion. Se actualizo "Estado actual" y
+"Lo primero de la proxima sesion".
 
 ---
 
