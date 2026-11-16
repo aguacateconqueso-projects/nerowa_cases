@@ -2736,8 +2736,20 @@ Lo que se ajusto y por que:
 Cambios en piezas compartidas: `CaseScene` acepta `fit="fill"` (por defecto
 sigue igual), y se exportan `outlinePoints` y `FAQ`. `/store` se comprobo igual.
 
+**Segunda vuelta, el mismo dia (correcciones de Adrian sobre el preview):**
+
+- En el hero el estuche va **a la derecha y no tapa el titular**, que pasa a
+  cuatro lineas en la mitad izquierda.
+- En escritorio hay **un solo estuche** para el hero y la seccion de color
+  (`components/shop/case-stage.tsx`): un bloque `sticky` lo deja pegado a la
+  derecha mientras se baja y se presentan los colores. En telefono cada seccion
+  sigue con el suyo, debajo del texto.
+- Fuera el logo suelto de la seccion de color.
+
 **Pendiente:** que Adrian y Alfredo lo vean en el preview y decidan si `/shop`
-reemplaza a `/store`.
+reemplaza a `/store`. **Adrian se va a otra sesion a armar en Blender el modelo
+3D** (dijo "el bow"; el `.glb` que falta es el del estuche): cuando exista, entra
+por `case-model.tsx` y lo usan `/store` y `/shop` a la vez.
 
 ---
 

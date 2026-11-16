@@ -4,7 +4,7 @@
   Piezas chicas que usan varias secciones de `/shop`.
 */
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, useSyncExternalStore, type RefObject } from "react";
 
 import { PRICE_EUR, type CaseColor } from "@/lib/store/catalog";
 import { availabilityShort } from "@/lib/shop/content";
@@ -54,6 +54,30 @@ export function useInView(
   }, [ref, rootMargin]);
 
   return inView;
+}
+
+/* ------------------------------------------------------------- escritorio */
+
+/*
+  Verdadero en pantallas de escritorio (el `lg` de Tailwind, 1024 px), falso en
+  telefono, y `null` mientras no se sabe: en el servidor y durante la
+  hidratacion. Las escenas 3D esperan a que deje de ser `null` para montarse, asi
+  nunca se crea un lienzo que se va a tirar en el render siguiente.
+*/
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
+function subscribeDesktop(onChange: () => void) {
+  const query = window.matchMedia(DESKTOP_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+export function useIsDesktop(): boolean | null {
+  return useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => null,
+  );
 }
 
 /* --------------------------------------------------------------- comprar */
