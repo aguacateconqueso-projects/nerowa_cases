@@ -58,6 +58,7 @@
 import { useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { CaseModel } from "./case-model";
 import { CASE_LENGTH } from "./case-shape";
@@ -145,13 +146,45 @@ export function CaseScene({
 /* --------------------------------------------------------------------- luces */
 
 /*
-  Sin mapa de entorno. Un HDRI habria que descargarlo de un CDN en cada visita y
-  el trafico de esta tienda llega por datos moviles; estas cuatro luces dan el
-  mismo relieve sin pedir un solo archivo.
+  Cuatro luces y un entorno generado en el propio navegador.
+
+  El entorno existe por el `.glb`: su cascara es PBR con barniz (`clearcoat`) y
+  sin nada que reflejar se ve plana, como plastico. `RoomEnvironment` es una
+  habitacion de cajas iluminadas que three arma con codigo; `PMREMGenerator` la
+  convierte en reflejos. No se descarga ningun HDRI (ni de un CDN ni de ningun
+  sitio): el trafico llega por datos moviles. La intensidad va baja para que el
+  reflejo de forma al barniz sin lavar el color.
 */
+const ENVIRONMENT_INTENSITY = 0.35;
+
+function RoomReflections() {
+  const gl = useThree((state) => state.gl);
+  /* La escena se pide al usarla, no como valor del hook: hay que mutarla. */
+  const get = useThree((state) => state.get);
+
+  useEffect(() => {
+    const scene = get().scene;
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const room = new RoomEnvironment();
+    const texture = pmrem.fromScene(room, 0.04).texture;
+    scene.environment = texture;
+    scene.environmentIntensity = ENVIRONMENT_INTENSITY;
+
+    return () => {
+      scene.environment = null;
+      texture.dispose();
+      room.dispose();
+      pmrem.dispose();
+    };
+  }, [gl, get]);
+
+  return null;
+}
+
 function Lighting() {
   return (
     <>
+      <RoomReflections />
       {/* Baja a proposito. Con ambiente alto los catorce colores salian
           lavados: el rojo profundo se veia rosa polvo y el vinotinto, marron. */}
       <ambientLight intensity={0.28} />
