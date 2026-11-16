@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nerowa · prueba del modelo 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0b0b0b; --fg:#f2f2f0; --mut:#8a8a86; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:'Archivo',system-ui,sans-serif; }
+  #c { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  .ui { position:fixed; left:24px; right:24px; bottom:24px; display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:space-between; pointer-events:none; }
+  .ui > * { pointer-events:auto; }
+  .seg { display:flex; border:1px solid #333; }
+  .seg button { background:transparent; color:var(--fg); border:0; padding:10px 16px; font:500 13px 'Archivo'; cursor:pointer; }
+  .seg button[aria-pressed="true"] { background:var(--fg); color:#000; }
+  .sw { display:flex; flex-wrap:wrap; gap:6px; max-width:560px; }
+  .sw button { width:28px; height:28px; border:1px solid #444; cursor:pointer; padding:0; }
+  .sw button[aria-pressed="true"] { outline:2px solid var(--fg); outline-offset:2px; }
+  .info { position:fixed; left:24px; top:20px; font-size:12px; color:var(--mut); line-height:1.6; max-width:420px; }
+  .info b { color:var(--fg); font-weight:600; font-size:14px; display:block; margin-bottom:4px; }
+  #name { font:600 13px 'Archivo'; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; }
+  #load { position:fixed; inset:0; display:grid; place-items:center; color:var(--mut); font-size:13px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="load">Cargando modelo…</div>
+<div class="info"><b>Nerowa · prueba del GLB</b>Arrastra para girar, rueda para acercar. Colores de la lista actual de la tienda (provisionales). El tejido es un mapa de relieve: el color lo pone la web.</div>
+<div class="ui">
+  <div>
+    <div id="name">Black</div>
+    <div class="sw" id="sw"></div>
+  </div>
+  <div class="seg" role="group" aria-label="Vista">
+    <button id="bClosed" aria-pressed="true">Closed</button>
+    <button id="bOpen" aria-pressed="false">Open</button>
+  </div>
+</div>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const COLORS = [["Black","#121212"],["White","#ececea"],["Red","#9e1b2f"],["Burgundy","#5c1526"],["Navy","#1b2a4a"],["Sky","#4a7fb5"],["Forest","#1f3d2b"],["Olive","#5a5c33"],["Gold","#c9a227"],["Yellow","#e0b500"],["Orange","#c25612"],["Purple","#4c2a63"],["Cream","#d9cdb4"],["Graphite","#4a4a4d"]];
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#0b0b0b');
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 20);
+camera.position.set(0.55, 0.75, 1.25);
+const controls = new OrbitControls(camera, canvas); controls.enableDamping = true; controls.target.set(0,0.02,0);
+const key = new THREE.DirectionalLight('#ffffff', 1.6); key.position.set(1,2,1.5); scene.add(key);
+
+let mixer, action, shellMat, clipDur = 2.4, state = 'closed';
+new GLTFLoader().load('../../public/models/nerowa_case.glb', (gltf) => {
+  const root = gltf.scene;
+  root.rotation.y = -0.6;           // diagonal, como en la tienda
+  scene.add(root);
+  root.traverse(o => { if (o.isMesh && o.material && o.material.name === 'shell') shellMat = o.material; });
+  mixer = new THREE.AnimationMixer(root);
+  const clip = gltf.animations.find(a => a.name === 'abrir') || gltf.animations[0];
+  clipDur = clip.duration;
+  action = mixer.clipAction(clip); action.setLoop(THREE.LoopOnce); action.clampWhenFinished = true;
+  action.play(); action.paused = true; action.time = 0;
+  setColor(0);
+  document.getElementById('load').remove();
+}, undefined, (e) => { document.getElementById('load').textContent = 'No se pudo cargar el modelo'; console.error(e); });
+
+function go(to) {
+  if (!action || to === state) return;
+  state = to;
+  action.paused = false;
+  action.timeScale = to === 'open' ? 1 : -1;
+  if (to === 'open' && action.time >= clipDur) action.time = 0;
+  if (to === 'closed' && action.time <= 0) action.time = clipDur;
+  action.play();
+  document.getElementById('bOpen').setAttribute('aria-pressed', to === 'open');
+  document.getElementById('bClosed').setAttribute('aria-pressed', to === 'closed');
+}
+document.getElementById('bOpen').onclick = () => go('open');
+document.getElementById('bClosed').onclick = () => go('closed');
+
+const sw = document.getElementById('sw');
+COLORS.forEach(([n,h], i) => { const b = document.createElement('button'); b.style.background = h; b.title = n; b.setAttribute('aria-label', n); b.onclick = () => setColor(i); sw.appendChild(b); });
+function setColor(i) {
+  const [n,h] = COLORS[i];
+  if (shellMat) shellMat.color.set(h);
+  document.getElementById('name').textContent = n;
+  [...sw.children].forEach((b,j) => b.setAttribute('aria-pressed', i === j));
+}
+
+const clock = new THREE.Clock();
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (mixer) { mixer.update(dt); if (action.time <= 0 && action.timeScale < 0) { action.time = 0; action.paused = true; } }
+  controls.update(); renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

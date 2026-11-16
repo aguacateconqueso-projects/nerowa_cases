@@ -2753,6 +2753,54 @@ por `case-model.tsx` y lo usan `/store` y `/shop` a la vez.
 
 ---
 
+### Sesion 12, tercera vuelta — el estuche real (.glb) en la tienda
+
+Adrian modelo el case en Blender y subio el `.glb` a `public/models/`. Entra en
+`/store` y `/shop` a la vez, porque las dos usan `CaseScene`.
+
+**Que hace cada archivo:**
+
+- `case-model.tsx` — carga `nerowa_case_draco.glb` y tine SOLO el material
+  `shell`. Abrir/cerrar es la animacion `abrir` hacia adelante o hacia atras
+  desde donde este; con menos movimiento salta al final. La descarga arranca al
+  cargar la pagina, no cuando se monta el lienzo.
+- `procedural-case.tsx` — el estuche de codigo de antes. Ahora es respaldo: se
+  ve mientras baja el `.glb` y si falla. Comprobado con el archivo ausente.
+- `case-scene.tsx` — agrega `RoomEnvironment` (intensidad 0.35) para el barniz,
+  generado en el navegador, sin HDR. Cursor, arrastre, zoom y la vuelta al
+  cambiar de color, intactos.
+- `public/draco/` — el decodificador, copiado de three 0.186. Sin CDN.
+
+**Encaje, en `case-model.tsx`:** escala 10 / 0.814 = 12.285; rotacion **+90
+grados en X** (no -90: con -90 la tapa queda de espaldas a la camara y la punta
+ancha abajo); baja 0.030 m antes de escalar para dejar la junta en el origen.
+Sin espejo. Bisagras del lado -X (no hizo falta girarlas): la tapa se abre
+hacia la izquierda. El par abierto se recentra +0.737 u, sacado de
+`lid_pivot.position.x` (-0.06 m) y en proporcion al giro real de la tapa, asi
+que no se mueve durante la fase de los cierres. El encuadre `open ? 2.1 : 1` se
+dejo: la cascara real mide 1.40 u de ancho (antes 1.42) y abierta 2.05 veces.
+
+**Comprobado:** los 14 colores tinen solo la cascara; secuencia cierres -> tapa
+y al reves, muestreada cuadro a cuadro; clics seguidos sin saltos; menos
+movimiento; consola limpia; en telefono una sola descarga para los dos lienzos.
+Produccion con iPhone simulado: 2.3 MB transferidos (1.67 MB el `.glb`); el
+modelo listo a 3.7 s con 4G rapido y a 11.9 s con 4G lento, con el respaldo a la
+vista mientras tanto.
+
+**No se pudo comprobar aqui:** los fps. El navegador del contenedor dibuja sin
+GPU (menos de 3 fps con cualquier cosa). La prueba de los 50 fps es en un
+iPhone de verdad.
+
+**Para Adrian:** la placa NEROWA esta en x=+0.019 en el `.glb`, hacia los
+cierres. Si en el case real va del lado de las bisagras, se mueve en Blender.
+Y en `/shop` escritorio, abierto, la punta de la tapa queda bajo la tarjeta de
+compra: es la maqueta, no el modelo; no se toco por pedido.
+
+Las referencias y el visor de Adrian quedan en `docs/modelo-3d/` (fuera de
+`public/` para no publicarlos).
+
+---
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,

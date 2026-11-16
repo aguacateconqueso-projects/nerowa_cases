@@ -1,238 +1,257 @@
 "use client";
 
 /*
-  El estuche. MARCADOR DE POSICION hasta que llegue el `.glb` real.
+  El estuche real: el `.glb` hecho en Blender a partir de las medidas y las fotos
+  del case. Lo usan `/store` y `/shop` por igual, a traves de `CaseScene`.
 
-  Lo unico que este archivo promete es la interfaz: recibe un color y una vista,
-  y se abre o se cierra solo. El dia que exista el modelo de verdad, esta pieza
-  se reemplaza por un `useGLTF` que pinte el mismo color en su material y gire
-  su tapa; nada de lo que hay alrededor (camara, luz, arrastre, fondo) cambia.
+  La interfaz no cambio: recibe un color y si esta abierto, y nada de lo que hay
+  alrededor (camara, luz, arrastre, zoom, la vuelta al cambiar de color) sabe
+  que el estuche ahora es un archivo.
 
-  La tapa gira sobre la bisagra del canto largo derecho. Media vuelta completa
-  la deja plana al lado de la base, como en la foto del estuche abierto.
+  ---------------------------------------------------------------------------
+  CARGA PROGRESIVA (el trafico llega de Instagram, en telefono, con datos)
+
+    1. Al instante se ve `ProceduralCase`, el estuche dibujado con codigo: no
+       pide ningun archivo.
+    2. Cuando el `.glb` termina de bajar y de descomprimirse, lo reemplaza.
+    3. Si el `.glb` falla, se queda el de codigo y la tienda vende igual.
+
+  El decodificador Draco se sirve desde `/draco/` (copiado de
+  `three/examples/jsm/libs/draco/gltf`). No se usa el CDN de Google.
+
+  ---------------------------------------------------------------------------
+  DEL GLB A LA ESCENA
+
+  El `.glb` viene en metros, con Y hacia arriba (lo normal en glTF):
+    largo 0.814 m sobre Z (punta ancha hacia -Z), grosor 0.065 m sobre +Y
+    (piso de la base en y=0, junta base/tapa en y=0.030), bisagras en -X y
+    cierres en +X.
+
+  La escena espera otra cosa (la que fijo el estuche de codigo): largo sobre Y
+  y 10 unidades, grosor sobre Z con la tapa hacia la camara, y la junta en z=0.
+  Las tres operaciones de abajo hacen el cambio, de dentro hacia fuera:
+
+    JOINT_Y   baja el modelo 0.030 m para que la junta quede en el origen
+    ROT_X     +90 grados en X: el grosor (+Y) pasa a +Z, hacia la camara, y la
+              punta ancha (-Z) pasa a +Y, arriba, como en el estuche de codigo
+    SCALE     10 / 0.814: el largo pasa a medir 10 unidades
+
+  Nunca se espeja con escala negativa: el case real es asimetrico.
+
+  ---------------------------------------------------------------------------
+  ABRIR Y CERRAR
+
+  El `.glb` trae una sola animacion, `abrir` (2.4 s): primero bajan las palancas
+  de los dos cierres y se sueltan los ganchos, despues la tapa gira 180 grados
+  sobre las bisagras. Abrir es reproducirla hacia adelante; cerrar, hacia atras
+  (`timeScale = -1`), siempre desde donde este, asi que pulsar varias veces
+  seguidas no da saltos.
+
+  Al abrirse, el conjunto crece hacia el lado de la bisagra. `recenter` lo
+  devuelve al eje, en la misma medida en que la tapa ya giro (se lee del propio
+  `lid_pivot`, no del tiempo de la animacion: durante la fase de los cierres la
+  tapa no se mueve y el estuche tampoco debe moverse).
 */
 
-import { useMemo, useRef } from "react";
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
-import {
-  BASE_DEPTH,
-  CASE_HALF_WIDTH,
-  LID_DEPTH,
-  buildCaseHole,
-  buildCaseOutline,
-  getWeaveTexture,
-} from "./case-shape";
+import { CASE_LENGTH } from "./case-shape";
+import { ProceduralCase } from "./procedural-case";
 
-/* Cuanto del ancho interior se come la pared de la carcasa. */
-const WALL = 0.8;
-const INNER_LENGTH = 0.975;
+export const CASE_GLB = "/models/nerowa_case_draco.glb";
+const DRACO_PATH = "/draco/";
+
+/* Medidas del `.glb`, en metros. */
+const GLB_LENGTH = 0.814;
+const JOINT_Y = 0.03;
+
+const SCALE = CASE_LENGTH / GLB_LENGTH;
+const ROT_X = Math.PI / 2;
+
+/* El unico material que se tine. */
+const SHELL_MATERIAL = "shell";
+const OPEN_CLIP = "abrir";
+
+/*
+  La descarga arranca al cargar este modulo, no cuando se monta el lienzo. En
+  `/shop` el lienzo del hero espera a que termine la entrada (casi dos
+  segundos): ese tiempo se aprovecha bajando el `.glb`. Solo en el navegador; en
+  el servidor no hay nada que descargar.
+*/
+if (typeof window !== "undefined") {
+  useGLTF.preload(CASE_GLB, DRACO_PATH, false);
+}
 
 interface CaseModelProps {
   colorHex: string;
   open: boolean;
 }
 
-export function CaseModel({ colorHex, open }: CaseModelProps) {
-  const lidPivot = useRef<THREE.Group>(null);
+export function CaseModel(props: CaseModelProps) {
+  const fallback = <ProceduralCase {...props} />;
+  return (
+    <ModelErrorBoundary fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <GltfCase {...props} />
+      </Suspense>
+    </ModelErrorBoundary>
+  );
+}
+
+/* ----------------------------------------------------------- el modelo real */
+
+function GltfCase({ colorHex, open }: CaseModelProps) {
+  const { scene, animations } = useGLTF(CASE_GLB, DRACO_PATH, false);
+
+  /*
+    Copia propia de la escena y de la cascara. En `/shop` puede haber dos
+    lienzos a la vez (telefono: hero y seccion de color), y un mismo objeto de
+    three no puede vivir en dos escenas. La cascara se clona para que teñir un
+    lienzo no tina el otro por debajo.
+  */
+  const { root, shell, lidPivot, lidRest } = useMemo(() => {
+    const copy = scene.clone(true);
+    let shellMaterial: THREE.MeshPhysicalMaterial | null = null;
+
+    copy.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const material = mesh.material as THREE.Material;
+      if (material.name !== SHELL_MATERIAL) return;
+      shellMaterial ??= (material as THREE.MeshPhysicalMaterial).clone();
+      mesh.material = shellMaterial;
+    });
+
+    const pivot = copy.getObjectByName("lid_pivot") ?? null;
+    return {
+      root: copy,
+      shell: shellMaterial as THREE.MeshPhysicalMaterial | null,
+      lidPivot: pivot,
+      /* La tapa cerrada, tal como viene en el archivo. El giro se mide contra
+         esto y no contra cero: el pivote puede traer una rotacion de reposo. */
+      lidRest: pivot ? pivot.quaternion.clone() : null,
+    };
+  }, [scene]);
+
+  /* El eje de las bisagras, en las unidades del `.glb`. De aqui sale cuanto hay
+     que correr el par abierto para devolverlo al centro. */
+  const hingeX = lidPivot?.position.x ?? 0;
+
+  useLayoutEffect(() => {
+    shell?.color.set(colorHex);
+  }, [shell, colorHex]);
+
   const recenter = useRef<THREE.Group>(null);
-  const openAmount = useRef(0);
 
-  const weave = useMemo(() => getWeaveTexture(), []);
+  /*
+    El mezclador y la accion viven en refs y se crean en un efecto: son objetos
+    de three que se mutan en cada fotograma, y lo que devuelve un hook React lo
+    trata como inmutable.
+  */
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const actionRef = useRef<THREE.AnimationAction | null>(null);
+  /* Lo ultimo que se pidio. El efecto del mezclador lo lee al crearse, para
+     que el estuche llegue ya en la vista elegida. */
+  const openRef = useRef(open);
 
-  /* Contorno macizo para las tapas, y contorno con hueco para las paredes. */
-  const solid = useMemo(() => buildCaseOutline(1), []);
-  const shell = useMemo(() => {
-    const shape = buildCaseOutline(1);
-    shape.holes.push(buildCaseHole(WALL, INNER_LENGTH));
-    return shape;
-  }, []);
-  const lining = useMemo(
-    () => buildCaseOutline(WALL - 0.04, INNER_LENGTH - 0.01),
-    [],
-  );
+  useEffect(() => {
+    const mixer = new THREE.AnimationMixer(root);
+    const clip = THREE.AnimationClip.findByName(animations, OPEN_CLIP);
+    if (!clip) {
+      console.warn(`[nerowa] El .glb no trae la animacion "${OPEN_CLIP}".`);
+      return;
+    }
+    const action = mixer.clipAction(clip);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
 
-  const wallExtrude = useMemo(
-    () => ({ depth: 1, bevelEnabled: false }),
-    [],
-  );
-  const faceExtrude = useMemo(
-    () => ({
-      depth: 0.1,
-      bevelEnabled: true,
-      bevelThickness: 0.12,
-      bevelSize: 0.1,
-      bevelSegments: 5,
-    }),
-    [],
-  );
-  const flatExtrude = useMemo(
-    () => ({ depth: 0.04, bevelEnabled: false }),
-    [],
-  );
+    /* Sin animar: la accion se deja pausada en el extremo que toca. */
+    action.play();
+    action.paused = true;
+    action.time = openRef.current ? clip.duration : 0;
+    mixer.update(0);
+
+    mixerRef.current = mixer;
+    actionRef.current = action;
+    return () => {
+      mixer.stopAllAction();
+      mixer.uncacheRoot(root);
+      mixerRef.current = null;
+      actionRef.current = null;
+    };
+  }, [root, animations]);
+
+  useEffect(() => {
+    if (openRef.current === open) return;
+    openRef.current = open;
+
+    const action = actionRef.current;
+    const mixer = mixerRef.current;
+    if (!action || !mixer) return;
+
+    /* Con menos movimiento pedido, directo al final. */
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      action.paused = true;
+      action.time = open ? action.getClip().duration : 0;
+      mixer.update(0);
+      return;
+    }
+
+    /* Desde donde este, hacia donde toque. Si estaba terminada y clavada en un
+       extremo, `paused` la tiene quieta: se suelta y se le da la direccion.
+       A medio camino, solo se le da la vuelta: nunca salta. */
+    action.enabled = true;
+    action.paused = false;
+    action.timeScale = open ? 1 : -1;
+    if (!action.isScheduled()) action.play();
+  }, [open]);
 
   useFrame((_, delta) => {
-    const target = open ? 1 : 0;
-    /* `damp` es independiente de los fotogramas: la apertura tarda lo mismo a
-       120 Hz que a 30. */
-    openAmount.current = THREE.MathUtils.damp(
-      openAmount.current,
-      target,
-      3.2,
-      delta,
-    );
+    mixerRef.current?.update(delta);
 
-    if (lidPivot.current) {
-      lidPivot.current.rotation.y = openAmount.current * Math.PI;
-    }
-    if (recenter.current) {
-      /* Al abrirse el conjunto crece hacia la derecha; esto lo devuelve al eje. */
-      recenter.current.position.x = -CASE_HALF_WIDTH * openAmount.current;
-    }
+    if (!recenter.current || !lidPivot || !lidRest) return;
+    /* Cuanto giro la tapa, de 0 (cerrada) a 1 (media vuelta). */
+    const turned = Math.min(lidRest.angleTo(lidPivot.quaternion) / Math.PI, 1);
+    /* Hacia el lado contrario a la bisagra. */
+    recenter.current.position.x = -hingeX * SCALE * turned;
   });
 
   return (
     <group ref={recenter}>
-      {/* ----------------------------------------------------------- base */}
-      <group position={[0, 0, -BASE_DEPTH]}>
-        {/* Paredes. */}
-        <mesh scale={[1, 1, BASE_DEPTH]}>
-          <extrudeGeometry args={[shell, wallExtrude]} />
-          <ShellMaterial colorHex={colorHex} weave={weave} />
-        </mesh>
-        {/* Fondo. */}
-        <mesh position={[0, 0, -0.02]}>
-          <extrudeGeometry args={[solid, faceExtrude]} />
-          <ShellMaterial colorHex={colorHex} weave={weave} />
-        </mesh>
-        {/* Forro y dos canales para los arcos. */}
-        <mesh position={[0, 0, 0.1]}>
-          <extrudeGeometry args={[lining, flatExtrude]} />
-          <meshStandardMaterial color="#202024" roughness={1} />
-        </mesh>
-        <BowChannels />
-      </group>
-
-      {/* ------------------------------------------------------------ tapa */}
-      <group ref={lidPivot} position={[CASE_HALF_WIDTH, 0, 0]}>
-        <group position={[-CASE_HALF_WIDTH, 0, 0]}>
-          <mesh scale={[1, 1, LID_DEPTH]}>
-            <extrudeGeometry args={[shell, wallExtrude]} />
-            <ShellMaterial colorHex={colorHex} weave={weave} />
-          </mesh>
-          <mesh position={[0, 0, LID_DEPTH - 0.08]}>
-            <extrudeGeometry args={[solid, faceExtrude]} />
-            <ShellMaterial colorHex={colorHex} weave={weave} />
-          </mesh>
-          <mesh position={[0, 0, 0.06]}>
-            <extrudeGeometry args={[lining, flatExtrude]} />
-            <meshStandardMaterial color="#202024" roughness={1} />
-          </mesh>
-          <Plaque />
+      <group scale={SCALE} rotation-x={ROT_X}>
+        <group position-y={-JOINT_Y}>
+          <primitive object={root} />
         </group>
       </group>
-
-      {/* Banda negra de la costura: es lo que en las fotos separa tapa de base
-          y lo que le da al estuche su linea horizontal. Va fija a la base para
-          que al abrirse quede con ella. */}
-      <mesh position={[0, 0, -0.045]} scale={[1.012, 1.002, 0.09]}>
-        <extrudeGeometry args={[solid, wallExtrude]} />
-        <meshStandardMaterial color="#0d0d0d" roughness={0.55} />
-      </mesh>
-
-      <Hardware />
     </group>
   );
 }
 
-/* ------------------------------------------------------------------ material */
+/* ------------------------------------------------------- si el archivo falla */
 
 /*
-  La carcasa. El trenzado no pinta color: modula la rugosidad, que es lo que
-  quiebra la luz en diagonal como en las fotos. El barniz (`clearcoat`) es la
-  capa brillante de encima, la que hace el reflejo duro sobre el color mate.
+  Un `.glb` que no carga (red cortada, archivo movido, decodificador ausente)
+  tira un error desde `useGLTF`. Sin esto, el error tumba el lienzo entero y la
+  tienda se queda sin estuche; con esto, se queda el de codigo.
 */
-function ShellMaterial({
-  colorHex,
-  weave,
-}: {
-  colorHex: string;
-  weave: THREE.Texture | null;
-}) {
-  return (
-    <meshPhysicalMaterial
-      color={colorHex}
-      roughness={0.45}
-      roughnessMap={weave}
-      metalness={0.05}
-      clearcoat={1}
-      clearcoatRoughness={0.16}
-      sheen={0.12}
-      sheenColor="#ffffff"
-    />
-  );
-}
+class ModelErrorBoundary extends Component<
+  { fallback: ReactNode; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
 
-/* ------------------------------------------------------------------ interior */
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
 
-function BowChannels() {
-  return (
-    <group position={[0, 0, 0.13]}>
-      {/* Tabique central entre los dos arcos. */}
-      {/* La varilla que separa los dos arcos. Es lo unico claro del interior:
-          sin ella el hueco se lee como una mancha negra y no como un interior. */}
-      <mesh position={[0, 0, 0.06]}>
-        <boxGeometry args={[0.08, 8.6, 0.1]} />
-        <meshStandardMaterial color="#6e6e76" roughness={0.3} metalness={0.7} />
-      </mesh>
-      {/* Cintas de sujecion. */}
-      {[-3, 0, 3].map((y) => (
-        <mesh key={y} position={[0, y, 0.07]}>
-          <boxGeometry args={[0.62, 0.34, 0.05]} />
-          <meshStandardMaterial color="#0b0b0c" roughness={1} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
+  componentDidCatch(error: unknown) {
+    console.warn("[nerowa] El estuche 3D no cargo; se usa el de respaldo.", error);
+  }
 
-/* ------------------------------------------------------------------ herrajes */
-
-/*
-  Cierres y anillas en el canto de delante, que es el opuesto a la bisagra.
-  Formas simples a proposito: su trabajo aqui es romper la silueta y dar algo
-  metalico a lo que agarrarse la luz, no parecerse al herraje real.
-*/
-function Hardware() {
-  const latches = [-3.6, -1.15, 1.15, 3.6];
-  const rings = [-2.3, 2.3];
-
-  return (
-    <group position={[-CASE_HALF_WIDTH * 0.97, 0, -0.04]}>
-      {latches.map((y) => (
-        <mesh key={y} position={[0, y, 0]}>
-          <boxGeometry args={[0.16, 0.42, 0.3]} />
-          <meshStandardMaterial color="#191919" roughness={0.35} metalness={0.6} />
-        </mesh>
-      ))}
-      {rings.map((y) => (
-        <mesh key={y} position={[0, y, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <torusGeometry args={[0.12, 0.035, 8, 20]} />
-          <meshStandardMaterial color="#232323" roughness={0.3} metalness={0.8} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-/* La placa de la marca en la tapa. Sin texto: la tipografia llega con el
-   modelo real, y una letra falsa en 3D se nota mas que su ausencia. */
-function Plaque() {
-  return (
-    <mesh position={[0, 3.15, LID_DEPTH + 0.03]}>
-      <boxGeometry args={[0.82, 0.3, 0.03]} />
-      <meshStandardMaterial color="#0c0c0c" roughness={0.45} />
-    </mesh>
-  );
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
 }

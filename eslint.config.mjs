@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Salida compilada de `npm run pruebas`. No es codigo fuente.
     ".pruebas/**",
+    // Decodificador Draco copiado tal cual de three. Codigo de terceros.
+    "public/draco/**",
   ]),
 ]);
 
