@@ -2983,6 +2983,38 @@ nueva. Con 5 comprobaciones propias. **197 en total.**
 **Para que no se vuelva a pausar:** `CRON_SECRET` en Vercel (el cron consulta
 la base a diario).
 
+### Sesion 13, tercera vuelta — 2026-11-19: recibos y seguimiento al cliente
+
+**Pedido de Adrian:** que Alfredo suba la foto de cada recibo de envio y anote
+el codigo, y que el codigo le llegue al cliente. Enlazar el seguimiento con el
+correo lituano queda para despues.
+
+**Hecho:**
+
+| Pieza | Donde |
+|---|---|
+| Foto del recibo al marcar enviado (cuadrado 📷 al lado del numero), o despues | `_piezas/campo-recibo.tsx`, `_piezas/recibos.tsx` |
+| Se comprime en el telefono (3-4 MB → ~300 KB) y se guarda en la base | migracion 003 `comprobantes`, `lib/panel/recibos.ts` |
+| Ver la foto solo con sesion | `/panel/comprobante/[id]` |
+| El numero se limpia (espacios, minusculas) y se valida | `dominio/seguimiento.ts` |
+| Correo al cliente, en ingles, con el numero | `adaptadores/correo-resend.ts` |
+| Sin correo o sin Resend: copiar mensaje y abrir WhatsApp | `_piezas/aviso-cliente.tsx` |
+| Corregir el numero y mandarle el bueno al cliente | `corregirSeguimiento` |
+| Recordatorio a Alfredo si un envio lleva 6 h sin foto | alerta `pedido_sin_recibo` |
+| Recibos tambien en los pedidos de tiendas | `tiendas/pedido/[id]` |
+
+**Decisiones:** las fotos van en Postgres y no en un almacen aparte (sin otra
+cuenta ni clave; caben ~2.000 recibos en el plan gratis). El correo NO lleva
+enlace de seguimiento todavia: un enlace mal armado es peor que ninguno.
+
+**Corregido mirando:** en un iPhone SE el boton anclado tapaba el campo de la
+foto; ahora la foto es un cuadrado al lado del numero.
+
+**Para que el correo salga:** cuenta en Resend, verificar `nerowacases.com`
+(registros DNS), y en Vercel `PANEL_CORREO=resend` y `RESEND_API_KEY`.
+
+16 comprobaciones nuevas. **212 en total.**
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,

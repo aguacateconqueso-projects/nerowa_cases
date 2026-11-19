@@ -24,6 +24,7 @@ import type {
   Apunte,
   AvisoEnviado,
   Color,
+  Comprobante,
   Direccion,
   Id,
   LineaPedido,
@@ -119,6 +120,19 @@ function aLote(f: Fila): Lote {
     despacho: centimos(f.despacho),
     ivaRecuperable: Boolean(f.iva_recuperable),
     notas: texto(f.notas),
+  };
+}
+
+function aComprobante(f: Fila): Comprobante {
+  return {
+    id: String(f.id),
+    entidad: String(f.entidad),
+    entidadId: String(f.entidad_id),
+    clase: f.clase as Comprobante["clase"],
+    tipo: String(f.tipo),
+    bytes: Number(f.bytes),
+    usuarioId: String(f.usuario_id),
+    creadoEn: instante(f.creado_en),
   };
 }
 
@@ -586,6 +600,40 @@ export function crearAlmacenPostgres(cx: Conexion): Almacen {
           enviadoEn: instante(f.enviado_en),
         }),
       );
+    },
+
+    async guardarComprobante(c, datos) {
+      await cx.consultar(
+        `insert into comprobantes
+           (id, entidad, entidad_id, clase, tipo, bytes, datos, usuario_id, creado_en)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          c.id, c.entidad, c.entidadId, c.clase, c.tipo, c.bytes,
+          /* Un Buffer viaja como 'bytea' sin conversiones. */
+          Buffer.from(datos.buffer, datos.byteOffset, datos.byteLength),
+          c.usuarioId, c.creadoEn,
+        ],
+      );
+    },
+    async listarComprobantes(entidad, entidadId) {
+      /* Nunca la columna 'datos' aqui: listar no tiene por que traer fotos. */
+      const columnas = "id, entidad, entidad_id, clase, tipo, bytes, usuario_id, creado_en";
+      const filas =
+        entidad && entidadId
+          ? await cx.consultar<Fila>(
+              `select ${columnas} from comprobantes
+                where entidad = $1 and entidad_id = $2 order by creado_en desc`,
+              [entidad, entidadId],
+            )
+          : await cx.consultar<Fila>(`select ${columnas} from comprobantes order by creado_en desc`);
+      return filas.map(aComprobante);
+    },
+    async datosDeComprobante(id) {
+      const filas = await cx.consultar<Fila>("select * from comprobantes where id = $1", [id]);
+      const f = filas[0];
+      if (!f) return undefined;
+      const crudo = f.datos as Uint8Array;
+      return { comprobante: aComprobante(f), datos: new Uint8Array(crudo) };
     },
 
     async anotar(apunte: Apunte) {

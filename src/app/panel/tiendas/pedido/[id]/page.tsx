@@ -25,6 +25,7 @@ import { usuarioActual } from "@/lib/panel/sesion";
 import { leerExistencias } from "@/lib/panel/situacion";
 
 import { Confirmacion } from "../../../_piezas/confirmacion";
+import { Recibos } from "../../../_piezas/recibos";
 import { BotonAvanzar } from "../avanzar";
 
 export const dynamic = "force-dynamic";
@@ -45,11 +46,12 @@ export default async function PantallaPedidoMayorista({
   const pedido = await almacen.pedidoMayoristaPorId(id);
   if (!pedido) notFound();
 
-  const [tienda, colores, apuntes, estante] = await Promise.all([
+  const [tienda, colores, apuntes, estante, recibos] = await Promise.all([
     almacen.tiendaPorId(pedido.tiendaId),
     almacen.listarColores(),
     almacen.listarApuntes("pedido-mayorista", id),
     leerExistencias(),
+    almacen.listarComprobantes("pedido-mayorista", id),
   ]);
 
   /*
@@ -148,6 +150,12 @@ export default async function PantallaPedidoMayorista({
             .join("; ")}
           . Si se confirma, quedan vendidas cajas que no estan.
         </p>
+      ) : null}
+
+      {pedido.envio !== "sin_enviar" ? (
+        <div className="mt-4">
+          <Recibos entidad="pedido-mayorista" entidadId={pedido.id} recibos={recibos} />
+        </div>
       ) : null}
 
       {/* La cuenta */}

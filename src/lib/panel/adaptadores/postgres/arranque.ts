@@ -23,12 +23,17 @@ import { personasDelPanel } from "../../personas";
 import type { Conexion } from "./conexion";
 import { huecos } from "./huecos";
 import { migrar, type Migracion } from "./migrar";
-import { SQL_001_INICIAL, SQL_002_EXISTENCIAS_Y_AVISOS } from "./migraciones";
+import {
+  SQL_001_INICIAL,
+  SQL_002_EXISTENCIAS_Y_AVISOS,
+  SQL_003_COMPROBANTES,
+} from "./migraciones";
 import { unaSolaVez } from "./una-sola-vez";
 
 const MIGRACIONES: readonly Migracion[] = [
   { nombre: "001-inicial", sql: SQL_001_INICIAL },
   { nombre: "002-existencias-y-avisos", sql: SQL_002_EXISTENCIAS_Y_AVISOS },
+  { nombre: "003-comprobantes", sql: SQL_003_COMPROBANTES },
 ];
 
 /*

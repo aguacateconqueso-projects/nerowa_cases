@@ -8,6 +8,15 @@
 
 const MENSAJES: Record<string, string> = {
   enviado: "Marcado como enviado. Ya esta fuera.",
+  "enviado-enviado": "Marcado como enviado, y al cliente le llego el correo con el seguimiento.",
+  "enviado-sin-correo": "Marcado como enviado. Este cliente no tiene correo: mandale el seguimiento por mensaje (abajo).",
+  "enviado-sin-conexion": "Marcado como enviado. Los correos al cliente todavia no estan conectados: mandale el seguimiento por mensaje (abajo).",
+  "enviado-fallo": "Marcado como enviado, pero el correo al cliente NO salio. Mandale el seguimiento por mensaje (abajo).",
+  recibo: "Foto del recibo guardada.",
+  "correo-ok": "Correo con el seguimiento enviado al cliente.",
+  "correo-fallo": "El correo no salio. Mandale el seguimiento por mensaje.",
+  seguimiento: "Seguimiento corregido.",
+  "seguimiento-correo": "Seguimiento corregido, y al cliente le llego el correo con el numero bueno.",
   entregado: "Marcado como entregado.",
   archivado: "Archivado.",
   incidencia: "Incidencia anotada.",

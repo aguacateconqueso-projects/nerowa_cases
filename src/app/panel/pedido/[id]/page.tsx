@@ -17,6 +17,8 @@ import { formatearEuros } from "@/lib/panel/dominio/dinero";
 import { costeDeLote, margenDePedido } from "@/lib/panel/dominio/economia";
 import { NOMBRE_ESTADO, transicionesDesde } from "@/lib/panel/dominio/estados";
 import { describirEspera, horasDesde } from "@/lib/panel/dominio/tiempo";
+import { enlaceWhatsApp, mensajeDeSeguimiento } from "@/lib/panel/dominio/seguimiento";
+import type { Apunte, Pedido } from "@/lib/panel/dominio/tipos";
 import type { Centimos } from "@/lib/panel/dominio/dinero";
 import { ahoraServidor } from "@/lib/panel/reloj";
 import { servicios } from "@/lib/panel/servicios";
@@ -29,6 +31,8 @@ import { BotonCopiar } from "../../_piezas/copiar";
 import { CosteEnvio } from "../../_piezas/coste-envio";
 import { FormularioEnvio } from "../../_piezas/formulario-envio";
 import { BotonEstado } from "../../_piezas/boton-estado";
+import { AvisoCliente, type EstadoCorreo } from "../../_piezas/aviso-cliente";
+import { Recibos } from "../../_piezas/recibos";
 
 export const dynamic = "force-dynamic";
 
@@ -48,13 +52,15 @@ export default async function PantallaPedido({
   const pedido = await almacen.pedidoPorId(id);
   if (!pedido) notFound();
 
-  const [listaColores, lotes, apuntes, ahora, costeSugerido] = await Promise.all([
+  const [listaColores, lotes, apuntes, ahora, costeSugerido, recibos] = await Promise.all([
     almacen.listarColores(),
     almacen.listarLotes(),
     almacen.listarApuntes("pedido", id),
     ahoraServidor(),
     ultimoCosteEnvio(),
+    almacen.listarComprobantes("pedido", id),
   ]);
+  const correoListo = servicios().correo.describir().listo;
 
   const colores = new Map(listaColores.map((c) => [c.id, c]));
   const costePorLote = new Map<string, Centimos>(
@@ -165,6 +171,28 @@ export default async function PantallaPedido({
                 </span>
                 <span className="t-figures text-lg">{pedido.seguimiento}</span>
               </p>
+            ) : null}
+
+            {/* El recibo: lo pide hasta que este. */}
+            <Recibos entidad="pedido" entidadId={pedido.id} recibos={recibos} />
+
+            {/* Que el cliente tenga su numero. */}
+            {pedido.seguimiento ? (
+              <section className="grid gap-2">
+                <h2 className="t-label" style={{ color: "var(--panel-tenue)" }}>
+                  Al cliente
+                </h2>
+                <AvisoCliente
+                  pedidoId={pedido.id}
+                  seguimiento={pedido.seguimiento}
+                  estadoCorreo={estadoDelCorreo(pedido, apuntes, correoListo)}
+                  mensaje={mensajeDeSeguimiento(pedido, colores)}
+                  whatsapp={enlaceWhatsApp(
+                    pedido.direccion.telefono,
+                    mensajeDeSeguimiento(pedido, colores),
+                  )}
+                />
+              </section>
             ) : null}
             {/*
               Lo que costo el envio se pregunta AQUI, ya enviado el pedido: es
@@ -283,4 +311,21 @@ function Fila({ termino, valor }: { termino: string; valor: string }) {
       <dd className="t-figures">{valor}</dd>
     </div>
   );
+}
+
+/*
+  Si al cliente le llego el seguimiento, leido del historial del pedido. No hay
+  un campo aparte para esto a proposito: el historial ya dice que paso y
+  cuando, y un segundo sitio donde guardarlo seria otra cosa que se desincroniza.
+*/
+function estadoDelCorreo(pedido: Pedido, apuntes: Apunte[], correoListo: boolean): EstadoCorreo {
+  /* Los apuntes vienen del mas nuevo al mas viejo. */
+  const ultimo = apuntes.find((a) =>
+    ["correo-seguimiento", "correo-seguimiento-fallo", "seguimiento-corregido"].includes(a.accion),
+  );
+  if (ultimo?.accion === "correo-seguimiento") return { tipo: "enviado", detalle: ultimo.detalle };
+  if (ultimo?.accion === "correo-seguimiento-fallo") return { tipo: "fallo", detalle: ultimo.detalle };
+  if (!pedido.clienteCorreo.includes("@")) return { tipo: "sin-correo" };
+  if (!correoListo) return { tipo: "sin-conexion" };
+  return { tipo: "pendiente" };
 }

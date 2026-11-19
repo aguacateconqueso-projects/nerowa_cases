@@ -17,7 +17,7 @@
   Variables de entorno que lee:
 
     PANEL_ALMACEN   memoria (por defecto) | postgres
-    PANEL_CORREO    consola (por defecto) | resend
+    PANEL_CORREO    consola (por defecto) | resend  (+ RESEND_API_KEY)
     PANEL_AVISOS    consola (por defecto) | telegram  (+ TELEGRAM_BOT_TOKEN)
     PANEL_ARCHIVOS  memoria (por defecto) | supabase
 */
@@ -30,7 +30,10 @@ import { envolverAlmacenPostgres } from "./adaptadores/postgres/no-quedarse-colg
 import { crearArchivosMemoria } from "./adaptadores/archivos-memoria";
 import { crearAvisosConsola } from "./adaptadores/avisos-consola";
 import { crearAvisosTelegram } from "./adaptadores/avisos-telegram";
+import { CONTACT_EMAIL } from "@/lib/brand";
+
 import { crearCorreoConsola } from "./adaptadores/correo-consola";
+import { crearCorreoResend } from "./adaptadores/correo-resend";
 import type { Almacen } from "./puertos/almacen";
 import type { Archivos } from "./puertos/archivos";
 import type { Avisos } from "./puertos/avisos";
@@ -90,9 +93,21 @@ function construir(): Servicios {
     switch (process.env.PANEL_CORREO ?? "consola") {
       case "consola":
         return crearCorreoConsola();
+      case "resend": {
+        const clave = process.env.RESEND_API_KEY;
+        if (!clave) {
+          /* Igual que Telegram: que falte la clave no tumba el panel. */
+          console.error("[panel] PANEL_CORREO=resend pero falta RESEND_API_KEY: no sale ningun correo.");
+          return crearCorreoConsola();
+        }
+        return crearCorreoResend({
+          clave,
+          desde: process.env.PANEL_CORREO_DESDE ?? `Nerowa Cases <${CONTACT_EMAIL}>`,
+        });
+      }
       default:
         throw new Error(
-          `PANEL_CORREO="${process.env.PANEL_CORREO}" no existe todavia. Hoy solo hay "consola".`,
+          `PANEL_CORREO="${process.env.PANEL_CORREO}" no existe. Los que hay son "consola" y "resend".`,
         );
     }
   })();

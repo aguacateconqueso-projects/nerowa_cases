@@ -14,9 +14,11 @@
   - El boton dice lo que va a pasar y confirma que paso, con vibracion incluida.
 */
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 
 import { marcarEnviado, type Resultado } from "../pedido/acciones";
+
+import { BotonRecibo } from "./campo-recibo";
 
 export function FormularioEnvio({ pedidoId }: { pedidoId: string }) {
   const [resultado, accion, enCurso] = useActionState<Resultado | undefined, FormData>(
@@ -25,6 +27,9 @@ export function FormularioEnvio({ pedidoId }: { pedidoId: string }) {
   );
   const campo = useRef<HTMLInputElement>(null);
   const [sugerencia, setSugerencia] = useState<string | null>(null);
+  /* La foto ya comprimida. Va aparte del formulario porque un `<input
+     type=file>` no deja meterle un archivo distinto del que se eligio. */
+  const [recibo, setRecibo] = useState<File | null>(null);
 
   useEffect(() => {
     if (resultado?.ok) navigator.vibrate?.([40, 30, 40]);
@@ -47,26 +52,37 @@ export function FormularioEnvio({ pedidoId }: { pedidoId: string }) {
   }
 
   return (
-    <form action={accion} className="grid gap-3">
+    <form
+      className="grid gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const datos = new FormData(e.currentTarget);
+        if (recibo) datos.set("recibo", recibo, recibo.name);
+        startTransition(() => accion(datos));
+      }}
+    >
       <input type="hidden" name="pedidoId" value={pedidoId} />
 
       <div>
         <label htmlFor="seguimiento" className="t-label mb-2 block">
           Numero de seguimiento
         </label>
-        <input
-          ref={campo}
-          id="seguimiento"
-          name="seguimiento"
-          className="panel-campo"
-          inputMode="text"
-          autoCapitalize="characters"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="RA123456789LT"
-          onFocus={mirarPortapapeles}
-          required
-        />
+        <div className="flex gap-2">
+          <input
+            ref={campo}
+            id="seguimiento"
+            name="seguimiento"
+            className="panel-campo"
+            inputMode="text"
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="RA123456789LT"
+            onFocus={mirarPortapapeles}
+            required
+          />
+          <BotonRecibo alElegir={setRecibo} />
+        </div>
         {sugerencia ? (
           <button
             type="button"
@@ -84,7 +100,7 @@ export function FormularioEnvio({ pedidoId }: { pedidoId: string }) {
 
       <div className="panel-accion-anclada">
         <button type="submit" className="panel-boton panel-boton-principal" disabled={enCurso}>
-          {enCurso ? "Marcando…" : "Marcar enviado"}
+          {enCurso ? (recibo ? "Subiendo el recibo…" : "Marcando…") : "Marcar enviado"}
         </button>
       </div>
 

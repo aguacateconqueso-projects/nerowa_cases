@@ -21,6 +21,7 @@ import type {
   Apunte,
   AvisoEnviado,
   Color,
+  Comprobante,
   EstadoPedido,
   Id,
   Lote,
@@ -149,6 +150,21 @@ export interface Almacen {
   soltarAviso(clave: string): Promise<void>;
   /** Los ultimos, del mas nuevo al mas viejo. */
   listarAvisosEnviados(limite: number): Promise<AvisoEnviado[]>;
+
+  /*
+    --- Comprobantes ---
+
+    Las fotos de los recibos viven en la misma base que los pedidos. Es a
+    proposito: un proveedor de archivos aparte es otra cuenta, otra clave y
+    otro sitio donde puede faltar algo, para guardar unos cientos de KB por
+    envio. Si algun dia pesan demasiado, se mueven a otro sitio cambiando solo
+    el adaptador, como siempre.
+  */
+  guardarComprobante(comprobante: Comprobante, datos: Uint8Array): Promise<void>;
+  /** Sin argumentos, todos (solo los datos, no las fotos). */
+  listarComprobantes(entidad?: string, entidadId?: Id): Promise<Comprobante[]>;
+  /** La foto en si, para ensenarla. */
+  datosDeComprobante(id: Id): Promise<{ comprobante: Comprobante; datos: Uint8Array } | undefined>;
 
   /* --- Rastro --- */
   anotar(apunte: Apunte): Promise<void>;
