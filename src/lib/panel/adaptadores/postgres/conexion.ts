@@ -1,5 +1,7 @@
 import "server-only";
 
+import { crearFila } from "./en-fila";
+
 /*
   La conexion a Postgres.
 
@@ -51,6 +53,19 @@ export interface Conexion {
 */
 let sql: import("postgres").Sql | undefined;
 let cliente: Conexion | undefined;
+
+/*
+  UNA CONSULTA A LA VEZ. El porque, con los numeros de produccion, esta en
+  `en-fila.ts`: el pooler de transacciones de Supabase no aguanta varias
+  consultas encadenadas por la misma conexion, y con `max: 1` eso es justo lo
+  que hace el cliente cuando una pantalla pide seis cosas a la vez.
+*/
+const fila = crearFila({
+  /* Por encima del `statement_timeout` de las migraciones (15 s): nunca se
+     corta una migracion a medias. */
+  esperaMaxMs: 16_000,
+  alAtascarse: () => soltarConexion(),
+});
 
 /** Crea el cliente la primera vez. Nunca deja escapar la cadena en el error. */
 function clientePostgres() {
@@ -175,6 +190,8 @@ export function soltarConexion(): void {
   const viejo = sql;
   sql = undefined;
   cliente = undefined;
+  /* Lo que esperaba detras de la atascada sale ya, por la conexion nueva. */
+  fila.vaciar();
   /* `.end()` sin await y con el fallo tragado: su unico trabajo aqui es no
      dejar el socket colgando, y si no puede, tampoco pasa nada grave. */
   void viejo?.end({ timeout: 1 }).catch(() => {});
@@ -184,14 +201,21 @@ export function conexion(): Conexion {
   if (cliente) return cliente;
 
   cliente = {
-    async consultar<T>(texto: string, parametros: readonly unknown[] = []) {
-      const s = clientePostgres();
-      return s.unsafe(texto, parametros as never[]) as unknown as Promise<T[]>;
+    /*
+      El cliente se pide DENTRO del turno, no antes: si mientras esperaba se
+      tiro la conexion atascada, esta consulta tiene que salir por la nueva.
+    */
+    consultar<T>(texto: string, parametros: readonly unknown[] = []) {
+      return fila.poner(
+        () => clientePostgres().unsafe(texto, parametros as never[]) as unknown as Promise<T[]>,
+      );
     },
     async ejecutar(texto: string) {
       /* `.simple()` cambia al protocolo simple, el unico que acepta varias
          sentencias en un mismo envio. */
-      await clientePostgres().unsafe(texto).simple();
+      await fila.poner(async () => {
+        await clientePostgres().unsafe(texto).simple();
+      });
     },
   };
   return cliente;

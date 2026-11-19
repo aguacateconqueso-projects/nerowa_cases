@@ -2956,6 +2956,33 @@ mensaje; lo urgente es haber vendido lo que no hay.
 `CRON_SECRET`; que cada uno le escriba al bot y guarde su chat en Ajustes.
 Y que Alfredo haga **el primer conteo** del estante.
 
+### Sesion 13, segunda vuelta — 2026-11-19: el atasco tenia nombre
+
+**Lo que paso:** el proyecto viejo de Supabase se pauso por inactividad y ya no
+se podia reactivar (se pasaron los 2 proyectos gratis). Adrian abrio cuenta
+nueva y proyecto nuevo. El respaldo del 28-09 no traia nada que restaurar:
+solo la semilla automatica (2 personas, 8 colores de relleno, el lote).
+
+**Y con la base nueva, `/panel/estado` seguia en rojo**, con una pista que por
+fin lo explicaba todo:
+
+    las seis consultas del panel, una por una ...... 3 a 158 ms
+    las mismas seis, a la vez ...................... no contestan en 6,6 s
+
+El cliente (`postgres.js`, `max: 1`) manda las consultas simultaneas
+encadenadas por la misma conexion sin esperar respuesta (pipelining), y el
+pooler de transacciones de Supabase no lo aguanta: se quedan esperando. Es la
+contradiccion de la vuelta 25 de la sesion 10 ("count(*) en 25 ms, select *
+agota 7 s") y casi seguro el "hay que tocar 30 veces": cada pantalla pide
+varias cosas a la vez.
+
+**Arreglo:** `adaptadores/postgres/en-fila.ts`. Una consulta a la vez por la
+conexion; si una se cuelga, se tira la conexion y la siguiente sale por una
+nueva. Con 5 comprobaciones propias. **197 en total.**
+
+**Para que no se vuelva a pausar:** `CRON_SECRET` en Vercel (el cron consulta
+la base a diario).
+
 ## Lo que queda por confirmar
 
 **Con esta vuelta el panel deberia cargar** aunque la consulta siga tropezando,
