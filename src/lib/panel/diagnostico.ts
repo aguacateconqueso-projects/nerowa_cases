@@ -368,6 +368,9 @@ export async function diagnosticar(): Promise<Diagnostico> {
       ["listarPedidos", () => almacen.listarPedidos()],
       ["listarPedidosMayoristas", () => almacen.listarPedidosMayoristas()],
       ["listarLotes", () => almacen.listarLotes()],
+      /* Las tablas de la migracion 002 (sesion 13). */
+      ["listarMovimientos", () => almacen.listarMovimientos()],
+      ["leerAjustes", () => almacen.leerAjustes()],
     ];
 
     base.llamadas = [];
