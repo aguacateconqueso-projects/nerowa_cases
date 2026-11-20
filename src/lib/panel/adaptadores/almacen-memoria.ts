@@ -24,6 +24,7 @@ import type {
   Apunte,
   AvisoEnviado,
   Color,
+  Comprobante,
   Lote,
   MovimientoExistencias,
   Pedido,
@@ -299,6 +300,7 @@ export function crearAlmacenMemoria(): Almacen {
   const movimientos: MovimientoExistencias[] = movimientosDeEjemplo();
   let ajustes: Partial<AjustesPanel> = {};
   const avisos: AvisoEnviado[] = [];
+  const comprobantes: { c: Comprobante; datos: Uint8Array }[] = [];
 
   const clon = <T,>(v: T): T => structuredClone(v);
   const norm = (correo: string) => correo.trim().toLowerCase();
@@ -445,6 +447,22 @@ export function crearAlmacenMemoria(): Almacen {
       return clon(
         [...avisos].sort((a, b) => b.enviadoEn.localeCompare(a.enviadoEn)).slice(0, limite),
       );
+    },
+
+    async guardarComprobante(c, datos) {
+      comprobantes.push({ c: clon(c), datos: new Uint8Array(datos) });
+    },
+    async listarComprobantes(entidad, entidadId) {
+      return clon(
+        comprobantes
+          .map((x) => x.c)
+          .filter((c) => !entidad || (c.entidad === entidad && c.entidadId === entidadId))
+          .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)),
+      );
+    },
+    async datosDeComprobante(id) {
+      const x = comprobantes.find((y) => y.c.id === id);
+      return x ? { comprobante: clon(x.c), datos: new Uint8Array(x.datos) } : undefined;
     },
 
     async anotar(apunte) {

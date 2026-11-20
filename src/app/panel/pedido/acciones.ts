@@ -17,9 +17,11 @@ import { redirect } from "next/navigation";
 import { euros, IVA_LITUANIA, sinIva } from "@/lib/panel/dominio/dinero";
 import { NOMBRE_ESTADO, puedeTransitar } from "@/lib/panel/dominio/estados";
 import { faltantesPara } from "@/lib/panel/dominio/existencias";
+import { limpiarSeguimiento, validarSeguimiento } from "@/lib/panel/dominio/seguimiento";
 import type { EstadoPedido, LineaPedido, Pedido } from "@/lib/panel/dominio/tipos";
 import { servicios } from "@/lib/panel/servicios";
 import { exigirUsuario } from "@/lib/panel/sesion";
+import { avisarAlCliente, guardarRecibo } from "@/lib/panel/recibos";
 import { leerExistencias } from "@/lib/panel/situacion";
 import { avisarEvento } from "@/lib/panel/vigia";
 
@@ -60,12 +62,13 @@ export async function marcarEnviado(
   const { almacen } = servicios();
 
   const pedidoId = String(datos.get("pedidoId") ?? "");
-  const seguimiento = String(datos.get("seguimiento") ?? "").trim();
+  /* Lo copiado de un papel trae espacios y minusculas: se limpia antes de
+     guardarlo, que es el numero que va a buscar el cliente. */
+  const seguimiento = limpiarSeguimiento(String(datos.get("seguimiento") ?? ""));
   const costeTexto = String(datos.get("envioCoste") ?? "").trim();
 
-  if (!seguimiento) {
-    return { ok: false, mensaje: "Falta el numero de seguimiento." };
-  }
+  const malo = validarSeguimiento(seguimiento);
+  if (malo) return { ok: false, mensaje: malo };
 
   const pedido = await almacen.pedidoPorId(pedidoId);
   if (!pedido) return { ok: false, mensaje: "Ese pedido ya no existe." };
@@ -89,8 +92,20 @@ export async function marcarEnviado(
     return { ok: false, mensaje: "El coste del envio no es un numero valido." };
   }
 
+  /*
+    La foto del recibo va con el envio si Alfredo la tomo ya, que es lo comodo:
+    esta en la oficina de correos con el papel en la mano. Es opcional para no
+    romper los quince segundos; si falta, el panel la pide despues.
+
+    Se guarda ANTES de marcar enviado: si la foto no vale, el pedido sigue en
+    "por enviar" y el formulario dice por que, en vez de quedar enviado a
+    medias.
+  */
+  const fallaRecibo = await guardarRecibo(usuario, "pedido", pedidoId, datos.get("recibo"));
+  if (fallaRecibo) return { ok: false, mensaje: fallaRecibo };
+
   const ahora = new Date().toISOString();
-  await almacen.actualizarPedido(pedidoId, {
+  const enviado = await almacen.actualizarPedido(pedidoId, {
     estado: "enviado",
     seguimiento,
     enviadoEn: ahora,
@@ -124,9 +139,109 @@ export async function marcarEnviado(
     },
   });
 
+  /* Y el cliente recibe su numero, que es para lo que se escribio. */
+  const colores = new Map((await almacen.listarColores()).map((c) => [c.id, c]));
+  const alCliente = enviado ? await avisarAlCliente(usuario, enviado, colores) : "fallo";
+
   revalidatePath("/panel");
   revalidatePath(`/panel/pedido/${pedidoId}`);
-  confirmar(pedidoId, "enviado");
+  confirmar(pedidoId, `enviado-${alCliente}`);
+}
+
+/* --------------------------------------------------------------------------
+   El recibo y el seguimiento, despues de enviado
+   -------------------------------------------------------------------------- */
+
+/** Sube la foto del recibo a un pedido de la web o de una tienda. */
+export async function subirRecibo(
+  _anterior: Resultado | undefined,
+  datos: FormData,
+): Promise<Resultado> {
+  const usuario = await exigirUsuario();
+  const { almacen } = servicios();
+  const entidad = String(datos.get("entidad") ?? "");
+  const id = String(datos.get("entidadId") ?? "");
+
+  if (entidad !== "pedido" && entidad !== "pedido-mayorista") {
+    return { ok: false, mensaje: "No se sabe a que pedido va este recibo." };
+  }
+  const existe =
+    entidad === "pedido" ? await almacen.pedidoPorId(id) : await almacen.pedidoMayoristaPorId(id);
+  if (!existe) return { ok: false, mensaje: "Ese pedido ya no existe." };
+
+  const archivo = datos.get("recibo");
+  if (!archivo || typeof archivo === "string" || archivo.size === 0) {
+    return { ok: false, mensaje: "Toma o elige la foto del recibo." };
+  }
+  const falla = await guardarRecibo(usuario, entidad, id, archivo);
+  if (falla) return { ok: false, mensaje: falla };
+
+  const ruta = entidad === "pedido" ? `/panel/pedido/${id}` : `/panel/tiendas/pedido/${id}`;
+  revalidatePath("/panel");
+  revalidatePath(ruta);
+  redirect(`${ruta}?hecho=recibo`);
+}
+
+/** Vuelve a mandar el seguimiento por correo: si fallo, o si se conecto Resend despues. */
+export async function reenviarSeguimiento(
+  _anterior: Resultado | undefined,
+  datos: FormData,
+): Promise<Resultado> {
+  const usuario = await exigirUsuario();
+  const { almacen } = servicios();
+  const pedido = await almacen.pedidoPorId(String(datos.get("pedidoId") ?? ""));
+  if (!pedido?.seguimiento) return { ok: false, mensaje: "Este pedido no tiene seguimiento." };
+
+  const colores = new Map((await almacen.listarColores()).map((c) => [c.id, c]));
+  const r = await avisarAlCliente(usuario, pedido, colores);
+  if (r === "sin-correo") return { ok: false, mensaje: "Este cliente no tiene correo: copia el mensaje." };
+  if (r === "sin-conexion") {
+    return { ok: false, mensaje: "Los correos todavia no estan conectados (falta Resend): copia el mensaje." };
+  }
+
+  revalidatePath(`/panel/pedido/${pedido.id}`);
+  confirmar(pedido.id, r === "enviado" ? "correo-ok" : "correo-fallo");
+}
+
+/**
+ * Corrige un numero de seguimiento mal escrito.
+ *
+ * Una errata aqui es un cliente que no encuentra su paquete, asi que se puede
+ * arreglar sin "corregir el estado" y queda anotado el numero de antes.
+ */
+export async function corregirSeguimiento(
+  _anterior: Resultado | undefined,
+  datos: FormData,
+): Promise<Resultado> {
+  const usuario = await exigirUsuario();
+  const { almacen } = servicios();
+  const pedido = await almacen.pedidoPorId(String(datos.get("pedidoId") ?? ""));
+  if (!pedido) return { ok: false, mensaje: "Ese pedido ya no existe." };
+
+  const nuevo = limpiarSeguimiento(String(datos.get("seguimiento") ?? ""));
+  const malo = validarSeguimiento(nuevo);
+  if (malo) return { ok: false, mensaje: malo };
+  if (nuevo === pedido.seguimiento) return { ok: false, mensaje: "Es el mismo numero que ya estaba." };
+
+  const corregido = await almacen.actualizarPedido(pedido.id, { seguimiento: nuevo });
+  await almacen.anotar({
+    id: crypto.randomUUID(),
+    entidad: "pedido",
+    entidadId: pedido.id,
+    accion: "seguimiento-corregido",
+    usuarioId: usuario.id,
+    detalle: `${usuario.nombre} corrigio el seguimiento: ${pedido.seguimiento ?? "(vacio)"} → ${nuevo}`,
+    creadoEn: new Date().toISOString(),
+  });
+
+  let hecho = "seguimiento";
+  if (datos.get("avisar") === "si" && corregido) {
+    const colores = new Map((await almacen.listarColores()).map((c) => [c.id, c]));
+    const r = await avisarAlCliente(usuario, corregido, colores);
+    hecho = r === "enviado" ? "seguimiento-correo" : "seguimiento";
+  }
+  revalidatePath(`/panel/pedido/${pedido.id}`);
+  confirmar(pedido.id, hecho);
 }
 
 /** Cualquier otro cambio de estado que no necesite escribir nada. */

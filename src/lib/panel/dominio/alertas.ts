@@ -35,6 +35,7 @@ export type TipoAlerta =
   | "pedido_recordatorio"
   | "pedido_incidencia"
   | "pedido_sin_entregar"
+  | "pedido_sin_recibo"
   | "existencias_faltan"
   | "existencias_agotadas"
   | "existencias_bajas"
@@ -65,6 +66,9 @@ export interface Alerta {
 }
 
 const OPERACION: readonly Rol[] = ["operacion"];
+
+/** Cuanto se espera antes de recordar que falta la foto del recibo. */
+export const HORAS_PARA_PEDIR_RECIBO = 6;
 const LOS_DOS: readonly Rol[] = ["operacion", "dueno"];
 
 const PESO: Record<TipoAlerta, number> = {
@@ -76,6 +80,7 @@ const PESO: Record<TipoAlerta, number> = {
   pedido_recordatorio: 60,
   factura_vencida: 50,
   pedido_sin_entregar: 40,
+  pedido_sin_recibo: 35,
   existencias_bajas: 30,
   existencias_sin_conteo: 20,
 };
@@ -88,6 +93,8 @@ export interface EntradaAlertas {
   existencias: readonly ExistenciasColor[];
   /** Si alguien conto el estante alguna vez. Sin conteo no hay "agotado". */
   conConteo: boolean;
+  /** Los pedidos (de la web o de tienda) que ya tienen foto del recibo. */
+  conRecibo: ReadonlySet<string>;
   ajustes: AjustesPanel;
   ahora: number;
 }
@@ -174,6 +181,43 @@ export function calcularAlertas(e: EntradaAlertas): Alerta[] {
           enlace,
         });
       }
+    }
+  }
+
+  /*
+    --- Enviados sin foto del recibo ---
+
+    Alfredo tiene que subir el recibo de cada envio. Se le recuerda pasadas
+    unas horas —no al instante: puede que lo suba en cuanto llegue a casa—, y
+    una sola vez por pedido. Los archivados ya no, que son historia.
+  */
+  const sinRecibo = (id: string, enviadoEn: string | undefined) =>
+    !e.conRecibo.has(id) && enviadoEn !== undefined && horasDesde(enviadoEn, e.ahora) >= HORAS_PARA_PEDIR_RECIBO;
+
+  for (const p of e.pedidos) {
+    if ((p.estado === "enviado" || p.estado === "entregado") && sinRecibo(p.id, p.enviadoEn)) {
+      anadir({
+        clave: `pedido:${p.id}:sin-recibo`,
+        tipo: "pedido_sin_recibo",
+        gravedad: "normal",
+        para: OPERACION,
+        titulo: `#${p.numero}: falta la foto del recibo`,
+        cuerpo: `Enviado a ${p.clienteNombre}. Sube la foto del recibo del correo desde el pedido.`,
+        enlace: `/panel/pedido/${p.id}`,
+      });
+    }
+  }
+  for (const p of e.mayoristas) {
+    if (p.estado !== "cancelado" && p.envio !== "sin_enviar" && sinRecibo(p.id, p.enviadoEn)) {
+      anadir({
+        clave: `mayorista:${p.id}:sin-recibo`,
+        tipo: "pedido_sin_recibo",
+        gravedad: "normal",
+        para: OPERACION,
+        titulo: `Tienda #${p.numero}: falta la foto del recibo`,
+        cuerpo: "Sube la foto del recibo del correo desde el pedido de la tienda.",
+        enlace: `/panel/tiendas/pedido/${p.id}`,
+      });
     }
   }
 

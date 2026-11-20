@@ -328,3 +328,26 @@ export interface AvisoEnviado {
   canales: string[];
   enviadoEn: Instante;
 }
+
+/* --------------------------------------------------------------------------
+   Comprobantes
+   -------------------------------------------------------------------------- */
+
+/**
+ * Una foto (o PDF) pegada a algo: el recibo del correo de un envio, sobre todo.
+ *
+ * Aqui va solo lo que se lista. Los bytes van aparte y se piden uno a uno,
+ * porque una pantalla con diez pedidos no tiene por que cargar diez fotos.
+ */
+export interface Comprobante {
+  id: Id;
+  /** De que cosa: "pedido" o "pedido-mayorista", como en `Apunte`. */
+  entidad: string;
+  entidadId: Id;
+  /** Que es: hoy solo "recibo-envio". Deja sitio a facturas y devoluciones. */
+  clase: "recibo-envio";
+  tipo: string;
+  bytes: number;
+  usuarioId: Id;
+  creadoEn: Instante;
+}

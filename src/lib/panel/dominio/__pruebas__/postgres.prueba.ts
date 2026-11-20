@@ -33,6 +33,7 @@ import type { Conexion } from "../../adaptadores/postgres/conexion";
 import {
   SQL_001_INICIAL,
   SQL_002_EXISTENCIAS_Y_AVISOS,
+  SQL_003_COMPROBANTES,
 } from "../../adaptadores/postgres/migraciones";
 import { migrar } from "../../adaptadores/postgres/migrar";
 import { euros, IVA_LITUANIA } from "../dinero";
@@ -501,6 +502,48 @@ async function principal() {
     assert.equal((await almacen.usuarioPorId("u-alfredo"))?.telegramChatId, "123456789");
     await almacen.actualizarUsuario("u-alfredo", { telegramChatId: null });
     assert.equal((await almacen.usuarioPorId("u-alfredo"))?.telegramChatId, undefined);
+  });
+
+  console.log("\nMigracion 003: las fotos de los recibos");
+
+  await comprueba("entra encima de la 002, y solo una vez", async () => {
+    const con003 = [...migraciones, { nombre: "003-comprobantes", sql: SQL_003_COMPROBANTES }];
+    assert.deepEqual(await migrar(cx, con003), ["003-comprobantes"]);
+    assert.deepEqual(await migrar(cx, con003), []);
+  });
+
+  /* Una "foto" con todos los valores de byte posibles: si algo la convierte a
+     texto por el camino, se nota. */
+  const foto = new Uint8Array(4096).map((_, i) => i % 256);
+  const recibo = {
+    id: "c-1",
+    entidad: "pedido",
+    entidadId: "p-1",
+    clase: "recibo-envio" as const,
+    tipo: "image/jpeg",
+    bytes: foto.byteLength,
+    usuarioId: "u-alfredo",
+    creadoEn: "2026-11-19T10:00:00.000Z",
+  };
+
+  await comprueba("la foto vuelve byte a byte igual", async () => {
+    await almacen.guardarComprobante(recibo, foto);
+    const leida = await almacen.datosDeComprobante("c-1");
+    assert.deepEqual(leida?.comprobante, recibo);
+    assert.equal(leida?.datos.byteLength, foto.byteLength);
+    assert.deepEqual(Array.from(leida!.datos), Array.from(foto));
+  });
+
+  await comprueba("listar no trae las fotos, y filtra por pedido", async () => {
+    await almacen.guardarComprobante({ ...recibo, id: "c-2", entidadId: "p-2", creadoEn: "2026-11-19T11:00:00.000Z" }, foto);
+    const todos = await almacen.listarComprobantes();
+    assert.deepEqual(todos.map((c) => c.id), ["c-2", "c-1"]);
+    assert.equal("datos" in todos[0]!, false);
+    assert.deepEqual((await almacen.listarComprobantes("pedido", "p-1")).map((c) => c.id), ["c-1"]);
+  });
+
+  await comprueba("un recibo de algo que no es un pedido no entra", async () => {
+    await assert.rejects(almacen.guardarComprobante({ ...recibo, id: "c-3", entidad: "tienda" }, foto));
   });
 
   console.log("\nLo que la base de datos NO deja hacer");

@@ -57,6 +57,7 @@ function entrada(e: {
   tiendas?: Tienda[];
   movimientos?: MovimientoExistencias[];
   ahora?: number;
+  recibos?: string[];
 }): EntradaAlertas {
   const movimientos = e.movimientos ?? lleno;
   const pedidos = e.pedidos ?? [];
@@ -68,6 +69,7 @@ function entrada(e: {
     colores,
     existencias: calcularExistencias({ colores, movimientos, pedidos, mayoristas, umbralBajo: 3 }),
     conConteo: movimientos.length > 0,
+    conRecibo: new Set(e.recibos ?? []),
     ajustes: AJUSTES_POR_DEFECTO,
     ahora: e.ahora ?? AHORA,
   };
@@ -115,6 +117,21 @@ comprueba("un enviado de hace 8 dias pide revisar el seguimiento", () => {
   );
   assert.equal(a!.tipo, "pedido_sin_entregar");
   assert.match(a!.cuerpo, /RA1LT/);
+});
+
+comprueba("enviado hace 7 h sin foto del recibo: se le recuerda a Alfredo", () => {
+  const enviado = pedido("p", "enviado", 30, { enviadoEn: hace(7), seguimiento: "RA1LT" });
+  const [a] = calcularAlertas(entrada({ pedidos: [enviado] }));
+  assert.equal(a!.tipo, "pedido_sin_recibo");
+  assert.deepEqual(a!.para, ["operacion"]);
+  assert.equal(a!.gravedad, "normal");
+});
+
+comprueba("con recibo, o recien enviado, no se recuerda nada", () => {
+  const enviado = pedido("p", "enviado", 30, { enviadoEn: hace(7) });
+  assert.deepEqual(tipos(entrada({ pedidos: [enviado], recibos: ["p"] })), []);
+  const recien = pedido("q", "enviado", 30, { enviadoEn: hace(2) });
+  assert.deepEqual(tipos(entrada({ pedidos: [recien] })), []);
 });
 
 comprueba("una incidencia avisa a los dos", () => {

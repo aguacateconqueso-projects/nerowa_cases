@@ -250,3 +250,27 @@ create table if not exists avisos_enviados (
 
 create index if not exists avisos_enviados_en on avisos_enviados (enviado_en desc);
 `;
+
+export const SQL_003_COMPROBANTES = String.raw`
+-- Las fotos de los recibos de envio, en la misma base. Sesion 13, 2026-11-19.
+--
+-- Van en 'bytea' y no en un almacen de archivos aparte a proposito: son unos
+-- cientos de KB por envio (el telefono las comprime antes de subirlas), y un
+-- proveedor de archivos aparte seria otra cuenta y otra clave para eso. Con el
+-- plan gratuito de Supabase (500 MB) caben del orden de dos mil recibos.
+create table if not exists comprobantes (
+  id          text primary key,
+  entidad     text not null check (entidad in ('pedido', 'pedido-mayorista')),
+  entidad_id  text not null,
+  clase       text not null check (clase in ('recibo-envio')),
+  tipo        text not null,
+  -- Un tope en la base, ademas del de la accion: 5 MB es una foto sin
+  -- comprimir, y nada que se haya comprimido llega ahi.
+  bytes       integer not null check (bytes > 0 and bytes <= 5242880),
+  datos       bytea not null,
+  usuario_id  text not null references usuarios (id),
+  creado_en   timestamptz not null default now()
+);
+
+create index if not exists comprobantes_entidad on comprobantes (entidad, entidad_id, creado_en desc);
+`;

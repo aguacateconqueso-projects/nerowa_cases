@@ -41,14 +41,16 @@ export interface Situacion {
 
 export async function leerSituacion(ahora: number): Promise<Situacion> {
   const { almacen } = servicios();
-  const [colores, pedidos, mayoristas, tiendas, movimientos, guardados] = await Promise.all([
-    almacen.listarColores(),
-    almacen.listarPedidos(),
-    almacen.listarPedidosMayoristas(),
-    almacen.listarTiendas(),
-    almacen.listarMovimientos(),
-    almacen.leerAjustes(),
-  ]);
+  const [colores, pedidos, mayoristas, tiendas, movimientos, guardados, comprobantes] =
+    await Promise.all([
+      almacen.listarColores(),
+      almacen.listarPedidos(),
+      almacen.listarPedidosMayoristas(),
+      almacen.listarTiendas(),
+      almacen.listarMovimientos(),
+      almacen.leerAjustes(),
+      almacen.listarComprobantes(),
+    ]);
 
   const ajustes = completarAjustes(guardados);
   const existencias = calcularExistencias({
@@ -66,6 +68,9 @@ export async function leerSituacion(ahora: number): Promise<Situacion> {
     colores,
     existencias,
     conConteo,
+    conRecibo: new Set(
+      comprobantes.filter((c) => c.clase === "recibo-envio").map((c) => c.entidadId),
+    ),
     ajustes,
     ahora,
   });

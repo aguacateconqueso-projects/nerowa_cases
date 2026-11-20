@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
       gancho `useOffline` siempre devuelve falso.
     */
     useOffline: true,
+    serverActions: {
+      /*
+        Las fotos de los recibos suben por una accion de servidor, y el limite
+        por defecto es 1 MB. El telefono las comprime a unos 300-400 KB, pero
+        un PDF o una foto que no se pudo comprimir puede pasar de ahi. El tope
+        que manda es el de 4 MB de `recibos.ts`, que ademas cabe en los 4,5 MB
+        que Vercel deja por peticion; esto solo tiene que no cortar antes.
+      */
+      bodySizeLimit: "5mb",
+    },
   },
 };
 
